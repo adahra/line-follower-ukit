@@ -1,4 +1,4 @@
-#include "uKitExplore2.h"
+#include "ucode.h"
 #include <EEPROM.h>
 
 // --- PENGATURAN PID ---
@@ -104,13 +104,16 @@ void bacaNilaiDariEEPROM();
 
 void setup() {
   Initialization();
-
-  bacaNilaiDariEEPROM();
-  mulaiKalibrasiSensor(); // Kalibrasi ambang batas sensor saat menyala
+  if (protocolRunState == false) {
+    bacaNilaiDariEEPROM();
+    mulaiKalibrasiSensor(); // Kalibrasi ambang batas sensor saat menyala
+  }
 }
 
 void loop() {
-  cekTombol();
+  protocol();
+  if (protocolRunState == false) {
+    cekTombol();
   cekLampuGelap(); // headlight otomatis, non-blocking (throttle 200ms)
 
   if (robotJalan == true) {
@@ -253,7 +256,8 @@ void loop() {
     }
   }
 
-  delay(2);
+    delay(2);
+  }
 }
 
 // --- FUNGSI KALIBRASI SENSOR ---
