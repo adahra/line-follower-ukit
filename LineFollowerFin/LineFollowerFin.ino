@@ -84,7 +84,9 @@ bool tepukSiap = true; // true = menunggu lonjakan suara berikutnya
 // --- BATERAI LEMAH: hentikan semua fungsi bila tegangan <= ambang ---
 // Docs: readBatteryVoltage() -> float 0-8.4 V. Dicek throttle 500 ms;
 // sekali lemah, robot dikunci mati sampai power cycle (restart).
-const float TEGANGAN_MIN = 3.7;
+// Pack 2S (nominal 7,4 V, penuh 8,4 V): cut-off 7,2 V = 3,6 V/sel,
+// sama dengan contoh resmi docs. Jangan turunkan tanpa alasan.
+const float TEGANGAN_MIN = 7.2;
 const unsigned long CEK_BATERAI_MS = 500;
 unsigned long cekBateraiTerakhir = 0;
 bool bateraiLemah = false;
