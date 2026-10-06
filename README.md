@@ -10,7 +10,7 @@ Robot line follower PID untuk board uKit Explore 2. Seluruh program ada dalam sa
 
 ## Cara kerja singkat
 
-1. Saat dinyalakan, robot membaca `Kp`, `Kd`, `kecepatanDasarMaks`, dan ambang kiri/kanan dari EEPROM (jika magic `123` ada di alamat 0), lalu kalibrasi sensor otomatis: berputar ±3 detik (LED kuning), tiap sensor dihitung ambangnya sendiri dari rata-rata maks/min-nya, dijepit ke 5–14, lalu disimpan ke EEPROM.
+1. Saat dinyalakan, robot membaca `Kp`, `Kd`, `kecepatanDasarMaks`, dan ambang kiri/kanan dari EEPROM (jika magic `123` ada di alamat 0). Tidak ada kalibrasi otomatis — bila perlu, tekan **kedua tombol bersamaan** saat berhenti: robot berputar ±3 detik (LED kuning), tiap sensor dihitung ambangnya sendiri dari rata-rata maks/min-nya, dijepit ke 5–14, lalu disimpan ke EEPROM.
 2. Saat berjalan (`loop()`), ada 3 kondisi:
    - **Persimpangan** (kedua sensor ≥ ambang): LED putih, maju aman lalu belok 90° kiri/kanan atau lurus mengikuti sisi yang nilainya lebih besar.
    - **Garis hilang** (kedua sensor < ambang): LED magenta, berputar di tempat ke arah sisi `lastError` terakhir.

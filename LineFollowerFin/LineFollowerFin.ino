@@ -6,15 +6,15 @@ float Kp = 21.7;
 float Ki = 0.01;
 float Kd = 1.5;
 
-int kecepatanDasarMaks = 110; // Batas kecepatan tertinggi saat di jalan lurus
-int kecepatanDasarMin = 50;  // Batas kecepatan terendah saat menikung tajam
-int kecepatanDasar = 90;     // Variabel dinamis yang akan dikalibrasi oleh PID
+int kecepatanDasarMaks = 110;  // Batas kecepatan tertinggi saat di jalan lurus
+int kecepatanDasarMin = 50;    // Batas kecepatan terendah saat menikung tajam
+int kecepatanDasar = 90;       // Variabel dinamis yang akan dikalibrasi oleh PID
 
 // --- KONSTANTA TUNE (dulu magic number tersebar di badan kode) ---
-const float FAKTOR_REM_ADAPTIF = 0.6; // agresivitas pengereman saat melenceng
-const float BATAS_INTEGRAL = 50;     // anti windup: I dijepit ±nilai ini
-const int SPEED_TOMBOL_MIN = 60;     // batas bawah kecepatan maks via tombol
-const int SPEED_TOMBOL_MAKS = 150;   // batas atas (sama dengan derate servo)
+const float FAKTOR_REM_ADAPTIF = 0.6;  // agresivitas pengereman saat melenceng
+const float BATAS_INTEGRAL = 50;       // anti windup: I dijepit ±nilai ini
+const int SPEED_TOMBOL_MIN = 60;       // batas bawah kecepatan maks via tombol
+const int SPEED_TOMBOL_MAKS = 150;     // batas atas (sama dengan derate servo)
 
 // --- BATAS KHUSUS SERVO 360 (open-loop, lihat docs setServoTurn) ---
 // Docs resmi: speed 0-255. 150 adalah derate yang disengaja agar robot stabil.
@@ -104,8 +104,8 @@ const int ADDR_EEPROM_CHECK = 0;
 const int ADDR_KP = 4;
 const int ADDR_KD = 8;
 const int ADDR_SPEED = 12;
-const int ADDR_AMBANG = 16;      // ambang kiri (format lama: ambang tunggal)
-const int ADDR_AMBANG_KANAN = 18; // ambang kanan (baru; default bila belum ada)
+const int ADDR_AMBANG = 16;        // ambang kiri (format lama: ambang tunggal)
+const int ADDR_AMBANG_KANAN = 18;  // ambang kanan (baru; default bila belum ada)
 
 // --- DEKLARASI MAJU (wajib: generator prototipe Arduino gagal bila ada
 // fungsi template di file, sehingga fungsi di bawah loop() tak dikenal) ---
@@ -130,9 +130,10 @@ void bacaNilaiDariEEPROM();
 void setup() {
   Initialization();
   if (protocolRunState == false) {
-    bacaNilaiDariEEPROM();
-    mulaiKalibrasiSensor();  // Kalibrasi ambang batas sensor saat menyala
+    bacaNilaiDariEEPROM(); // pakai nilai tersimpan; kalibrasi manual via 2 tombol
+    Serial.println("Setup selesai. Kalibrasi manual: tekan 2 tombol bersamaan.");
   }
+}
 }
 
 void loop() {
@@ -151,16 +152,16 @@ void loop() {
       int bacaKiri = bacaSensorHalus(2, filtKiri);
       int bacaKanan = bacaSensorHalus(1, filtKanan);
 
-    // --- KONDISI A: DETEKSI PERSEMPATAN / PERTIGAAN ---
-    if (bacaKiri >= AMBANG_KIRI && bacaKanan >= AMBANG_KANAN) {
+      // --- KONDISI A: DETEKSI PERSEMPATAN / PERTIGAAN ---
+      if (bacaKiri >= AMBANG_KIRI && bacaKanan >= AMBANG_KANAN) {
         setRgbledColor(255, 255, 255);
         majuManual(kecepatanDasarMin,
                    150);  // Lewati perempatan dengan kecepatan aman
 
-      // Baca ulang setelah maju: keputusan belok harus pakai data segar
-      // yang sudah difilter (bacaan mentah liar = risiko belok salah arah).
-      bacaKiri = bacaSensorHalus(2, filtKiri);
-      bacaKanan = bacaSensorHalus(1, filtKanan);
+        // Baca ulang setelah maju: keputusan belok harus pakai data segar
+        // yang sudah difilter (bacaan mentah liar = risiko belok salah arah).
+        bacaKiri = bacaSensorHalus(2, filtKiri);
+        bacaKanan = bacaSensorHalus(1, filtKanan);
 
         if (bacaKiri > bacaKanan) {
           eksekusiBelokKanan90();
@@ -227,11 +228,11 @@ void loop() {
           recoveryMulai = 0;
         }
 
-      // 2. Kalkulasi PID Standar
-      P = error;
-      I = I + error;
-      I = constrain(I, -BATAS_INTEGRAL, BATAS_INTEGRAL);
-      D = error - lastError;
+        // 2. Kalkulasi PID Standar
+        P = error;
+        I = I + error;
+        I = constrain(I, -BATAS_INTEGRAL, BATAS_INTEGRAL);
+        D = error - lastError;
 
         PID_value = (Kp * P) + (Ki * I) + (Kd * D);
         lastError = error;
@@ -240,9 +241,8 @@ void loop() {
         // Semakin besar nilai PID_value (semakin melenceng), kecepatan dasar akan
         // semakin dikurangi. abs() digunakan agar nilai koreksi negatif/positif
         // tetap dihitung sebagai nilai mutlak pengurangan.
-      int faktorPengurang =
-          abs(PID_value) *
-          FAKTOR_REM_ADAPTIF; // agresivitas pengereman (bisa di-tuning)
+        int faktorPengurang =
+          abs(PID_value) * FAKTOR_REM_ADAPTIF;  // agresivitas pengereman (bisa di-tuning)
         kecepatanDasar = kecepatanDasarMaks - faktorPengurang;
         kecepatanDasar =
           constrain(kecepatanDasar, kecepatanDasarMin, kecepatanDasarMaks);
@@ -344,6 +344,19 @@ void cekTombol() {
   unsigned long now = millis();
   int buttonState1 = readButtonValue(1);
   int buttonState2 = readButtonValue(2);
+
+  // Kalibrasi manual: tekan 2 tombol bersamaan saat berhenti.
+  // (Dulu kalibrasi otomatis tiap boot — dihapus agar restart cepat.)
+  // Dicek dulu agar tak bentrok dengan aksi tombol tunggal di bawah.
+  if (buttonState1 != 0 && buttonState2 != 0 && !robotJalan &&
+      now - cooldownB1 >= COOLDOWN_TOMBOL_MS &&
+      now - cooldownB2 >= COOLDOWN_TOMBOL_MS) {
+    cooldownB1 = now;
+    cooldownB2 = now;
+    Serial.println("Kalibrasi manual dimulai...");
+    mulaiKalibrasiSensor();
+    return;
+  }
 
   // Feedback LED kilat tuning dihapus: loop() menimpa LED tiap iterasi,
   // Serial print tetap jadi umpan balik tuning.
@@ -472,7 +485,7 @@ void cekTepukTangan() {
   if (now - cekSuaraTerakhir < CEK_SUARA_MS) {
     return;
   }
-  
+
   cekSuaraTerakhir = now;
 
   int suara = readSoundValue(SOUND_SENSOR_ID);
