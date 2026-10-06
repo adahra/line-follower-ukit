@@ -80,6 +80,25 @@ const int ADDR_KD = 8;
 const int ADDR_SPEED = 12;
 const int ADDR_AMBANG = 16;
 
+// --- DEKLARASI MAJU (wajib: generator prototipe Arduino gagal bila ada
+// fungsi template di file, sehingga fungsi di bawah loop() tak dikenal) ---
+void cekTombol();
+void cekLampuGelap();
+bool cekHalanganDepan();
+int bacaSensorHalus(int id, float &filt);
+void resetStatePID();
+int terapkanDeadband(int speed);
+int batasiSlew(int target, int prev);
+void majuManual(int speed, int durasi);
+void eksekusiBelokKiri90();
+void eksekusiBelokKanan90();
+void eksekusiMajuTerus();
+void jalankanMotorPID(int speedKiri, int speedKanan);
+void berhenti();
+void mulaiKalibrasiSensor();
+void simpanNilaiKeEEPROM();
+void bacaNilaiDariEEPROM();
+
 void setup() {
   Initialization();
 
@@ -127,6 +146,7 @@ void loop() {
       if (recoveryMulai == 0) {
         recoveryMulai = millis();
       }
+
       if (millis() - recoveryMulai > RECOVERY_TIMEOUT_MS) {
         // Garis tak ketemu >2 detik: berhenti + LED merah, tunggu operator.
         // Jangan berputar liar sampai baterai habis.
@@ -161,6 +181,7 @@ void loop() {
         jalankanMotorPID(prevKiri, prevKanan);
         return;
       }
+      
       pidTerakhir = nowPid;
 
       // 1. Hitung Nilai Error (pakai 2.0 agar tidak terpotong integer)
