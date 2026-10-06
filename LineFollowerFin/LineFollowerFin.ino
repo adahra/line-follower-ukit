@@ -91,6 +91,13 @@ const unsigned long CEK_BATERAI_MS = 500;
 unsigned long cekBateraiTerakhir = 0;
 bool bateraiLemah = false;
 
+// --- TELEMETRI: dump CSV berkala saat jalan untuk tuning berbasis data ---
+// Format: t(ms),err,pid,dasar,kiri,kanan,senK,senN. Buka via Serial Plotter.
+// Header dicetak sekali tiap run.
+const unsigned long TELEM_MS = 100;
+unsigned long telemTerakhir = 0;
+bool telemHeader = false;
+
 // --- IMU ONBOARD: deteksi miring/terangkat + deteksi macet ---
 // Docs: IMU::init() sekali di setup; IMU::read() tiap loop (butuh SDK terbaru).
 // getRawGyroZ() = yaw °/detik; getRoll()/getPitch() = kemiringan derajat.
@@ -143,6 +150,7 @@ bool cekBateraiLemah();
 void bacaIMU();
 bool cekMiring();
 bool cekMacet(int bacaKiri, int bacaKanan);
+void telemetri(int bacaKiri, int bacaKanan);
 void cekTepukTangan();
 void cekLampuGelap();
 bool cekHalanganDepan();
@@ -322,6 +330,7 @@ void loop() {
         prevKanan = kecepatanKanan;
 
         jalankanMotorPID(kecepatanKiri, kecepatanKanan);
+        telemetri(bacaKiri, bacaKanan);
       }
     } else {
       berhenti();
@@ -649,6 +658,36 @@ bool cekMacet(int bacaKiri, int bacaKanan) {
   return false;
 }
 
+// --- TELEMETRI CSV: t,err,pid,dasar,kiri,kanan,senK,senN ---
+// Throttle 100 ms, non-blocking. Tempel output ke spreadsheet atau
+// buka di Serial Plotter untuk melihat osilasi saat tuning Kp/Kd.
+void telemetri(int bacaKiri, int bacaKanan) {
+  unsigned long now = millis();
+  if (now - telemTerakhir < TELEM_MS) {
+    return;
+  }
+  telemTerakhir = now;
+  if (!telemHeader) {
+    telemHeader = true;
+    Serial.println("t,err,pid,dasar,kiri,kanan,senK,senN");
+  }
+  Serial.print(now);
+  Serial.print(',');
+  Serial.print(error);
+  Serial.print(',');
+  Serial.print(PID_value);
+  Serial.print(',');
+  Serial.print(kecepatanDasar);
+  Serial.print(',');
+  Serial.print(kecepatanKiri);
+  Serial.print(',');
+  Serial.print(kecepatanKanan);
+  Serial.print(',');
+  Serial.print(bacaKiri);
+  Serial.print(',');
+  Serial.println(bacaKanan);
+}
+
 // --- DRIVER PERGERAKAN ---
 void majuManual(int speed, int durasi) {
   setServoTurn(4, 1, speed);
@@ -729,6 +768,8 @@ void resetStatePID() {
   pidTerakhir = 0;
   irBekuSejak = 0; // referensi macet adaptasi ulang
   accelRef = -1;
+  telemHeader = false; // cetak header CSV lagi di run berikutnya
+  telemTerakhir = 0;
 }
 
 int terapkanDeadband(int speed) {
