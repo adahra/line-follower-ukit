@@ -91,6 +91,25 @@ const unsigned long CEK_BATERAI_MS = 500;
 unsigned long cekBateraiTerakhir = 0;
 bool bateraiLemah = false;
 
+// --- IMU ONBOARD: deteksi miring/terangkat + deteksi macet ---
+// Docs: IMU::init() sekali di setup; IMU::read() tiap loop (butuh SDK terbaru).
+// getRawGyroZ() = yaw °/detik; getRoll()/getPitch() = kemiringan derajat.
+const unsigned long CEK_IMU_MS = 50;
+const float TILT_MAKS_DERAJAT = 45.0; // di atas ini = terangkat/terbalik
+unsigned long imuTerakhir = 0;
+float imuRoll = 0, imuPitch = 0, imuAccelMag = 0;
+
+// --- Deteksi macet: diperintah jalan tapi tak bergerak ---
+// Kriteria ganda (keduanya harus diam): bacaan IR beku + magnitude
+// akselerasi stabil selama STUCK_DIAM_MS. Kalau trek lurus panjang
+// memicu false positive, naikkan STUCK_DIAM_MS atau toleransinya.
+const unsigned long STUCK_DIAM_MS = 2000;
+const int STUCK_TOLERANSI_IR = 1;
+const float STUCK_TOLERANSI_ACCEL = 0.15; // 15% perubahan magnitude
+unsigned long irBekuSejak = 0;
+int irRefKiri = 0, irRefKanan = 0;
+float accelRef = -1; // <0 = belum diinisialisasi
+
 int prevKiri = 0;
 int prevKanan = 0;
 
@@ -121,6 +140,9 @@ const int ADDR_AMBANG_KANAN = 18;  // ambang kanan (baru; default bila belum ada
 // fungsi template di file, sehingga fungsi di bawah loop() tak dikenal) ---
 void cekTombol();
 bool cekBateraiLemah();
+void bacaIMU();
+bool cekMiring();
+bool cekMacet(int bacaKiri, int bacaKanan);
 void cekTepukTangan();
 void cekLampuGelap();
 bool cekHalanganDepan();
@@ -141,6 +163,7 @@ void cetakNilaiEEPROM();
 
 void setup() {
   Initialization();
+  IMU::init(); // gyro onboard untuk deteksi miring + macet
   if (protocolRunState == false) {
     bacaNilaiDariEEPROM();  // pakai nilai tersimpan; kalibrasi manual via 2 tombol
     cetakNilaiEEPROM();    // tampilkan semua nilai saat colok USB/hidup
@@ -156,6 +179,10 @@ void loop() {
   if (protocolRunState == false) {
     // Prioritas tertinggi: baterai lemah menghentikan SEMUA fungsi.
     if (cekBateraiLemah()) {
+      return;
+    }
+    // Robot miring/terangkat: matikan motor selama tidak rata (tak dikunci).
+    if (cekMiring()) {
       return;
     }
     cekTombol();
@@ -225,6 +252,11 @@ void loop() {
       // --- KONDISI C: MODE TRACER PID NORMAL DENGAN ADAPTIVE SPEED ---
       else {
         setRgbledColor(0, 0, 0);
+
+        // Nyangkut di pembatas: berhenti total, tunggu operator.
+        if (cekMacet(bacaKiri, bacaKanan)) {
+          return;
+        }
 
         // PID jalan pada interval tetap agar D konsisten.
         // Di antara interval, pertahankan speed terakhir (tanpa hitung ulang).
@@ -544,10 +576,71 @@ bool cekBateraiLemah() {
       Serial.println(" V - semua fungsi dihentikan. Restart robot.");
     }
   }
+
   if (bateraiLemah) {
     berhenti();
     setRgbledColor(255, 0, 0);
     return true;
+  }
+
+  return false;
+}
+
+// --- IMU: baca gyro+accel dengan throttle, simpan ke global ---
+void bacaIMU() {
+  unsigned long now = millis();
+  if (now - imuTerakhir < CEK_IMU_MS) {
+    return;
+  }
+  imuTerakhir = now;
+  IMU::read();
+  imuRoll = IMU::getRoll();
+  imuPitch = IMU::getPitch();
+  float ax = IMU::getRawAccelX();
+  float ay = IMU::getRawAccelY();
+  float az = IMU::getRawAccelZ();
+  imuAccelMag = sqrt(ax * ax + ay * ay + az * az);
+}
+
+// --- Robot miring/terangkat: hentikan motor selama tak rata ---
+// Tidak dikunci: jalan lagi sendiri saat kembali rata. Non-blocking.
+bool cekMiring() {
+  bacaIMU();
+  if (fabs(imuRoll) > TILT_MAKS_DERAJAT || fabs(imuPitch) > TILT_MAKS_DERAJAT) {
+    berhenti();
+    setRgbledColor(255, 0, 0);
+    return true;
+  }
+  return false;
+}
+
+// --- Robot macet: IR beku + accel stabil saat diperintah jalan ---
+// Dinyatakan macet: berhenti total (robotJalan=false), operator restart
+// via tombol/tepuk. Non-blocking.
+bool cekMacet(int bacaKiri, int bacaKanan) {
+  bacaIMU();
+  unsigned long now = millis();
+  bool irBeku = (abs(bacaKiri - irRefKiri) <= STUCK_TOLERANSI_IR) &&
+                (abs(bacaKanan - irRefKanan) <= STUCK_TOLERANSI_IR);
+  bool accelDiam =
+      (accelRef < 0) ||
+      (fabs(imuAccelMag - accelRef) / (accelRef + 0.001) < STUCK_TOLERANSI_ACCEL);
+  if (irBeku && accelDiam) {
+    if (irBekuSejak == 0) {
+      irBekuSejak = now;
+    } else if (now - irBekuSejak > STUCK_DIAM_MS) {
+      robotJalan = false;
+      resetStatePID();
+      berhenti();
+      setRgbledColor(255, 0, 0);
+      Serial.println("MACET: sensor & gerak beku - berhenti total.");
+      return true;
+    }
+  } else {
+    irBekuSejak = 0;
+    irRefKiri = bacaKiri;
+    irRefKanan = bacaKanan;
+    accelRef = imuAccelMag;
   }
   return false;
 }
@@ -627,9 +720,11 @@ void resetStatePID() {
   prevKiri = 0;
   prevKanan = 0;
   recoveryMulai = 0;
-  filtKiri = -1;  // filter adaptasi ulang ke garis baru
+  filtKiri = -1; // filter adaptasi ulang ke garis baru
   filtKanan = -1;
   pidTerakhir = 0;
+  irBekuSejak = 0; // referensi macet adaptasi ulang
+  accelRef = -1;
 }
 
 int terapkanDeadband(int speed) {
