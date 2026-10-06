@@ -52,6 +52,15 @@ const unsigned long CEK_CAHAYA_MS = 200; // throttle agar tak baca tiap loop
 unsigned long cekCahayaTerakhir = 0;
 bool lampuGelapNyala = false;
 
+// --- HALANGAN DEPAN: berhenti bila objek <= 5 cm (sensor ultrasonic) ---
+// Docs: readUltrasonicDistance(id) -> jarak 0-400 cm.
+// Sesuaikan ULTRASONIC_ID dengan port sensor yang menghadap depan.
+const int ULTRASONIC_ID = 1;
+const int JARAK_BERHENTI_CM = 5;
+const unsigned long CEK_HALANGAN_MS = 100; // ultrasonic butuh jeda antar ping
+unsigned long cekHalanganTerakhir = 0;
+bool halanganDepan = false;
+
 int prevKiri = 0;
 int prevKanan = 0;
 
@@ -83,6 +92,11 @@ void loop() {
   cekLampuGelap(); // headlight otomatis, non-blocking (throttle 200ms)
 
   if (robotJalan == true) {
+    // Prioritas tertinggi: halangan depan menghentikan semua logika jalan.
+    if (cekHalanganDepan()) {
+      return;
+    }
+
     int bacaKiri = bacaSensorHalus(2, filtKiri);
     int bacaKanan = bacaSensorHalus(1, filtKanan);
 
@@ -369,6 +383,30 @@ void cekLampuGelap() {
     setEyelightOff(EYELIGHT_KIRI);
     setEyelightOff(EYELIGHT_KANAN);
   }
+}
+
+// --- HALANGAN DEPAN: return true bila harus berhenti. Non-blocking. ---
+bool cekHalanganDepan() {
+  unsigned long now = millis();
+  if (now - cekHalanganTerakhir >= CEK_HALANGAN_MS) {
+    cekHalanganTerakhir = now;
+    int jarak = readUltrasonicDistance(ULTRASONIC_ID);
+    // 0 = bacaan tak valid (di luar jangkauan) -> abaikan, seperti contoh docs.
+    bool baru = (jarak > 0 && jarak <= JARAK_BERHENTI_CM);
+    if (baru != halanganDepan) {
+      halanganDepan = baru;
+      Serial.print("Halangan depan: ");
+      Serial.println(halanganDepan ? "BERHENTI" : "JALAN");
+    }
+  }
+  
+  if (halanganDepan) {
+    berhenti();
+    setRgbledColor(255, 0, 0);
+    return true;
+  }
+
+  return false;
 }
 
 // --- DRIVER PERGERAKAN ---
