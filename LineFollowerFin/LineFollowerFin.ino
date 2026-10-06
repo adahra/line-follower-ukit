@@ -64,6 +64,9 @@ bool halanganDepan = false;
 int prevKiri = 0;
 int prevKanan = 0;
 
+int kecepatanKiri = 0;
+int kecepatanKanan = 0;
+
 // Variabel internal PID
 float error = 0, lastError = 0;
 float P, I, D, PID_value;
