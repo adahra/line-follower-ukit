@@ -86,7 +86,7 @@ bool tepukSiap = true; // true = menunggu lonjakan suara berikutnya
 // sekali lemah, robot dikunci mati sampai power cycle (restart).
 // Pack 2S (nominal 7,4 V, penuh 8,4 V): cut-off 7,2 V = 3,6 V/sel,
 // sama dengan contoh resmi docs. Jangan turunkan tanpa alasan.
-const float TEGANGAN_MIN = 7.2;
+const float TEGANGAN_MIN = 5.5;
 const unsigned long CEK_BATERAI_MS = 500;
 unsigned long cekBateraiTerakhir = 0;
 bool bateraiLemah = false;
@@ -181,10 +181,12 @@ void loop() {
     if (cekBateraiLemah()) {
       return;
     }
+
     // Robot miring/terangkat: matikan motor selama tidak rata (tak dikunci).
     if (cekMiring()) {
       return;
     }
+
     cekTombol();
     cekTepukTangan();  // toggle jalan/berhenti via tepuk tangan
     cekLampuGelap();   // headlight otomatis, non-blocking (throttle 200ms)
@@ -611,6 +613,7 @@ bool cekMiring() {
     setRgbledColor(255, 0, 0);
     return true;
   }
+
   return false;
 }
 
@@ -642,6 +645,7 @@ bool cekMacet(int bacaKiri, int bacaKanan) {
     irRefKanan = bacaKanan;
     accelRef = imuAccelMag;
   }
+
   return false;
 }
 
