@@ -26,7 +26,8 @@ unsigned long recoveryMulai = 0; // 0 = tidak dalam mode recovery
 // tidak langsung jadi koreksi PID penuh (error range kecil, ±10).
 float filtKiri = -1; // <0 = belum diinisialisasi
 float filtKanan = -1;
-const float ALPHA_SENSOR = 0.5; // bobot bacaan baru 0-1, makin besar makin responsif
+const float ALPHA_SENSOR =
+    0.5; // bobot bacaan baru 0-1, makin besar makin responsif
 
 // --- PID interval tetap: D = error-lastError hanya valid bila dt konstan.
 // Tanpa ini, delay tombol (300-1000ms) membuat D melonjak acak.
@@ -38,6 +39,18 @@ unsigned long pidTerakhir = 0;
 unsigned long cooldownB1 = 0;
 unsigned long cooldownB2 = 0;
 const unsigned long COOLDOWN_TOMBOL_MS = 300;
+
+// --- LAMPU OTOMATIS SAAT GELAP (sensor cahaya + eye lamp) ---
+// Docs: readLightValue(id) -> 0-4000 lux; setEyelightAllPetals(id,r,g,b).
+// Sesuaikan ID sensor cahaya dengan port yang terpasang di robot.
+const int LIGHT_SENSOR_ID = 1;
+const int EYELIGHT_KIRI = 1;
+const int EYELIGHT_KANAN = 2;
+const int AMBANG_GELAP_NYALA = 100; // lux: di bawah ini lampu menyala
+const int AMBANG_GELAP_MATI = 150;  // lux: histeresis, di atas ini lampu mati
+const unsigned long CEK_CAHAYA_MS = 200; // throttle agar tak baca tiap loop
+unsigned long cekCahayaTerakhir = 0;
+bool lampuGelapNyala = false;
 
 int prevKiri = 0;
 int prevKanan = 0;
@@ -67,6 +80,7 @@ void setup() {
 
 void loop() {
   cekTombol();
+  cekLampuGelap(); // headlight otomatis, non-blocking (throttle 200ms)
 
   if (robotJalan == true) {
     int bacaKiri = bacaSensorHalus(2, filtKiri);
@@ -270,18 +284,22 @@ void cekTombol() {
       } else {
         Kd += 0.5;
       }
+      
       Serial.print(!modeSetelKd ? "Kp: " : "Kd: ");
       Serial.println(!modeSetelKd ? Kp : Kd);
     } else if (buttonState1 == 2) {
       if (!modeSetelKd) {
         Kp -= 1.0;
-        if (Kp < 0)
+        if (Kp < 0) {
           Kp = 0;
+        }
       } else {
         Kd -= 0.5;
-        if (Kd < 0)
+        if (Kd < 0) {
           Kd = 0;
+        }
       }
+
       Serial.print(!modeSetelKd ? "Kp: " : "Kd: ");
       Serial.println(!modeSetelKd ? Kp : Kd);
     } else if (buttonState1 == 3) {
@@ -305,6 +323,7 @@ void cekTombol() {
       if (kecepatanDasarMaks > 150) {
         kecepatanDasarMaks = 150;
       }
+
       Serial.print("Target Speed Maks: ");
       Serial.println(kecepatanDasarMaks);
     } else if (buttonState2 == 2) {
@@ -312,17 +331,43 @@ void cekTombol() {
       if (kecepatanDasarMaks < 60) {
         kecepatanDasarMaks = 60;
       }
+
       Serial.print("Target Speed Maks: ");
       Serial.println(kecepatanDasarMaks);
     } else if (buttonState2 == 3) {
       if (!robotJalan) {
         simpanNilaiKeEEPROM();
-        resetStatePID(); // start bersih: tanpa hutang integral/derivatif run lama
+        resetStatePID(); // start bersih: tanpa hutang integral/derivatif run
+                         // lama
         robotJalan = true;
         setEyelightLook(1, 0, 7, 0, 0, 254);
         setEyelightLook(2, 0, 7, 0, 0, 254);
       }
     }
+  }
+}
+
+// --- LAMPU OTOMATIS: nyala putih saat gelap, mati saat terang ---
+// Histeresis 2 ambang mencegah lampu kedip di batas terang/gelap.
+// Catatan: saat menyala, ini menimpa ekspresi wajah setEyelightLook;
+// wajah start/stop tetap terlihat saat ruangan terang.
+void cekLampuGelap() {
+  unsigned long now = millis();
+  if (now - cekCahayaTerakhir < CEK_CAHAYA_MS) {
+    return;
+  }
+  
+  cekCahayaTerakhir = now;
+
+  int lux = readLightValue(LIGHT_SENSOR_ID);
+  if (!lampuGelapNyala && lux < AMBANG_GELAP_NYALA) {
+    lampuGelapNyala = true;
+    setEyelightAllPetals(EYELIGHT_KIRI, 255, 255, 255);
+    setEyelightAllPetals(EYELIGHT_KANAN, 255, 255, 255);
+  } else if (lampuGelapNyala && lux > AMBANG_GELAP_MATI) {
+    lampuGelapNyala = false;
+    setEyelightOff(EYELIGHT_KIRI);
+    setEyelightOff(EYELIGHT_KANAN);
   }
 }
 
@@ -385,6 +430,7 @@ int bacaSensorHalus(int id, float &filt) {
   } else {
     filt += ALPHA_SENSOR * (mentah - filt);
   }
+
   return (int)(filt + 0.5);
 }
 
