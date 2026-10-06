@@ -61,6 +61,20 @@ const unsigned long CEK_HALANGAN_MS = 100;  // ultrasonic butuh jeda antar ping
 unsigned long cekHalanganTerakhir = 0;
 bool halanganDepan = false;
 
+// --- TEPUK TANGAN: toggle jalan/berhenti via sensor suara ---
+// Docs: readSoundValue(id) -> intensitas 0-1023.
+// Tepuk = lonjakan melewati ambang; histeresis + cooldown mencegah
+// satu tepukan dibaca berkali-kali. Sesuaikan ID dan ambang di bawah
+// dengan hasil Serial monitor di ruangan lomba (ambang saat ini tebakan).
+const int SOUND_SENSOR_ID = 1;
+const int TEPUK_AMBANG = 500;
+const int TEPUK_LEPAS = 350; // histeresis: suara harus turun segini dulu
+const unsigned long CEK_SUARA_MS = 30; // polling cepat agar tepuk tak terlewat
+const unsigned long TEPUK_COOLDOWN_MS = 800; // jeda antar toggle
+unsigned long cekSuaraTerakhir = 0;
+unsigned long tepukTerakhir = 0;
+bool tepukSiap = true; // true = menunggu lonjakan suara berikutnya
+
 int prevKiri = 0;
 int prevKanan = 0;
 
@@ -86,6 +100,7 @@ const int ADDR_AMBANG = 16;
 // --- DEKLARASI MAJU (wajib: generator prototipe Arduino gagal bila ada
 // fungsi template di file, sehingga fungsi di bawah loop() tak dikenal) ---
 void cekTombol();
+void cekTepukTangan();
 void cekLampuGelap();
 bool cekHalanganDepan();
 int bacaSensorHalus(int id, float &filt);
@@ -114,7 +129,8 @@ void loop() {
   protocol();
   if (protocolRunState == false) {
     cekTombol();
-    cekLampuGelap();  // headlight otomatis, non-blocking (throttle 200ms)
+    cekTepukTangan(); // toggle jalan/berhenti via tepuk tangan
+  cekLampuGelap(); // headlight otomatis, non-blocking (throttle 200ms)
 
     if (robotJalan == true) {
       // Prioritas tertinggi: halangan depan menghentikan semua logika jalan.
@@ -434,6 +450,38 @@ bool cekHalanganDepan() {
   }
 
   return false;
+}
+
+// --- TEPUK TANGAN: 1x tepuk = toggle jalan/berhenti. Non-blocking. ---
+void cekTepukTangan() {
+  unsigned long now = millis();
+  if (now - cekSuaraTerakhir < CEK_SUARA_MS) {
+    return;
+  }
+  cekSuaraTerakhir = now;
+
+  int suara = readSoundValue(SOUND_SENSOR_ID);
+  if (tepukSiap && suara >= TEPUK_AMBANG &&
+      now - tepukTerakhir >= TEPUK_COOLDOWN_MS) {
+    tepukSiap = false; // kunci sampai suara reda, agar 1 tepuk = 1 toggle
+    tepukTerakhir = now;
+    if (robotJalan) {
+      robotJalan = false;
+      resetStatePID();
+      setEyelightLook(1, 0, 5, 254, 0, 0);
+      setEyelightLook(2, 0, 5, 254, 0, 0);
+      Serial.println("Tepuk: BERHENTI");
+    } else {
+      simpanNilaiKeEEPROM();
+      resetStatePID();
+      robotJalan = true;
+      setEyelightLook(1, 0, 7, 0, 0, 254);
+      setEyelightLook(2, 0, 7, 0, 0, 254);
+      Serial.println("Tepuk: JALAN");
+    }
+  } else if (!tepukSiap && suara < TEPUK_LEPAS) {
+    tepukSiap = true; // suara reda, siap deteksi tepukan berikutnya
+  }
 }
 
 // --- DRIVER PERGERAKAN ---
