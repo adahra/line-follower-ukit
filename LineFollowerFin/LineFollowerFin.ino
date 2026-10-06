@@ -126,11 +126,13 @@ void berhenti();
 void mulaiKalibrasiSensor();
 void simpanNilaiKeEEPROM();
 void bacaNilaiDariEEPROM();
+void cetakNilaiEEPROM();
 
 void setup() {
   Initialization();
   if (protocolRunState == false) {
     bacaNilaiDariEEPROM(); // pakai nilai tersimpan; kalibrasi manual via 2 tombol
+    cetakNilaiEEPROM();    // tampilkan semua nilai saat colok USB/hidup
     Serial.println("Setup selesai. Kalibrasi manual: tekan 2 tombol bersamaan.");
   }
 }
@@ -348,9 +350,7 @@ void cekTombol() {
   // Kalibrasi manual: tekan 2 tombol bersamaan saat berhenti.
   // (Dulu kalibrasi otomatis tiap boot — dihapus agar restart cepat.)
   // Dicek dulu agar tak bentrok dengan aksi tombol tunggal di bawah.
-  if (buttonState1 != 0 && buttonState2 != 0 && !robotJalan &&
-      now - cooldownB1 >= COOLDOWN_TOMBOL_MS &&
-      now - cooldownB2 >= COOLDOWN_TOMBOL_MS) {
+  if (buttonState1 != 0 && buttonState2 != 0 && !robotJalan && now - cooldownB1 >= COOLDOWN_TOMBOL_MS && now - cooldownB2 >= COOLDOWN_TOMBOL_MS) {
     cooldownB1 = now;
     cooldownB2 = now;
     Serial.println("Kalibrasi manual dimulai...");
@@ -421,8 +421,7 @@ void cekTombol() {
     } else if (buttonState2 == 3) {
       if (!robotJalan) {
         simpanNilaiKeEEPROM();
-        resetStatePID();  // start bersih: tanpa hutang integral/derivatif run
-                          // lama
+        resetStatePID();  // start bersih: tanpa hutang integral/derivatif run lama
         robotJalan = true;
         setEyelightLook(1, 0, 7, 0, 0, 254);
         setEyelightLook(2, 0, 7, 0, 0, 254);
@@ -640,6 +639,30 @@ void simpanNilaiKeEEPROM() {
   eepromPutHemat(ADDR_AMBANG, AMBANG_KIRI);
   eepromPutHemat(ADDR_AMBANG_KANAN, AMBANG_KANAN);
   EEPROM.update(ADDR_EEPROM_CHECK, 123);
+}
+
+// --- Tampilkan seluruh nilai EEPROM + parameter jalan via Serial ---
+void cetakNilaiEEPROM() {
+  Serial.println("--- NILAI TERSIMPAN ---");
+  Serial.print("EEPROM valid: ");
+  Serial.println(EEPROM.read(ADDR_EEPROM_CHECK) == 123 ? "YA" : "TIDAK (pakai default kode)");
+  Serial.print("Kp: ");
+  Serial.println(Kp);
+  Serial.print("Ki: ");
+  Serial.print(Ki);
+  Serial.println(" (tidak disimpan)");
+  Serial.print("Kd: ");
+  Serial.println(Kd);
+  Serial.print("Speed maks: ");
+  Serial.println(kecepatanDasarMaks);
+  Serial.print("Speed min: ");
+  Serial.print(kecepatanDasarMin);
+  Serial.println(" (tidak disimpan)");
+  Serial.print("Ambang kiri: ");
+  Serial.println(AMBANG_KIRI);
+  Serial.print("Ambang kanan: ");
+  Serial.println(AMBANG_KANAN);
+  Serial.println("-----------------------");
 }
 
 void bacaNilaiDariEEPROM() {
