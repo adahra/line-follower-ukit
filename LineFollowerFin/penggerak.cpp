@@ -1,4 +1,3 @@
-
 #include "penggerak.h"
 
 void Penggerak::reset() {
