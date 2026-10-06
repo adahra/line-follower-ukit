@@ -10,7 +10,7 @@ Robot line follower PID untuk board uKit Explore 2. Seluruh program ada dalam sa
 
 ## Cara kerja singkat
 
-1. Saat dinyalakan, robot membaca `Kp`, `Kd`, `kecepatanDasarMaks`, dan `AMBANG_BATAS` dari EEPROM (jika magic `123` ada di alamat 0), lalu kalibrasi sensor otomatis: berputar ±3 detik (LED kuning), ambang batas = rata-rata nilai maks/min sensor, dijepit ke 5–14, lalu disimpan ke EEPROM.
+1. Saat dinyalakan, robot membaca `Kp`, `Kd`, `kecepatanDasarMaks`, dan ambang kiri/kanan dari EEPROM (jika magic `123` ada di alamat 0), lalu kalibrasi sensor otomatis: berputar ±3 detik (LED kuning), tiap sensor dihitung ambangnya sendiri dari rata-rata maks/min-nya, dijepit ke 5–14, lalu disimpan ke EEPROM.
 2. Saat berjalan (`loop()`), ada 3 kondisi:
    - **Persimpangan** (kedua sensor ≥ ambang): LED putih, maju aman lalu belok 90° kiri/kanan atau lurus mengikuti sisi yang nilainya lebih besar.
    - **Garis hilang** (kedua sensor < ambang): LED magenta, berputar di tempat ke arah sisi `lastError` terakhir.
@@ -26,7 +26,7 @@ Robot line follower PID untuk board uKit Explore 2. Seluruh program ada dalam sa
 
 ## Penyimpanan EEPROM
 
-`Kp` (addr 4), `Kd` (addr 8), `kecepatanDasarMaks` (addr 12), `AMBANG_BATAS` (addr 16), dengan penanda `123` di addr 0. `Ki` dan `kecepatanDasarMin` tidak disimpan (selalu nilai default kode).
+`Kp` (addr 4), `Kd` (addr 8), `kecepatanDasarMaks` (addr 12), ambang kiri (addr 16), ambang kanan (addr 18), dengan penanda `123` di addr 0. `Ki` dan `kecepatanDasarMin` tidak disimpan (selalu nilai default kode).
 
 ## Catatan untuk kontributor agen
 

@@ -6,9 +6,15 @@ float Kp = 21.7;
 float Ki = 0.01;
 float Kd = 1.5;
 
-int kecepatanDasarMaks = 110;  // Batas kecepatan tertinggi saat di jalan lurus
-int kecepatanDasarMin = 50;    // Batas kecepatan terendah saat menikung tajam
-int kecepatanDasar = 90;       // Variabel dinamis yang akan dikalibrasi oleh PID
+int kecepatanDasarMaks = 110; // Batas kecepatan tertinggi saat di jalan lurus
+int kecepatanDasarMin = 50;  // Batas kecepatan terendah saat menikung tajam
+int kecepatanDasar = 90;     // Variabel dinamis yang akan dikalibrasi oleh PID
+
+// --- KONSTANTA TUNE (dulu magic number tersebar di badan kode) ---
+const float FAKTOR_REM_ADAPTIF = 0.6; // agresivitas pengereman saat melenceng
+const float BATAS_INTEGRAL = 50;     // anti windup: I dijepit ±nilai ini
+const int SPEED_TOMBOL_MIN = 60;     // batas bawah kecepatan maks via tombol
+const int SPEED_TOMBOL_MAKS = 150;   // batas atas (sama dengan derate servo)
 
 // --- BATAS KHUSUS SERVO 360 (open-loop, lihat docs setServoTurn) ---
 // Docs resmi: speed 0-255. 150 adalah derate yang disengaja agar robot stabil.
@@ -68,12 +74,12 @@ bool halanganDepan = false;
 // dengan hasil Serial monitor di ruangan lomba (ambang saat ini tebakan).
 const int SOUND_SENSOR_ID = 1;
 const int TEPUK_AMBANG = 500;
-const int TEPUK_LEPAS = 350; // histeresis: suara harus turun segini dulu
-const unsigned long CEK_SUARA_MS = 30; // polling cepat agar tepuk tak terlewat
-const unsigned long TEPUK_COOLDOWN_MS = 800; // jeda antar toggle
+const int TEPUK_LEPAS = 350;                  // histeresis: suara harus turun segini dulu
+const unsigned long CEK_SUARA_MS = 30;        // polling cepat agar tepuk tak terlewat
+const unsigned long TEPUK_COOLDOWN_MS = 800;  // jeda antar toggle
 unsigned long cekSuaraTerakhir = 0;
 unsigned long tepukTerakhir = 0;
-bool tepukSiap = true; // true = menunggu lonjakan suara berikutnya
+bool tepukSiap = true;  // true = menunggu lonjakan suara berikutnya
 
 int prevKiri = 0;
 int prevKanan = 0;
@@ -86,7 +92,10 @@ float error = 0, lastError = 0;
 float P, I, D, PID_value;
 
 // --- VARIABEL KALIBRASI & STATUS ---
-int AMBANG_BATAS = 8;
+// Ambang per sensor: dua sensor fisik jarang identik, ambang tunggal
+// memaksa kompromi yang merugikan sisi yang kurang sensitif.
+int AMBANG_KIRI = 8;
+int AMBANG_KANAN = 8;
 bool robotJalan = false;
 bool modeSetelKd = false;
 
@@ -95,7 +104,8 @@ const int ADDR_EEPROM_CHECK = 0;
 const int ADDR_KP = 4;
 const int ADDR_KD = 8;
 const int ADDR_SPEED = 12;
-const int ADDR_AMBANG = 16;
+const int ADDR_AMBANG = 16;      // ambang kiri (format lama: ambang tunggal)
+const int ADDR_AMBANG_KANAN = 18; // ambang kanan (baru; default bila belum ada)
 
 // --- DEKLARASI MAJU (wajib: generator prototipe Arduino gagal bila ada
 // fungsi template di file, sehingga fungsi di bawah loop() tak dikenal) ---
@@ -129,8 +139,8 @@ void loop() {
   protocol();
   if (protocolRunState == false) {
     cekTombol();
-    cekTepukTangan(); // toggle jalan/berhenti via tepuk tangan
-  cekLampuGelap(); // headlight otomatis, non-blocking (throttle 200ms)
+    cekTepukTangan();  // toggle jalan/berhenti via tepuk tangan
+    cekLampuGelap();   // headlight otomatis, non-blocking (throttle 200ms)
 
     if (robotJalan == true) {
       // Prioritas tertinggi: halangan depan menghentikan semua logika jalan.
@@ -141,16 +151,16 @@ void loop() {
       int bacaKiri = bacaSensorHalus(2, filtKiri);
       int bacaKanan = bacaSensorHalus(1, filtKanan);
 
-      // --- KONDISI A: DETEKSI PERSEMPATAN / PERTIGAAN ---
-      if (bacaKiri >= AMBANG_BATAS && bacaKanan >= AMBANG_BATAS) {
+    // --- KONDISI A: DETEKSI PERSEMPATAN / PERTIGAAN ---
+    if (bacaKiri >= AMBANG_KIRI && bacaKanan >= AMBANG_KANAN) {
         setRgbledColor(255, 255, 255);
         majuManual(kecepatanDasarMin,
                    150);  // Lewati perempatan dengan kecepatan aman
 
-        // Baca ulang setelah maju: keputusan belok harus pakai data segar,
-        // bukan nilai sebelum majuManual yang sudah basi.
-        bacaKiri = readInfraredDistance(2);
-        bacaKanan = readInfraredDistance(1);
+      // Baca ulang setelah maju: keputusan belok harus pakai data segar
+      // yang sudah difilter (bacaan mentah liar = risiko belok salah arah).
+      bacaKiri = bacaSensorHalus(2, filtKiri);
+      bacaKanan = bacaSensorHalus(1, filtKanan);
 
         if (bacaKiri > bacaKanan) {
           eksekusiBelokKanan90();
@@ -164,7 +174,7 @@ void loop() {
       }
 
       // --- KONDISI B: LOST LINE RECOVERY (dengan timeout) ---
-      else if (bacaKiri < AMBANG_BATAS && bacaKanan < AMBANG_BATAS) {
+      else if (bacaKiri < AMBANG_KIRI && bacaKanan < AMBANG_KANAN) {
         if (recoveryMulai == 0) {
           recoveryMulai = millis();
         }
@@ -217,11 +227,11 @@ void loop() {
           recoveryMulai = 0;
         }
 
-        // 2. Kalkulasi PID Standar
-        P = error;
-        I = I + error;
-        I = constrain(I, -50, 50);
-        D = error - lastError;
+      // 2. Kalkulasi PID Standar
+      P = error;
+      I = I + error;
+      I = constrain(I, -BATAS_INTEGRAL, BATAS_INTEGRAL);
+      D = error - lastError;
 
         PID_value = (Kp * P) + (Ki * I) + (Kd * D);
         lastError = error;
@@ -230,9 +240,9 @@ void loop() {
         // Semakin besar nilai PID_value (semakin melenceng), kecepatan dasar akan
         // semakin dikurangi. abs() digunakan agar nilai koreksi negatif/positif
         // tetap dihitung sebagai nilai mutlak pengurangan.
-        int faktorPengurang =
-          abs(PID_value) * 0.6;  // Pengali 0.6 adalah keagresifan pengereman (bisa di-tuning)
-
+      int faktorPengurang =
+          abs(PID_value) *
+          FAKTOR_REM_ADAPTIF; // agresivitas pengereman (bisa di-tuning)
         kecepatanDasar = kecepatanDasarMaks - faktorPengurang;
         kecepatanDasar =
           constrain(kecepatanDasar, kecepatanDasarMin, kecepatanDasarMaks);
@@ -278,8 +288,8 @@ void loop() {
 // --- FUNGSI KALIBRASI SENSOR ---
 void mulaiKalibrasiSensor() {
   Serial.println("--- MEMULAI KALIBRASI SENSOR ---");
-  int nilaiMaks = 0;
-  int nilaiMin = 20;
+  int maksKiri = 0, minKiri = 20;
+  int maksKanan = 0, minKanan = 20;
 
   setRgbledColor(255, 255, 0);
   delay(500);
@@ -290,22 +300,22 @@ void mulaiKalibrasiSensor() {
 
   unsigned long waktuMulai = millis();
   while (millis() - waktuMulai < 3000) {
-    int sensor1 = readInfraredDistance(1);
-    int sensor2 = readInfraredDistance(2);
-    if (sensor1 > nilaiMaks && sensor1 <= 20) {
-      nilaiMaks = sensor1;
+    int sensorKanan = readInfraredDistance(1);
+    int sensorKiri = readInfraredDistance(2);
+    if (sensorKanan > maksKanan && sensorKanan <= 20) {
+      maksKanan = sensorKanan;
     }
 
-    if (sensor2 > nilaiMaks && sensor2 <= 20) {
-      nilaiMaks = sensor2;
+    if (sensorKiri > maksKiri && sensorKiri <= 20) {
+      maksKiri = sensorKiri;
     }
 
-    if (sensor1 < nilaiMin && sensor1 > 0) {
-      nilaiMin = sensor1;
+    if (sensorKanan < minKanan && sensorKanan > 0) {
+      minKanan = sensorKanan;
     }
 
-    if (sensor2 < nilaiMin && sensor2 > 0) {
-      nilaiMin = sensor2;
+    if (sensorKiri < minKiri && sensorKiri > 0) {
+      minKiri = sensorKiri;
     }
 
     delay(10);
@@ -313,8 +323,12 @@ void mulaiKalibrasiSensor() {
 
   berhenti();
 
-  AMBANG_BATAS = (nilaiMaks + nilaiMin) / 2;
-  AMBANG_BATAS = constrain(AMBANG_BATAS, 5, 14);
+  AMBANG_KANAN = constrain((maksKanan + minKanan) / 2, 5, 14);
+  AMBANG_KIRI = constrain((maksKiri + minKiri) / 2, 5, 14);
+  Serial.print("Ambang kiri: ");
+  Serial.print(AMBANG_KIRI);
+  Serial.print(" kanan: ");
+  Serial.println(AMBANG_KANAN);
   simpanNilaiKeEEPROM();
 
   for (int i = 0; i < 3; i++) {
@@ -377,16 +391,16 @@ void cekTombol() {
     cooldownB2 = now;
     if (buttonState2 == 1) {
       kecepatanDasarMaks += 10;
-      if (kecepatanDasarMaks > 150) {
-        kecepatanDasarMaks = 150;
+      if (kecepatanDasarMaks > SPEED_TOMBOL_MAKS) {
+        kecepatanDasarMaks = SPEED_TOMBOL_MAKS;
       }
 
       Serial.print("Target Speed Maks: ");
       Serial.println(kecepatanDasarMaks);
     } else if (buttonState2 == 2) {
       kecepatanDasarMaks -= 10;
-      if (kecepatanDasarMaks < 60) {
-        kecepatanDasarMaks = 60;
+      if (kecepatanDasarMaks < SPEED_TOMBOL_MIN) {
+        kecepatanDasarMaks = SPEED_TOMBOL_MIN;
       }
 
       Serial.print("Target Speed Maks: ");
@@ -458,12 +472,12 @@ void cekTepukTangan() {
   if (now - cekSuaraTerakhir < CEK_SUARA_MS) {
     return;
   }
+  
   cekSuaraTerakhir = now;
 
   int suara = readSoundValue(SOUND_SENSOR_ID);
-  if (tepukSiap && suara >= TEPUK_AMBANG &&
-      now - tepukTerakhir >= TEPUK_COOLDOWN_MS) {
-    tepukSiap = false; // kunci sampai suara reda, agar 1 tepuk = 1 toggle
+  if (tepukSiap && suara >= TEPUK_AMBANG && now - tepukTerakhir >= TEPUK_COOLDOWN_MS) {
+    tepukSiap = false;  // kunci sampai suara reda, agar 1 tepuk = 1 toggle
     tepukTerakhir = now;
     if (robotJalan) {
       robotJalan = false;
@@ -480,7 +494,7 @@ void cekTepukTangan() {
       Serial.println("Tepuk: JALAN");
     }
   } else if (!tepukSiap && suara < TEPUK_LEPAS) {
-    tepukSiap = true; // suara reda, siap deteksi tepukan berikutnya
+    tepukSiap = true;  // suara reda, siap deteksi tepukan berikutnya
   }
 }
 
@@ -500,7 +514,7 @@ void eksekusiBelokKiri90() {
   setServoTurn(3, 0, kecepatanDasarMin);
   delay(300);
   unsigned long t0 = millis();
-  while (readInfraredDistance(2) < AMBANG_BATAS) {
+  while (readInfraredDistance(2) < AMBANG_KIRI) {
     if (millis() - t0 > BELOK_TIMEOUT_MS) {
       break;  // garis tak ketemu: jangan macet, kembali ke loop utama
     }
@@ -516,7 +530,7 @@ void eksekusiBelokKanan90() {
   setServoTurn(3, 1, kecepatanDasarMin);
   delay(300);
   unsigned long t0 = millis();
-  while (readInfraredDistance(1) < AMBANG_BATAS) {
+  while (readInfraredDistance(1) < AMBANG_KANAN) {
     if (millis() - t0 > BELOK_TIMEOUT_MS) {
       break;  // garis tak ketemu: jangan macet, kembali ke loop utama
     }
@@ -610,7 +624,8 @@ void simpanNilaiKeEEPROM() {
   eepromPutHemat(ADDR_KP, Kp);
   eepromPutHemat(ADDR_KD, Kd);
   eepromPutHemat(ADDR_SPEED, kecepatanDasarMaks);
-  eepromPutHemat(ADDR_AMBANG, AMBANG_BATAS);
+  eepromPutHemat(ADDR_AMBANG, AMBANG_KIRI);
+  eepromPutHemat(ADDR_AMBANG_KANAN, AMBANG_KANAN);
   EEPROM.update(ADDR_EEPROM_CHECK, 123);
 }
 
@@ -619,6 +634,10 @@ void bacaNilaiDariEEPROM() {
     EEPROM.get(ADDR_KP, Kp);
     EEPROM.get(ADDR_KD, Kd);
     EEPROM.get(ADDR_SPEED, kecepatanDasarMaks);
-    EEPROM.get(ADDR_AMBANG, AMBANG_BATAS);
+    EEPROM.get(ADDR_AMBANG, AMBANG_KIRI);
+    EEPROM.get(ADDR_AMBANG_KANAN, AMBANG_KANAN);
+    // Kompatibel format lama (satu ambang): sampah EEPROM dijepit ke rentang valid.
+    AMBANG_KIRI = constrain(AMBANG_KIRI, 5, 14);
+    AMBANG_KANAN = constrain(AMBANG_KANAN, 5, 14);
   }
 }
