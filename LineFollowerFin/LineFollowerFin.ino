@@ -79,7 +79,15 @@ const unsigned long CEK_SUARA_MS = 30;        // polling cepat agar tepuk tak te
 const unsigned long TEPUK_COOLDOWN_MS = 800;  // jeda antar toggle
 unsigned long cekSuaraTerakhir = 0;
 unsigned long tepukTerakhir = 0;
-bool tepukSiap = true;  // true = menunggu lonjakan suara berikutnya
+bool tepukSiap = true; // true = menunggu lonjakan suara berikutnya
+
+// --- BATERAI LEMAH: hentikan semua fungsi bila tegangan <= ambang ---
+// Docs: readBatteryVoltage() -> float 0-8.4 V. Dicek throttle 500 ms;
+// sekali lemah, robot dikunci mati sampai power cycle (restart).
+const float TEGANGAN_MIN = 3.7;
+const unsigned long CEK_BATERAI_MS = 500;
+unsigned long cekBateraiTerakhir = 0;
+bool bateraiLemah = false;
 
 int prevKiri = 0;
 int prevKanan = 0;
@@ -110,6 +118,7 @@ const int ADDR_AMBANG_KANAN = 18;  // ambang kanan (baru; default bila belum ada
 // --- DEKLARASI MAJU (wajib: generator prototipe Arduino gagal bila ada
 // fungsi template di file, sehingga fungsi di bawah loop() tak dikenal) ---
 void cekTombol();
+bool cekBateraiLemah();
 void cekTepukTangan();
 void cekLampuGelap();
 bool cekHalanganDepan();
@@ -131,16 +140,22 @@ void cetakNilaiEEPROM();
 void setup() {
   Initialization();
   if (protocolRunState == false) {
-    bacaNilaiDariEEPROM(); // pakai nilai tersimpan; kalibrasi manual via 2 tombol
+    bacaNilaiDariEEPROM();  // pakai nilai tersimpan; kalibrasi manual via 2 tombol
     cetakNilaiEEPROM();    // tampilkan semua nilai saat colok USB/hidup
+    Serial.print("Baterai: ");
+    Serial.print(readBatteryVoltage());
+    Serial.println(" V");
     Serial.println("Setup selesai. Kalibrasi manual: tekan 2 tombol bersamaan.");
   }
-}
 }
 
 void loop() {
   protocol();
   if (protocolRunState == false) {
+    // Prioritas tertinggi: baterai lemah menghentikan SEMUA fungsi.
+    if (cekBateraiLemah()) {
+      return;
+    }
     cekTombol();
     cekTepukTangan();  // toggle jalan/berhenti via tepuk tangan
     cekLampuGelap();   // headlight otomatis, non-blocking (throttle 200ms)
@@ -508,6 +523,31 @@ void cekTepukTangan() {
   } else if (!tepukSiap && suara < TEPUK_LEPAS) {
     tepukSiap = true;  // suara reda, siap deteksi tepukan berikutnya
   }
+}
+
+// --- BATERAI LEMAH: return true bila semua fungsi harus berhenti. ---
+// Sekali terkunci, hanya power cycle (restart) yang membuka. Non-blocking.
+bool cekBateraiLemah() {
+  unsigned long now = millis();
+  if (!bateraiLemah && now - cekBateraiTerakhir >= CEK_BATERAI_MS) {
+    cekBateraiTerakhir = now;
+    float v = readBatteryVoltage();
+    if (v <= TEGANGAN_MIN) {
+      bateraiLemah = true;
+      robotJalan = false;
+      resetStatePID();
+      berhenti();
+      Serial.print("BATERAI LEMAH: ");
+      Serial.print(v);
+      Serial.println(" V - semua fungsi dihentikan. Restart robot.");
+    }
+  }
+  if (bateraiLemah) {
+    berhenti();
+    setRgbledColor(255, 0, 0);
+    return true;
+  }
+  return false;
 }
 
 // --- DRIVER PERGERAKAN ---
