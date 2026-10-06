@@ -1,6 +1,13 @@
 # AGENTS.md
 
-Single-sketch Arduino repo: `LineFollowerFin/LineFollowerFin.ino` is the entire program (PID line follower for uKit Explore 2 robot). Sketch must stay in same-name folder (Arduino IDE requirement). No build/test/lint config, no packages, no CI.
+Modular Arduino sketch in `LineFollowerFin/` (sketch must stay in same-name folder). `.ino` holds only objects, `setup()`, and the `loop()` state machine; logic lives in classes (one `.h`/`.cpp` pair each, wired via refs in `.ino`):
+
+- `config.h` — all tunable values (PID, speeds, thresholds, timeouts, sensor IDs). Tune here.
+- `status.h` — shared `Status` struct (`jalan`, `modeSetelKd`, `recoveryMulai`).
+- `sensor_garis.*` — IR filter, per-sensor thresholds, calibration, EEPROM (incl. `eepromPutHemat` template — must stay in header).
+- `penggerak.*` — PID compute, deadband/slew, all motor helpers, telemetry.
+- `antarmuka.*` — onboard buttons + clap toggle (start/stop sequences).
+- `pengaman.*` — battery latch, tilt halt, ultrasonic stop, stuck detector, auto headlight.
 
 ## Toolchain
 - Target: Arduino (uKit Explore 2 board). Requires external `uKitExplore2.h` library + built-in `EEPROM.h` — neither is vendored here.
