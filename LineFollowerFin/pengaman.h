@@ -2,12 +2,9 @@
 #ifndef PENGAMAN_H
 #define PENGAMAN_H
 
-#include "ucode.h"
+#include "fwd.h"
 #include "config.h"
 #include "status.h"
-
-class SensorGaris;
-class Penggerak;
 
 class Pengaman {
  public:

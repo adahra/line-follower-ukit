@@ -2,15 +2,16 @@
 #ifndef SENSOR_GARIS_H
 #define SENSOR_GARIS_H
 
-#include "ucode.h"
 #include <EEPROM.h>
-#include <string.h>  // memcmp untuk eepromPutHemat
+#include <string.h>
+#include "fwd.h"
 #include "config.h"
 
 // EEPROM hemat tulis: tulis hanya bila byte berubah
 // (EEPROM ~100rb siklus; kalibrasi + save tiap start aman).
 // Template wajib di header (definisi harus terlihat saat dipakai).
-template <typename T> void eepromPutHemat(int addr, const T &nilai) {
+// inline agar multiple definition tidak error saat include di banyak .cpp
+template <typename T> inline void eepromPutHemat(int addr, const T &nilai) {
   T lama;
   EEPROM.get(addr, lama);
   if (memcmp(&lama, &nilai, sizeof(T)) != 0) {

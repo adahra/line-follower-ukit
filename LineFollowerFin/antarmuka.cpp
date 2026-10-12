@@ -2,6 +2,10 @@
 #include "sensor_garis.h"
 #include "penggerak.h"
 #include "pengaman.h"
+#include "ukit_extern.h"
+#include "ukit_macros.h"
+#include <string.h>
+#include <ctype.h>
 
 Antarmuka::Antarmuka(Status &st, SensorGaris &sen, Penggerak &g, Pengaman &am)
     : status(st), sensor(sen), gerak(g), aman(am) {}
@@ -29,7 +33,7 @@ void Antarmuka::berhenti(const char *via) {
   setEyelightLook(1, 0, 5, 254, 0, 0);
   setEyelightLook(2, 0, 5, 254, 0, 0);
   Serial.print(via);
-  Serial.println(": BERHENTI");
+  Serial.println(F(": BERHENTI"));
 }
 
 void Antarmuka::cekTombol() {
@@ -44,7 +48,7 @@ void Antarmuka::cekTombol() {
       now - cooldownB2 >= COOLDOWN_TOMBOL_MS) {
     cooldownB1 = now;
     cooldownB2 = now;
-    Serial.println("Kalibrasi manual dimulai...");
+    Serial.println(F("Kalibrasi manual dimulai..."));
     sensor.kalibrasi(gerak);
     return;
   }
@@ -58,7 +62,7 @@ void Antarmuka::cekTombol() {
         Kd += 0.5;
       }
 
-      Serial.print(!status.modeSetelKd ? "Kp: " : "Kd: ");
+      Serial.print(!status.modeSetelKd ? F("Kp: ") : F("Kd: "));
       Serial.println(!status.modeSetelKd ? Kp : Kd);
     } else if (buttonState1 == 2) {
       if (!status.modeSetelKd) {
@@ -73,15 +77,15 @@ void Antarmuka::cekTombol() {
         }
       }
 
-      Serial.print(!status.modeSetelKd ? "Kp: " : "Kd: ");
+      Serial.print(!status.modeSetelKd ? F("Kp: ") : F("Kd: "));
       Serial.println(!status.modeSetelKd ? Kp : Kd);
     } else if (buttonState1 == 3) {
       if (status.jalan) {
         berhenti("Tombol1");
       } else {
         status.modeSetelKd = !status.modeSetelKd;
-        Serial.print("Mode setel Kd: ");
-        Serial.println(status.modeSetelKd ? "YA" : "TIDAK");
+        Serial.print(F("Mode setel Kd: "));
+        Serial.println(status.modeSetelKd ? F("YA") : F("TIDAK"));
       }
     }
   }
@@ -94,7 +98,7 @@ void Antarmuka::cekTombol() {
         kecepatanDasarMaks = SPEED_TOMBOL_MAKS;
       }
 
-      Serial.print("Target Speed Maks: ");
+      Serial.print(F("Target Speed Maks: "));
       Serial.println(kecepatanDasarMaks);
     } else if (buttonState2 == 2) {
       kecepatanDasarMaks -= 10;
@@ -102,7 +106,7 @@ void Antarmuka::cekTombol() {
         kecepatanDasarMaks = SPEED_TOMBOL_MIN;
       }
 
-      Serial.print("Target Speed Maks: ");
+      Serial.print(F("Target Speed Maks: "));
       Serial.println(kecepatanDasarMaks);
     } else if (buttonState2 == 3) {
       if (!status.jalan) {
@@ -123,7 +127,7 @@ void Antarmuka::cekTepuk() {
   int suara = readSoundValue(SOUND_SENSOR_ID);
   if (tepukSiap && suara >= TEPUK_AMBANG &&
       now - tepukTerakhir >= TEPUK_COOLDOWN_MS) {
-    tepukSiap = false;  // kunci sampai suara reda, agar 1 tepuk = 1 toggle
+    tepukSiap = false;
     tepukTerakhir = now;
     if (status.jalan) {
       berhenti("Tepuk");
@@ -131,6 +135,129 @@ void Antarmuka::cekTepuk() {
       mulai("Tepuk");
     }
   } else if (!tepukSiap && suara < TEPUK_LEPAS) {
-    tepukSiap = true;  // suara reda, siap deteksi tepukan berikutnya
+    tepukSiap = true;
+  }
+}
+
+void Antarmuka::cekSerial() {
+  if (!Serial.available()) {
+    return;
+  }
+  static char buf[64];
+  int len = Serial.readBytesUntil('\n', buf, sizeof(buf) - 1);
+  if (len > 0) {
+    buf[len] = '\0';
+    // trim trailing whitespace
+    while (len > 0 && (buf[len - 1] == '\r' || buf[len - 1] == '\n' || buf[len - 1] == ' ')) {
+      buf[--len] = '\0';
+    }
+    if (len > 0) {
+      parseCommand(buf);
+    }
+  }
+}
+
+void Antarmuka::parseCommand(char *cmd) {
+  // to lowercase
+  for (char *p = cmd; *p; ++p) {
+    *p = tolower(*p);
+  }
+  char *space = strchr(cmd, ' ');
+  char *key = cmd;
+  char *valStr = "";
+  if (space) {
+    *space = '\0';
+    valStr = space + 1;
+  }
+  float val = atof(valStr);
+  bool hasVal = (valStr[0] != '\0');
+
+  if (strcmp(key, "kp") == 0) {
+    if (hasVal) Kp = val;
+    Serial.print(F("Kp = "));
+    Serial.println(Kp);
+  } else if (strcmp(key, "ki") == 0) {
+    if (hasVal) Ki = val;
+    Serial.print(F("Ki = "));
+    Serial.println(Ki);
+  } else if (strcmp(key, "kd") == 0) {
+    if (hasVal) Kd = val;
+    Serial.print(F("Kd = "));
+    Serial.println(Kd);
+  } else if (strcmp(key, "speed") == 0) {
+    if (hasVal) kecepatanDasarMaks = constrain((int)val, SPEED_TOMBOL_MIN, SPEED_TOMBOL_MAKS);
+    Serial.print(F("Speed maks = "));
+    Serial.println(kecepatanDasarMaks);
+  } else if (strcmp(key, "speedmin") == 0) {
+    if (hasVal) kecepatanDasarMin = constrain((int)val, 10, SPEED_TOMBOL_MAKS);
+    Serial.print(F("Speed min = "));
+    Serial.println(kecepatanDasarMin);
+  } else if (strcmp(key, "ambang") == 0) {
+    if (hasVal) {
+      int v = constrain((int)val, 1, 20);
+      AMBANG_KIRI = v;
+      AMBANG_KANAN = v;
+      Serial.print(F("Ambang kiri/kanan = "));
+      Serial.println(v);
+    } else {
+      Serial.print(F("Ambang kiri = "));
+      Serial.print(AMBANG_KIRI);
+      Serial.print(F(" kanan = "));
+      Serial.println(AMBANG_KANAN);
+    }
+  } else if (strcmp(key, "ambangk") == 0) {
+    if (hasVal) AMBANG_KIRI = constrain((int)val, 1, 20);
+    Serial.print(F("Ambang kiri = "));
+    Serial.println(AMBANG_KIRI);
+  } else if (strcmp(key, "ambangn") == 0) {
+    if (hasVal) AMBANG_KANAN = constrain((int)val, 1, 20);
+    Serial.print(F("Ambang kanan = "));
+    Serial.println(AMBANG_KANAN);
+  } else if (strcmp(key, "calibrate") == 0) {
+    if (!status.jalan) {
+      Serial.println(F("Kalibrasi dimulai via serial..."));
+      sensor.kalibrasi(gerak);
+    } else {
+      Serial.println(F("ERROR: Robot jalan, hentikan dulu."));
+    }
+  } else if (strcmp(key, "save") == 0) {
+    sensor.simpan();
+    Serial.println(F("Disimpan ke EEPROM."));
+  } else if (strcmp(key, "load") == 0) {
+    sensor.muat();
+    sensor.cetak();
+  } else if (strcmp(key, "start") == 0) {
+    if (!status.jalan) {
+      mulai("Serial");
+    } else {
+      Serial.println(F("Sudah jalan."));
+    }
+  } else if (strcmp(key, "stop") == 0) {
+    if (status.jalan) {
+      berhenti("Serial");
+    } else {
+      Serial.println(F("Sudah berhenti."));
+    }
+  } else if (strcmp(key, "help") == 0 || strcmp(key, "?") == 0) {
+    Serial.println(F("--- SERIAL COMMANDS ---"));
+    Serial.println(F("kp <val>        : set Kp (contoh: kp 22.5)"));
+    Serial.println(F("ki <val>        : set Ki (contoh: ki 0.02)"));
+    Serial.println(F("kd <val>        : set Kd (contoh: kd 1.8)"));
+    Serial.println(F("speed <val>     : set speed maks 60-150"));
+    Serial.println(F("speedmin <val>  : set speed min"));
+    Serial.println(F("ambang <val>    : set ambang kiri & kanan (1-20)"));
+    Serial.println(F("ambangk <val>   : set ambang kiri saja"));
+    Serial.println(F("ambangn <val>   : set ambang kanan saja"));
+    Serial.println(F("calibrate       : jalankan kalibrasi sensor (harus berhenti)"));
+    Serial.println(F("save            : simpan ke EEPROM"));
+    Serial.println(F("load            : muat dari EEPROM & cetak"));
+    Serial.println(F("start           : mulai jalan"));
+    Serial.println(F("stop            : berhenti"));
+    Serial.println(F("help / ?        : tampilkan ini"));
+    Serial.println(F("-----------------------"));
+  } else {
+    Serial.print(F("Perintah tidak dikenal: "));
+    Serial.println(cmd);
+    Serial.println(F("Ketik 'help' untuk daftar perintah."));
   }
 }

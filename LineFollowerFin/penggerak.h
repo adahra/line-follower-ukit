@@ -2,7 +2,7 @@
 #ifndef PENGGERAK_H
 #define PENGGERAK_H
 
-#include "ucode.h"
+#include "fwd.h"
 #include "config.h"
 
 class Penggerak {

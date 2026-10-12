@@ -1,4 +1,6 @@
 #include "penggerak.h"
+#include "ukit_extern.h"
+#include "ukit_macros.h"
 
 void Penggerak::reset() {
   error = 0;
@@ -193,6 +195,7 @@ int Penggerak::batasiSlew(int target, int prev) {
 
 // t,err,pid,dasar,kiri,kanan,senK,senN — throttle 100 ms, non-blocking.
 void Penggerak::telemetri(int bacaKiri, int bacaKanan) {
+#if ENABLE_TELEMETRI
   unsigned long now = millis();
   if (now - telemTerakhir < TELEM_MS) {
     return;
@@ -201,22 +204,26 @@ void Penggerak::telemetri(int bacaKiri, int bacaKanan) {
   telemTerakhir = now;
   if (!telemHeader) {
     telemHeader = true;
-    Serial.println("t,err,pid,dasar,kiri,kanan,senK,senN");
+    Serial.println(F("t,err,pid,dasar,kiri,kanan,senK,senN"));
   }
 
   Serial.print(now);
-  Serial.print(',');
+  Serial.print(F(","));
   Serial.print(error);
-  Serial.print(',');
+  Serial.print(F(","));
   Serial.print(PID_value);
-  Serial.print(',');
+  Serial.print(F(","));
   Serial.print(kecepatanDasar);
-  Serial.print(',');
+  Serial.print(F(","));
   Serial.print(kecepatanKiri);
-  Serial.print(',');
+  Serial.print(F(","));
   Serial.print(kecepatanKanan);
-  Serial.print(',');
+  Serial.print(F(","));
   Serial.print(bacaKiri);
-  Serial.print(',');
+  Serial.print(F(","));
   Serial.println(bacaKanan);
+#else
+  (void)bacaKiri;
+  (void)bacaKanan;
+#endif
 }

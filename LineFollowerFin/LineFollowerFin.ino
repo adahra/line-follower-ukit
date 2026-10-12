@@ -1,11 +1,13 @@
 #include "ucode.h"
 #include <EEPROM.h>
-#include "config.h"  // seluruh nilai konfigurasi
+#include "fwd.h"
+#include "config.h"
 #include "status.h"
 #include "sensor_garis.h"
 #include "penggerak.h"
 #include "pengaman.h"
 #include "antarmuka.h"
+// ucode.h included HERE only (single definition). Other files use ukit_wrapper.h
 
 // Wiring antar modul via referensi (lihat header masing-masing).
 Status status;
@@ -16,14 +18,20 @@ Antarmuka ui(status, sensor, gerak, aman);
 
 void setup() {
   Initialization();
-  IMU::init();  // gyro onboard untuk deteksi miring + macet
+  IMU::init();
   if (protocolRunState == false) {
-    sensor.muat();   // pakai nilai tersimpan; kalibrasi manual via 2 tombol
-    sensor.cetak();   // tampilkan semua nilai saat colok USB/hidup
-    Serial.print("Baterai: ");
-    Serial.print(aman.tegangan());
-    Serial.println(" V");
-    Serial.println("Setup selesai. Kalibrasi manual: tekan 2 tombol bersamaan.");
+    sensor.muat();
+    bool eepromValid = (EEPROM.read(ADDR_EEPROM_CHECK) == 123);
+    if (!eepromValid && AUTO_CALIBRATE_ON_BOOT) {
+      Serial.println(F("EEPROM invalid + AUTO_CALIBRATE_ON_BOOT=true -> kalibrasi otomatis..."));
+      sensor.kalibrasi(gerak);
+    } else {
+      sensor.cetak();
+      Serial.print(F("Baterai: "));
+      Serial.print(aman.tegangan());
+      Serial.println(F(" V"));
+      Serial.println(F("Setup selesai. Kalibrasi manual: tekan 2 tombol bersamaan."));
+    }
   }
 }
 
@@ -42,6 +50,7 @@ void loop() {
 
     ui.cekTombol();
     ui.cekTepuk();          // toggle jalan/berhenti via tepuk tangan
+    ui.cekSerial();         // serial command parser (Kp/Ki/Kd/speed/ambang/calibrate/save/help)
     aman.lampuOtomatis();   // headlight otomatis, non-blocking (throttle 200ms)
 
     if (status.jalan == true) {

@@ -2,6 +2,9 @@
 #include "pengaman.h"
 #include "sensor_garis.h"
 #include "penggerak.h"
+#include "ukit_extern.h"
+#include "ukit_macros.h"
+#include "KalmanMPU6050.h"
 
 Pengaman::Pengaman(Status &st, Penggerak &g, SensorGaris &sen)
     : status(st), gerak(g), sensor(sen) {}
@@ -33,9 +36,9 @@ bool Pengaman::bateraiKritis() {
       status.jalan = false;
       resetSemua();
       gerak.berhenti();
-      Serial.print("BATERAI LEMAH: ");
+      Serial.print(F("BATERAI LEMAH: "));
       Serial.print(v);
-      Serial.println(" V - semua fungsi dihentikan. Restart robot.");
+      Serial.println(F(" V - semua fungsi dihentikan. Restart robot."));
     }
   }
 
@@ -86,8 +89,8 @@ bool Pengaman::halangan() {
     bool baru = (jarak > 0 && jarak <= JARAK_BERHENTI_CM);
     if (baru != halanganDepan) {
       halanganDepan = baru;
-      Serial.print("Halangan depan: ");
-      Serial.println(halanganDepan ? "BERHENTI" : "JALAN");
+      Serial.print(F("Halangan depan: "));
+      Serial.println(halanganDepan ? F("BERHENTI") : F("JALAN"));
     }
   }
 
@@ -118,7 +121,7 @@ bool Pengaman::macet(int bacaKiri, int bacaKanan) {
       resetSemua();
       gerak.berhenti();
       setRgbledColor(255, 0, 0);
-      Serial.println("MACET: sensor & gerak beku - berhenti total.");
+      Serial.println(F("MACET: sensor & gerak beku - berhenti total."));
       return true;
     }
   } else {

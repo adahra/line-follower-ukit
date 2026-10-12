@@ -1,5 +1,7 @@
 #include "sensor_garis.h"
 #include "penggerak.h"
+#include "ukit_extern.h"
+#include "ukit_macros.h"
 
 void SensorGaris::resetFilter() {
   filtKiri = -1;
@@ -28,7 +30,7 @@ int SensorGaris::bacaKanan() {
 }
 
 void SensorGaris::kalibrasi(Penggerak &gerak) {
-  Serial.println("--- MEMULAI KALIBRASI SENSOR ---");
+  Serial.println(F("--- MEMULAI KALIBRASI SENSOR ---"));
   int maksKiri = 0, minKiri = 20;
   int maksKanan = 0, minKanan = 20;
 
@@ -63,9 +65,9 @@ void SensorGaris::kalibrasi(Penggerak &gerak) {
 
   AMBANG_KANAN = constrain((maksKanan + minKanan) / 2, 5, 14);
   AMBANG_KIRI = constrain((maksKiri + minKiri) / 2, 5, 14);
-  Serial.print("Ambang kiri: ");
+  Serial.print(F("Ambang kiri: "));
   Serial.print(AMBANG_KIRI);
-  Serial.print(" kanan: ");
+  Serial.print(F(" kanan: "));
   Serial.println(AMBANG_KANAN);
   simpan();
 
@@ -79,6 +81,7 @@ void SensorGaris::kalibrasi(Penggerak &gerak) {
 
 void SensorGaris::simpan() {
   eepromPutHemat(ADDR_KP, Kp);
+  eepromPutHemat(ADDR_KI, Ki);
   eepromPutHemat(ADDR_KD, Kd);
   eepromPutHemat(ADDR_SPEED, kecepatanDasarMaks);
   eepromPutHemat(ADDR_AMBANG, AMBANG_KIRI);
@@ -89,6 +92,7 @@ void SensorGaris::simpan() {
 void SensorGaris::muat() {
   if (EEPROM.read(ADDR_EEPROM_CHECK) == 123) {
     EEPROM.get(ADDR_KP, Kp);
+    EEPROM.get(ADDR_KI, Ki);
     EEPROM.get(ADDR_KD, Kd);
     EEPROM.get(ADDR_SPEED, kecepatanDasarMaks);
     EEPROM.get(ADDR_AMBANG, AMBANG_KIRI);
@@ -100,24 +104,23 @@ void SensorGaris::muat() {
 }
 
 void SensorGaris::cetak() {
-  Serial.println("--- NILAI TERSIMPAN ---");
-  Serial.print("EEPROM valid: ");
-  Serial.println(EEPROM.read(ADDR_EEPROM_CHECK) == 123 ? "YA" : "TIDAK (pakai default kode)");
-  Serial.print("Kp: ");
+  Serial.println(F("--- NILAI TERSIMPAN ---"));
+  Serial.print(F("EEPROM valid: "));
+  Serial.println(EEPROM.read(ADDR_EEPROM_CHECK) == 123 ? F("YA") : F("TIDAK (pakai default kode)"));
+  Serial.print(F("Kp: "));
   Serial.println(Kp);
-  Serial.print("Ki: ");
-  Serial.print(Ki);
-  Serial.println(" (tidak disimpan)");
-  Serial.print("Kd: ");
+  Serial.print(F("Ki: "));
+  Serial.println(Ki);
+  Serial.print(F("Kd: "));
   Serial.println(Kd);
-  Serial.print("Speed maks: ");
+  Serial.print(F("Speed maks: "));
   Serial.println(kecepatanDasarMaks);
-  Serial.print("Speed min: ");
+  Serial.print(F("Speed min: "));
   Serial.print(kecepatanDasarMin);
-  Serial.println(" (tidak disimpan)");
-  Serial.print("Ambang kiri: ");
+  Serial.println(F(" (tidak disimpan)"));
+  Serial.print(F("Ambang kiri: "));
   Serial.println(AMBANG_KIRI);
-  Serial.print("Ambang kanan: ");
+  Serial.print(F("Ambang kanan: "));
   Serial.println(AMBANG_KANAN);
-  Serial.println("-----------------------");
+  Serial.println(F("-----------------------"));
 }

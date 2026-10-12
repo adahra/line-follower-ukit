@@ -5,13 +5,13 @@
 #define CONFIG_H
 
 // --- PENGATURAN PID (default awal; Kp/Kd/speed/ambang dioverride EEPROM) ---
-float Kp = 21.7;
-float Ki = 0.01;
-float Kd = 1.5;
+extern float Kp;
+extern float Ki;
+extern float Kd;
 
-int kecepatanDasarMaks = 110;  // Batas kecepatan tertinggi saat di jalan lurus
-int kecepatanDasarMin = 50;    // Batas kecepatan terendah saat menikung tajam
-int kecepatanDasar = 90;       // Variabel dinamis yang akan dikalibrasi oleh PID
+extern int kecepatanDasarMaks;  // Batas kecepatan tertinggi saat di jalan lurus
+extern int kecepatanDasarMin;   // Batas kecepatan terendah saat menikung tajam
+extern int kecepatanDasar;      // Variabel dinamis yang akan dikalibrasi oleh PID
 
 // --- KONSTANTA TUNE (dulu magic number tersebar di badan kode) ---
 const float FAKTOR_REM_ADAPTIF = 0.6;  // agresivitas pengereman saat melenceng
@@ -23,17 +23,14 @@ const int SPEED_TOMBOL_MAKS = 150;     // batas atas (sama dengan derate servo)
 // Docs resmi: speed 0-255. 150 adalah derate yang disengaja agar robot stabil.
 // Servo punya deadband: speed kecil hanya berdengung, roda tidak bergerak.
 const int SERVO_MIN_EFEKTIF = 25;  // speed 1-24 dipaksa ke 25 atau 0
-const int SERVO_MAKS_DIPAKAI =
-  150;                                        // derate dari 255, jangan naikkan tanpa uji lintasan
-const int SLEW_MAKS_PER_LOOP = 10;            // batas perubahan speed per loop anti slip
+const int SERVO_MAKS_DIPAKAI = 150;  // derate dari 255, jangan naikkan tanpa uji lintasan
+const int SLEW_MAKS_PER_LOOP = 10;   // batas perubahan speed per loop anti slip
 const unsigned long BELOK_TIMEOUT_MS = 1500;  // anti macet di while belok 90°
-const unsigned long RECOVERY_TIMEOUT_MS =
-  2000;  // batas putar cari garis, lalu berhenti
+const unsigned long RECOVERY_TIMEOUT_MS = 2000;  // batas putar cari garis, lalu berhenti
 
 // --- ANTI GOYANG SENSOR: filter eksponensial agar 1 bacaan liar
 // tidak langsung jadi koreksi PID penuh (error range kecil, ±10).
-const float ALPHA_SENSOR =
-  0.5;  // bobot bacaan baru 0-1, makin besar makin responsif
+const float ALPHA_SENSOR = 0.5;  // bobot bacaan baru 0-1, makin besar makin responsif
 
 // --- PID interval tetap: D = error-lastError hanya valid bila dt konstan.
 // Tanpa ini, delay tombol (300-1000ms) membuat D melonjak acak.
@@ -99,15 +96,22 @@ const float STUCK_TOLERANSI_ACCEL = 0.15;  // 15% perubahan magnitude
 // --- AMBANG SENSOR GARIS (default awal; dioverride kalibrasi/EEPROM) ---
 // Ambang per sensor: dua sensor fisik jarang identik, ambang tunggal
 // memaksa kompromi yang merugikan sisi yang kurang sensitif.
-int AMBANG_KIRI = 8;
-int AMBANG_KANAN = 8;
+extern int AMBANG_KIRI;
+extern int AMBANG_KANAN;
 
 // --- ALAMAT ADDRESS EEPROM ---
 const int ADDR_EEPROM_CHECK = 0;
 const int ADDR_KP = 4;
-const int ADDR_KD = 8;
-const int ADDR_SPEED = 12;
-const int ADDR_AMBANG = 16;        // ambang kiri (format lama: ambang tunggal)
-const int ADDR_AMBANG_KANAN = 18;  // ambang kanan (baru; default bila belum ada)
+const int ADDR_KI = 8;
+const int ADDR_KD = 12;
+const int ADDR_SPEED = 16;
+const int ADDR_AMBANG = 20;        // ambang kiri (format lama: ambang tunggal)
+const int ADDR_AMBANG_KANAN = 22;  // ambang kanan (baru; default bila belum ada)
+
+// --- OPSI BOOT ---
+const bool AUTO_CALIBRATE_ON_BOOT = false;  // true = kalibrasi otomatis saat EEPROM invalid
+
+// --- OPSI MEMORI ---
+const bool ENABLE_TELEMETRI = false;        // true = kirim CSV telemetri (pakai RAM + Flash)
 
 #endif

@@ -1,25 +1,24 @@
-// antarmuka.h — input manusia: tombol onboard + tepuk tangan.
+// antarmuka.h — input manusia: tombol onboard + tepuk tangan + serial command.
 #ifndef ANTARMUKA_H
 #define ANTARMUKA_H
 
-#include "ucode.h"
+#include <Arduino.h>
+#include "fwd.h"
 #include "config.h"
 #include "status.h"
-
-class SensorGaris;
-class Penggerak;
-class Pengaman;
 
 class Antarmuka {
  public:
   Antarmuka(Status &st, SensorGaris &sen, Penggerak &g, Pengaman &am);
-  void cekTombol();  // non-blocking: tanpa delay, pakai cooldown
-  void cekTepuk();   // 1x tepuk = toggle jalan/berhenti
+  void cekTombol();   // non-blocking: tanpa delay, pakai cooldown
+  void cekTepuk();    // 1x tepuk = toggle jalan/berhenti
+  void cekSerial();   // parsing command serial: Kp/Ki/Kd/speed/ambang/calibrate/save/help
 
  private:
-  void mulai(const char *via);  // start bersih dari tombol/tepuk
+  void mulai(const char *via);
   void berhenti(const char *via);
   void resetSemua();
+  void parseCommand(char *cmd);
   Status &status;
   SensorGaris &sensor;
   Penggerak &gerak;
