@@ -19,6 +19,12 @@ const float BATAS_INTEGRAL = 50;       // anti windup: I dijepit ±nilai ini
 const int SPEED_TOMBOL_MIN = 60;       // batas bawah kecepatan maks via tombol
 const int SPEED_TOMBOL_MAKS = 150;     // batas atas (sama dengan derate servo)
 
+// --- DYNAMIC SPEED PROFILE (Turbo Mode) ---
+const int KECEPATAN_TURBO = 150;       // Kecepatan maksimal saat jalan lurus panjang
+const float LURUS_THRESHOLD = 2.0;    // Jika abs(error) < nilai ini, dianggap jalan lurus
+const unsigned long LURUS_TIME_REQUIRED = 500; // Waktu (ms) harus lurus sebelum masuk mode Turbo
+const int TURBO_RAMP_SPEED = 2;        // Kenaikan kecepatan per update (agar tidak slip)
+
 // --- BATAS KHUSUS SERVO 360 (open-loop, lihat docs setServoTurn) ---
 // Docs resmi: speed 0-255. 150 adalah derate yang disengaja agar robot stabil.
 // Servo punya deadband: speed kecil hanya berdengung, roda tidak bergerak.

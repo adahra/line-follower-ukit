@@ -8,5 +8,6 @@ class SensorGaris;
 class Penggerak;
 class Pengaman;
 class Antarmuka;
+class Mapper;
 
 #endif

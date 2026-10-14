@@ -7,6 +7,7 @@
 #include "penggerak.h"
 #include "pengaman.h"
 #include "antarmuka.h"
+#include "mapping.h"
 // ucode.h included HERE only (single definition). Other files use ukit_wrapper.h
 
 // Wiring antar modul via referensi (lihat header masing-masing).
@@ -15,6 +16,7 @@ SensorGaris sensor;
 Penggerak gerak;
 Pengaman aman(status, gerak, sensor);
 Antarmuka ui(status, sensor, gerak, aman);
+Mapper mapper;
 
 void setup() {
   Initialization();
@@ -62,6 +64,17 @@ void loop() {
       int bacaKiri = sensor.bacaKiri();
       int bacaKanan = sensor.bacaKanan();
 
+      // --- RACING PREDICTION ---
+      if (status.modeOperasi == MODE_RACING) {
+        EventType predType;
+        ActionType predAct;
+        if (mapper.checkPrediction(millis(), predType, predAct)) {
+          // Robot memprediksi akan ada event segera
+          // Optimasi: Bisa kurangi kecepatan sedikit untuk stabilitas belokan
+          // atau siapkan Turbo jika predAct == ACT_STRAIGHT
+        }
+      }
+
       // --- KONDISI A: DETEKSI PERSEMPATAN / PERTIGAAN ---
       if (bacaKiri >= AMBANG_KIRI && bacaKanan >= AMBANG_KANAN) {
         setRgbledColor(255, 255, 255);
@@ -73,12 +86,20 @@ void loop() {
         bacaKiri = sensor.bacaKiri();
         bacaKanan = sensor.bacaKanan();
 
+        ActionType act = ACT_STRAIGHT;
         if (bacaKiri > bacaKanan) {
+          act = ACT_RIGHT;
           gerak.belokKanan90(AMBANG_KANAN);
         } else if (bacaKanan > bacaKiri) {
+          act = ACT_LEFT;
           gerak.belokKiri90(AMBANG_KIRI);
         } else {
           gerak.majuTerus();
+        }
+
+        // Rekam event jika dalam mode learning
+        if (status.modeOperasi == MODE_LEARNING) {
+          mapper.recordEvent(EVENT_INTERSECTION, act);
         }
 
         setRgbledColor(0, 0, 0);

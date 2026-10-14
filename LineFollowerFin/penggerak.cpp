@@ -42,12 +42,31 @@ bool Penggerak::hitung(int bacaKiri, int bacaKanan, bool paksa) {
   PID_value = (Kp * P) + (Ki * I) + (Kd * D);
   lastError = error;
 
+  // --- DYNAMIC SPEED PROFILE (Turbo Mode) ---
+  // Jika error kecil (jalan lurus) dalam waktu lama, naikkan kecepatan dasar.
+  if (abs(error) < LURUS_THRESHOLD) {
+    if (waktuLurusMulai == 0) {
+      waktuLurusMulai = millis();
+    } else if (millis() - waktuLurusMulai > LURUS_TIME_REQUIRED) {
+      // Masuk mode Turbo: naikkan kecepatan secara gradual agar tidak slip
+      kecepatanTurboAktif += TURBO_RAMP_SPEED;
+      if (kecepatanTurboAktif > KECEPATAN_TURBO) {
+        kecepatanTurboAktif = KECEPATAN_TURBO;
+      }
+    }
+  } else {
+    // Tikungan terdeteksi: reset turbo segera
+    waktuLurusMulai = 0;
+    kecepatanTurboAktif = 0;
+  }
+
   // 3. Kecepatan dasar adaptif: makin melenceng makin direm.
   int faktorPengurang =
     abs(PID_value) * FAKTOR_REM_ADAPTIF;  // agresivitas pengereman (bisa di-tuning)
-  kecepatanDasar = kecepatanDasarMaks - faktorPengurang;
-  kecepatanDasar =
-    constrain(kecepatanDasar, kecepatanDasarMin, kecepatanDasarMaks);
+  
+  // Base speed adalah gabungan dari kecepatanDasarMaks + bonus Turbo - pengereman adaptif
+  int baseSpeedTarget = kecepatanDasarMaks + kecepatanTurboAktif - faktorPengurang;
+  kecepatanDasar = constrain(baseSpeedTarget, kecepatanDasarMin, SERVO_MAKS_DIPAKAI);
 
   // 4. Kecepatan motor akhir dari kecepatan dasar yang sudah beradaptasi
   kecepatanKiri = kecepatanDasar - PID_value;

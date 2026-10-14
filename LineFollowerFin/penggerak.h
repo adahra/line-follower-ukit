@@ -38,6 +38,10 @@ class Penggerak {
   unsigned long pidTerakhir = 0;
   unsigned long telemTerakhir = 0;
   bool telemHeader = false;
+
+  // Dynamic Speed State
+  unsigned long waktuLurusMulai = 0;
+  int kecepatanTurboAktif = 0;
 };
 
 #endif

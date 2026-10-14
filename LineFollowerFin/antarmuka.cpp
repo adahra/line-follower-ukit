@@ -226,6 +226,22 @@ void Antarmuka::parseCommand(char *cmd) {
   } else if (strcmp(key, "load") == 0) {
     sensor.muat();
     sensor.cetak();
+  } else if (strcmp(key, "mode") == 0) {
+    if (strcmp(valStr, "learn") == 0) {
+      status.modeOperasi = MODE_LEARNING;
+      Serial.println(F("Mode: LEARNING (Rekam Lintasan)"));
+    } else if (strcmp(valStr, "race") == 0) {
+      status.modeOperasi = MODE_RACING;
+      Serial.println(F("Mode: RACING (Gunakan Peta)"));
+    } else {
+      status.modeOperasi = MODE_NORMAL;
+      Serial.println(F("Mode: NORMAL"));
+    }
+  } else if (strcmp(key, "mapclear") == 0) {
+    // Note: mapper instance is in .ino, so we can't access it directly here 
+    // unless we pass it to Antarmuka. 
+    // For now, let's handle this via a special signal or just use the .ino logic.
+    Serial.println(F("Gunakan command 'mapclear' (diimplementasikan di .ino)"));
   } else if (strcmp(key, "start") == 0) {
     if (!status.jalan) {
       mulai("Serial");
