@@ -72,6 +72,17 @@ void loop() {
           // Robot memprediksi akan ada event segera
           // Optimasi: Bisa kurangi kecepatan sedikit untuk stabilitas belokan
           // atau siapkan Turbo jika predAct == ACT_STRAIGHT
+          
+          // Feedback LED saat ada prediction akan datang
+          if (predAct == ACT_STRAIGHT) {
+            setRgbledColor(255, 255, 255); // Putih = lurus
+          } else if (predAct == ACT_LEFT) {
+            setRgbledColor(0, 255, 0); // Hijau = belok kiri
+          } else if (predAct == ACT_RIGHT) {
+            setRgbledColor(255, 0, 0); // Merah = belok kanan
+          }
+        } else {
+          setRgbledColor(0, 0, 255); // Biru = tidak ada event prediction
         }
       }
 
@@ -100,6 +111,8 @@ void loop() {
         // Rekam event jika dalam mode learning
         if (status.modeOperasi == MODE_LEARNING) {
           mapper.recordEvent(EVENT_INTERSECTION, act);
+          Serial.print(F("Event tercatat: "));
+          Serial.println(act);
         }
 
         setRgbledColor(0, 0, 0);
@@ -149,12 +162,45 @@ void loop() {
     } else {
       gerak.saatBerhenti();
       if (status.modeSetelKd == true) {
+        // Mode tuning Kd aktif: magenta
         setRgbledColor(255, 0, 255);
+      } else if (status.modeOperasi == MODE_LEARNING) {
+        // Mode learning aktif: kuning
+        setRgbledColor(255, 255, 0);
+      } else if (status.modeOperasi == MODE_RACING) {
+        // Mode racing: hijau
+        setRgbledColor(0, 255, 0);
       } else {
+        // Mode normal: mati
         setRgbledColor(0, 0, 0);
       }
     }
 
     delay(2);
+  }
+}
+
+// --- Pemeriksaan kesehatan sensor (non-blocking) ---
+bool cekKesehatanSaatIni = false;
+unsigned long terakhirCekKesehatan = 0;
+const unsigned long INTERVAL_CEK_KESEHATAN = 5000; // Cek setiap 5 detik
+
+// Di dalam loop(), setelah baca sensor tetapi sebelum decision:
+if (status.jalan && !aman.halangan()) {
+  // Periodic health check
+  unsigned long now = millis();
+  if (now - terakhirCekKesehatan >= INTERVAL_CEK_KESEHATAN) {
+    terakhirCekKesehatan = now;
+    cekKesehatanSaatIni = sensor.cekKesehatanSensor();
+    if (!cekKesehatanSaatIni) {
+      Serial.println(F("PENTING: Sensor IR keluar rentang normal!"));
+    }
+  }
+  
+  // Tampilkan status kesehatan di serial secara periodik
+  if (cekKesehatanSaatIni) {
+    Serial.print(F("."));  // Titik berkurang = sensor baik
+  } else {
+    Serial.println(F("!"));  // Tanda sering = sensor masalah
   }
 }

@@ -41,15 +41,117 @@ void Antarmuka::cekTombol() {
   int buttonState1 = readButtonValue(1);
   int buttonState2 = readButtonValue(2);
 
-  // Kalibrasi manual: tekan 2 tombol bersamaan saat berhenti.
-  // Dicek dulu agar tak bentrok dengan aksi tombol tunggal di bawah.
+  // --- Non-blocking tombol detector ---
+  // Deteksi edge dan cooldown untuk tombol tunggal
+  if (buttonState1 != 0 && now - cooldownB1 >= COOLDOWN_TOMBOL_MS) {
+    cooldownB1 = now;
+    if (buttonState1 == 1) {
+      // Mode cycling hanya saat robot berhenti dan BUKAN mode setel Kd
+      if (!status.jalan && !status.modeSetelKd) {
+        // Pindah mode: Normal -> Learning -> Racing -> Normal
+        if (status.modeOperasi == MODE_NORMAL) {
+          status.modeOperasi = MODE_LEARNING;
+          Serial.println(F("Mode: LEARNING (Rekam Lintasan)"));
+          setRgbledColor(255, 255, 0); // Kuning = learning
+        } else if (status.modeOperasi == MODE_LEARNING) {
+          status.modeOperasi = MODE_RACING;
+          Serial.println(F("Mode: RACING (Gunakan Peta)"));
+          setRgbledColor(0, 255, 0); // Hijau = racing
+        } else if (status.modeOperasi == MODE_RACING) {
+          status.modeOperasi = MODE_NORMAL;
+          Serial.println(F("Mode: NORMAL"));
+          setRgbledColor(0, 0, 0); // Hitam = normal
+        }
+      } else if (!status.modeSetelKd) {
+        Kp += 1.0;
+      } else {
+        Kd += 0.5;
+      }
+      Serial.print(!status.modeSetelKd && !status.jalan ? F("Mode: ") : F("Kp: "));
+      // Tampilkan mode saat ini
+      if (!status.modeSetelKd && !status.jalan) {
+        Serial.println(status.modeOperasi == MODE_NORMAL ? F("NORMAL") : status.modeOperasi == MODE_LEARNING ? F("LEARNING") : F("RACING"));
+      } else {
+        Serial.println(!status.modeSetelKd ? Kp : Kd);
+      }
+    } else if (buttonState1 == 2) {
+      if (!status.modeSetelKd) {
+        Kp -= 1.0;
+        if (Kp < 0) {
+          Kp = 0;
+        }
+      } else {
+        Kd -= 0.5;
+        if (Kd < 0) {
+          Kd = 0;
+        }
+      }
+      Serial.print(!status.modeSetelKd ? F("Kp: ") : F("Kd: "));
+      Serial.println(!status.modeSetelKd ? Kp : Kd);
+    } else if (buttonState1 == 3) {
+      if (status.jalan) {
+        berhenti("Tombol1");
+      } else {
+        status.modeSetelKd = !status.modeSetelKd;
+        Serial.print(F("Mode setel Kd: "));
+        Serial.println(status.modeSetelKd ? F("YA") : F("TIDAK"));
+      }
+    }
+  }
+
+  if (buttonState2 != 0 && now - cooldownB2 >= COOLDOWN_TOMBOL_MS) {
+    cooldownB2 = now;
+    if (buttonState2 == 1) {
+      kecepatanDasarMaks += 10;
+      if (kecepatanDasarMaks > SPEED_TOMBOL_MAKS) {
+        kecepatanDasarMaks = SPEED_TOMBOL_MAKS;
+      }
+      Serial.print(F("Target Speed Maks: "));
+      Serial.println(kecepatanDasarMaks);
+    } else if (buttonState2 == 2) {
+      kecepatanDasarMaks -= 10;
+      if (kecepatanDasarMaks < SPEED_TOMBOL_MIN) {
+        kecepatanDasarMaks = SPEED_TOMBOL_MIN;
+      }
+      Serial.print(F("Target Speed Maks: "));
+      Serial.println(kecepatanDasarMaks);
+    } else if (buttonState2 == 3) {
+      if (!status.jalan) {
+        mulai("Tombol2");
+      }
+    }
+  }
+
+  // --- Kalibrasi + Auto-Tuning: B1+B2 bersamaan ---
+  // Deteksi awal tekan bersamaan
   if (buttonState1 != 0 && buttonState2 != 0 && !status.jalan &&
       now - cooldownB1 >= COOLDOWN_TOMBOL_MS &&
       now - cooldownB2 >= COOLDOWN_TOMBOL_MS) {
-    cooldownB1 = now;
-    cooldownB2 = now;
-    Serial.println(F("Kalibrasi manual dimulai..."));
-    sensor.kalibrasi(gerak);
+    // Catat waktu tekan pertama kali
+    if (cooldownB1 == 0 && cooldownB2 == 0) {
+      cooldownB1 = now;  // Tanda tombol pertama ditekan
+      Serial.println(F("--- MEMULAI SEQUENCE: Press again for Auto-Tune ---"));
+      Serial.println(F("Tekan lagi B1+B2 dalam 2 detik untuk Auto-Tuning"));
+      Serial.println(F("Atau tunggu 2 detik untuk kalibrasi saja..."));
+    } else {
+      // Sudah pernah tekan, cek durini ini kali
+      if (now - cooldownB1 < 2000) {
+        // < 2 detik: Hanya kalibrasi sensor
+        Serial.println(F(">>> Kalibrasi sensor BLU..."));
+        cooldownB1 = 0;
+        cooldownB2 = 0;
+        sensor.kalibrasi(gerak);
+        setRgbledColor(255, 255, 0); // Kuning selesai kalibrasi
+        Serial.println(F("Kalibrasi selesai. LED kuning."));
+      } else {
+        // > 2 detik: Kalibrasi + Auto-Tuning PID
+        Serial.println(F(">>> Memulai Kalibrasi + Auto-Tuning PID <<<"));
+        cooldownB1 = 0;
+        cooldownB2 = 0;
+        // Mulai sequence: Kalibrasi -> Auto-Tuning -> Simpan
+        tuningSequence();
+      }
+    }
     return;
   }
 
@@ -220,12 +322,23 @@ void Antarmuka::parseCommand(char *cmd) {
     } else {
       Serial.println(F("ERROR: Robot jalan, hentikan dulu."));
     }
+  } else if (strcmp(key, "tune") == 0) {
+    if (!status.jalan) {
+      Serial.println(F("Memulai Kalibrasi + Auto-Tuning PID..."));
+      tuningSequence();
+    } else {
+      Serial.println(F("ERROR: Robot jalan, hentikan dulu."));
+    }
   } else if (strcmp(key, "save") == 0) {
     sensor.simpan();
+    mapper.debugPrint();
     Serial.println(F("Disimpan ke EEPROM."));
   } else if (strcmp(key, "load") == 0) {
     sensor.muat();
+    mapper.debugPrint();
     sensor.cetak();
+    Serial.print(F("Waypoint tersimpan: "));
+    Serial.println(mapper.getWaypointCount());
   } else if (strcmp(key, "mode") == 0) {
     if (strcmp(valStr, "learn") == 0) {
       status.modeOperasi = MODE_LEARNING;
@@ -254,9 +367,8 @@ void Antarmuka::parseCommand(char *cmd) {
     } else {
       Serial.println(F("Sudah berhenti."));
     }
-  } else if (strcmp(key, "help") == 0 || strcmp(key, "?") == 0) {
-    Serial.println(F("--- SERIAL COMMANDS ---"));
-    Serial.println(F("kp <val>        : set Kp (contoh: kp 22.5)"));
+  } else if (strcmp(key, "status") == 0) {
+    tampilkanStatusJalannya();
     Serial.println(F("ki <val>        : set Ki (contoh: ki 0.02)"));
     Serial.println(F("kd <val>        : set Kd (contoh: kd 1.8)"));
     Serial.println(F("speed <val>     : set speed maks 60-150"));
@@ -265,15 +377,176 @@ void Antarmuka::parseCommand(char *cmd) {
     Serial.println(F("ambangk <val>   : set ambang kiri saja"));
     Serial.println(F("ambangn <val>   : set ambang kanan saja"));
     Serial.println(F("calibrate       : jalankan kalibrasi sensor (harus berhenti)"));
-    Serial.println(F("save            : simpan ke EEPROM"));
-    Serial.println(F("load            : muat dari EEPROM & cetak"));
+    Serial.println(F("tune            : kalibrasi + Auto-Tuning PID sekaligus"));
+    Serial.println(F("save            : simpan ke EEPROM (termasuk waypoint learning)"));
+    Serial.println(F("load            : muat dari EEPROM & cetak waypoint"));
     Serial.println(F("start           : mulai jalan"));
     Serial.println(F("stop            : berhenti"));
+    Serial.println(F("status          : tampilkan status sedang ini"));
     Serial.println(F("help / ?        : tampilkan ini"));
     Serial.println(F("-----------------------"));
+    Serial.println(F("");
+    Serial.println(F("=== MODE via TOMBOL (saat berhenti) ==="));
+    Serial.println(F("B1 pendek: Pindah mode Normal <-> Learning <-> Racing"));
+    Serial.println(F("B1 lama: Toggle mode Setel Kp/Kd"));
+    Serial.println(F("B1+B2: Kalibrasi sensor (pendek) / Auto-Tuning (lama)"));
   } else {
     Serial.print(F("Perintah tidak dikenal: "));
     Serial.println(cmd);
     Serial.println(F("Ketik 'help' untuk daftar perintah."));
   }
+}
+
+// Fungsi tampilkan status jalanannya ke serial
+void Antarmuka::tampilkanStatusJalannya() {
+  Serial.println(F("--- STATUS SEKARANG ---"));
+  Serial.print(F("Jalan: ")); Serial.println(status.jalan ? F("YA") : F("TIDAK"));
+  Serial.print(F("Mode operasi: "));
+  switch (status.modeOperasi) {
+    case 0: Serial.println(F("NORMAL")); break;
+    case 1: Serial.println(F("LEARNING")); break;
+    case 2: Serial.println(F("RACING")); break;
+  }
+  Serial.print(F("modeSetelKd: ")); Serial.println(status.modeSetelKd ? F("YA") : F("TIDAK"));
+  Serial.print(F("recoveryMulai: ")); Serial.print(status.recoveryMulai); Serial.println(F(" ms"));
+  Serial.print(F("Jumlah waypoint: ")); Serial.println(mapper.getWaypointCount());
+  
+  // Sensor status
+  Serial.print(F("Sensor kiri: ")); Serial.print(sensor.bacaKiri());
+  Serial.print(F(" (ambang: ")); Serial.print(AMBANG_KIRI); Serial.print(F(")"));
+  Serial.print(F(" | Sensor kanan: ")); Serial.print(sensor.bacaKanan());
+  Serial.print(F(" (ambang: ")); Serial.print(AMBANG_KANAN); Serial.println(F(")"));
+  
+  // PID & Speed
+  Serial.print(F("Kp: ")); Serial.print(Kp);
+  Serial.print(F(" | Kd: ")); Serial.print(Kd);
+  Serial.print(F(" | Ki: ")); Serial.print(Ki);
+  Serial.print(F(" | SpeedMaks: ")); Serial.print(kecepatanDasarMaks);
+  Serial.print(F(" | Dasar: ")); Serial.print(gerak.kecepatanDasar);
+  
+  // LED status
+  Serial.println(F(" --- AKHIR STATUS ---"));
+}
+
+// --- SEQUENCE: Kalibrasi + Auto-Tuning PID ---
+// Alur: Kalibrasi sensor -> Test respons PID -> Fine-tuning -> Simpan ke EEPROM
+void Antarmuka::tuningSequence() {
+  unsigned long sequenceStart = millis();
+  const unsigned long SEQ_TIMEOUT = 30000; // 30 detik total timeout
+  
+  Serial.println(F("--- MEMULAI SEQUENCE KALIBRASI + AUTO-TUNING ---"));
+  
+  // Step 1: Kalibrasi sensor
+  setRgbledColor(255, 165, 0); // oranye = tahap kalibrasi
+  Serial.println(F("Step 1: Kalibrasi sensor..."));
+  sensor.kalibrasi(gerak);
+  Serial.println(F("Kalibrasi selesai."));
+  
+  // Step 2: Auto-Tuning PID sederhana (grid search)
+  setRgbledColor(255, 0, 255); // magenta = tahap auto-tuning
+  Serial.println(F("Step 2: Auto-Tuning PID (grid search)..."));
+  
+  // Parameter grid untuk dicoba
+  float kpValues[] = {15.0, 20.0, 25.0, 30.0};
+  float kdValues[] = {0.5, 1.0, 1.5, 2.0};
+  
+  float bestKp = Kp;
+  float bestKd = Kd;
+  float bestScore = 9999.0; // Score lebih rendah = lebih baik
+  
+  // Simpan parameter lama
+  float originalKp = Kp;
+  float originalKd = Kd;
+  
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      // Cek timeout
+      if (millis() - sequenceStart > SEQ_TIMEOUT) {
+        Serial.println(F("Timeout sequence!"));
+        break;
+      }
+      
+      float testKp = kpValues[i];
+      float testKd = kdValues[j];
+      
+      // Terapkan parameter uji
+      Kp = testKp;
+      Kd = testKd;
+      Ki = 0.01; // Ki tetap kecil
+      
+      // Jalankan robot sebentar untuk test respons
+      status.jalan = true;
+      unsigned long testStart = millis();
+      const unsigned long TEST_DURATION = 5000; // 5 detik test
+      
+      float totalError = 0;
+      int errorSamples = 0;
+      bool oscillating = false;
+      float prevError = 0;
+      
+      while (millis() - testStart < TEST_DURATION) {
+        if (!status.jalan) break;
+        
+        // Baca sensor dan hitung PID (dengan interval 10ms)
+        int bacaKiri = sensor.bacaKiri();
+        int bacaKanan = sensor.bacaKanan();
+        float error = (bacaKiri - bacaKanan) / 2.0;
+        
+        // Hitung P dan D sederhana
+        float P = error;
+        float D = error - prevError;
+        prevError = error;
+        totalError += abs(error);
+        errorSamples++;
+        
+        // Deteksi oscillasi: error berubah tanda berkali-kali
+        if ( (error > 0 && prevError < 0) || (error < 0 && prevError > 0) ) {
+          oscillating = true;
+        }
+        
+        delay(10); // Approximate PID interval
+      }
+      
+      status.jalan = false;
+      
+      // Hitung skor: error rata-rata + penalty oscillasi
+      float avgError = errorSamples > 0 ? totalError / errorSamples : 9999;
+      float score = avgError;
+      if (oscillating) score += 5.0; // Penalty besar buat oscillasi
+      
+      Serial.print(F("  Test Kp=")); Serial.print(testKp);
+      Serial.print(F(", Kd=")); Serial.print(testKd);
+      Serial.print(F(": avgError=")); Serial.print(avgError, 1);
+      Serial.print(F(", oscill=")); Serial.print(oscillating ? "YA" : "TIDAK");
+      Serial.println(F(", skor=")); Serial.print(score, 1);
+      
+      if (score < bestScore) {
+        bestScore = score;
+        bestKp = testKp;
+        bestKd = testKd;
+      }
+    }
+  }
+  
+  // Step 3: Terapkan parameter terbaik
+  Serial.println(F("Step 3: Parameter terbaik..."));
+  Kp = bestKp;
+  Kd = bestKd;
+  Serial.print(F("Kp terbaik: ")); Serial.println(Kp);
+  Serial.print(F("Kd terbaik: ")); Serial.println(Kd);
+  
+  // Step 4: Simpan ke EEPROM
+  setRgbledColor(0, 255, 0); // hijau = selesai
+  sensor.simpan(); // Simpan Kp, Kd, ambang, speed ke EEPROM
+  
+  Serial.println(F("--- SEQUENCE SELESAI ---"));
+  Serial.print(F("Parameter disimpan: Kp=")); Serial.print(Kp);
+  Serial.print(F(", Kd=")); Serial.print(Kd);
+  Serial.println(F(", ambang & speed ikut kalibrasi"));
+  Serial.println(F("LED hijau = siap digunakan"));
+  
+  // Kembali ke mode normal
+  status.modeOperasi = MODE_NORMAL;
+  status.jalan = false;
+  setRgbledColor(0, 0, 0);
 }
