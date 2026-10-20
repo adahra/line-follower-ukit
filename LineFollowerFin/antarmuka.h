@@ -9,7 +9,7 @@
 
 class Antarmuka {
  public:
-  Antarmuka(Status &st, SensorGaris &sen, Penggerak &g, Pengaman &am);
+  Antarmuka(Status &st, SensorGaris &sen, Penggerak &g, Pengaman &am, LapTimer &lt, PathPlanner &pp);
   void cekTombol();   // non-blocking: tanpa delay, pakai cooldown
   void cekTepuk();    // 1x tepuk = toggle jalan/berhenti
   void cekSerial();   // parsing command serial: Kp/Ki/Kd/speed/ambang/calibrate/save/help
@@ -23,6 +23,8 @@ class Antarmuka {
   SensorGaris &sensor;
   Penggerak &gerak;
   Pengaman &aman;
+  LapTimer &lapTimer;
+  PathPlanner &pathPlanner;
 
   unsigned long cooldownB1 = 0;
   unsigned long cooldownB2 = 0;

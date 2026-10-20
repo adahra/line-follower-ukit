@@ -8,6 +8,9 @@
 #include "pengaman.h"
 #include "antarmuka.h"
 #include "mapping.h"
+#include "lap_timer.h"
+#include "bluetooth_ctrl.h"
+#include "path_planner.h"
 // ucode.h included HERE only (single definition). Other files use ukit_wrapper.h
 
 // Wiring antar modul via referensi (lihat header masing-masing).
@@ -15,8 +18,11 @@ Status status;
 SensorGaris sensor;
 Penggerak gerak;
 Pengaman aman(status, gerak, sensor);
-Antarmuka ui(status, sensor, gerak, aman);
+Antarmuka ui(status, sensor, gerak, aman, lapTimer, pathPlanner);
 Mapper mapper;
+LapTimer lapTimer;
+BluetoothCtrl bluetooth(status, gerak, sensor, aman, lapTimer);
+PathPlanner pathPlanner;
 
 void setup() {
   Initialization();
@@ -35,6 +41,27 @@ void setup() {
       Serial.println(F("Setup selesai. Kalibrasi manual: tekan 2 tombol bersamaan."));
     }
   }
+  
+  // Inisialisasi Lap Timer
+  lapTimer.begin();
+  lapTimer.setThresholds(LAP_SF_THRESHOLD, LAP_MIN_LAP_MS);
+
+  // Inisialisasi Bluetooth
+  #if ENABLE_BLUETOOTH
+    bluetooth.begin(BT_BAUD, (BTModuleType)BT_MODULE_TYPE);
+    if (bluetooth.isConnected()) {
+      bluetooth.setAutoTelemetry(true, BT_TELEMETRY_MS);
+      Serial.println(F("Bluetooth: Ready"));
+    } else {
+      Serial.println(F("Bluetooth: Not connected (check wiring)"));
+    }
+  #endif
+
+  // Inisialisasi Path Planner
+  #if ENABLE_PATH_PLANNER
+    pathPlanner.begin(PATH_GRID_WIDTH / 2, PATH_GRID_HEIGHT / 2);
+    Serial.println(F("Path Planner: Ready"));
+  #endif
 }
 
 void loop() {
@@ -54,6 +81,16 @@ void loop() {
     ui.cekTepuk();          // toggle jalan/berhenti via tepuk tangan
     ui.cekSerial();         // serial command parser (Kp/Ki/Kd/speed/ambang/calibrate/save/help)
     aman.lampuOtomatis();   // headlight otomatis, non-blocking (throttle 200ms)
+    
+    // Bluetooth update
+    #if ENABLE_BLUETOOTH
+      bluetooth.update();
+    #endif
+
+    // Path Planner update
+    #if ENABLE_PATH_PLANNER
+      pathPlanner.updateMap(sensor, pathPlanner.getRobotGridX(), pathPlanner.getRobotGridY(), 0);
+    #endif
 
     if (status.jalan == true) {
       // Prioritas tertinggi: halangan depan menghentikan semua logika jalan.
@@ -157,6 +194,13 @@ void loop() {
         if (!gerak.hitung(bacaKiri, bacaKanan, dariRecovery)) {
           gerak.terapkanTerakhir();
           return;
+        }
+
+        // --- LAP TIMER UPDATE ---
+        // Hanya update saat PID interval tiba (gerak.hitung return true)
+        if (ENABLE_LAP_TIMER) {
+          float currentError = (bacaKiri - bacaKanan) / 2.0;
+          lapTimer.update(sensor, gerak.kecepatanDasar, currentError);
         }
       }
     } else {

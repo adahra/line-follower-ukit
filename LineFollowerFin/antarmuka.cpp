@@ -7,8 +7,8 @@
 #include <string.h>
 #include <ctype.h>
 
-Antarmuka::Antarmuka(Status &st, SensorGaris &sen, Penggerak &g, Pengaman &am)
-    : status(st), sensor(sen), gerak(g), aman(am) {}
+Antarmuka::Antarmuka(Status &st, SensorGaris &sen, Penggerak &g, Pengaman &am, LapTimer &lt, PathPlanner &pp)
+    : status(st), sensor(sen), gerak(g), aman(am), lapTimer(lt), pathPlanner(pp) {}
 
 void Antarmuka::resetSemua() {
   gerak.reset();
@@ -329,6 +329,34 @@ void Antarmuka::parseCommand(char *cmd) {
     } else {
       Serial.println(F("ERROR: Robot jalan, hentikan dulu."));
     }
+  } else if (strcmp(key, "lap") == 0) {
+    if (strcmp(valStr, "reset") == 0) {
+      lapTimer.reset();
+      Serial.println(F("Lap timer direset."));
+    } else if (strcmp(valStr, "summary") == 0) {
+      lapTimer.printSummary();
+    } else if (strcmp(valStr, "csv") == 0) {
+      lapTimer.printCSV();
+    } else {
+      // Default: tampilkan summary
+      lapTimer.printSummary();
+    }
+  } else if (strcmp(key, "lapconfig") == 0) {
+    if (hasVal) {
+      // Format: lapconfig <threshold> <minLapMs>
+      // Untuk simplicity, parse manual
+      int threshold = atoi(valStr);
+      char* space = strchr(valStr, ' ');
+      if (space) {
+        int minLap = atoi(space + 1);
+        lapTimer.setThresholds(threshold, minLap);
+      } else {
+        lapTimer.setThresholds(threshold, LAP_MIN_LAP_MS);
+      }
+    } else {
+      Serial.print(F("LapConfig: threshold=")); Serial.print(LAP_SF_THRESHOLD);
+      Serial.print(F(" minLap=")); Serial.println(LAP_MIN_LAP_MS);
+    }
   } else if (strcmp(key, "save") == 0) {
     sensor.simpan();
     mapper.debugPrint();
@@ -355,6 +383,8 @@ void Antarmuka::parseCommand(char *cmd) {
     // unless we pass it to Antarmuka. 
     // For now, let's handle this via a special signal or just use the .ino logic.
     Serial.println(F("Gunakan command 'mapclear' (diimplementasikan di .ino)"));
+  } else if (strcmp(key, "path") == 0) {
+    pathPlanner.handleCommand(valStr);
   } else if (strcmp(key, "start") == 0) {
     if (!status.jalan) {
       mulai("Serial");
@@ -378,6 +408,14 @@ void Antarmuka::parseCommand(char *cmd) {
     Serial.println(F("ambangn <val>   : set ambang kanan saja"));
     Serial.println(F("calibrate       : jalankan kalibrasi sensor (harus berhenti)"));
     Serial.println(F("tune            : kalibrasi + Auto-Tuning PID sekaligus"));
+    Serial.println(F("lap [summary|csv|reset] : lap timer summary/CSV/reset"));
+    Serial.println(F("lapconfig <th> [minMs] : set threshold start/finish & min lap time"));
+    Serial.println(F("path map        : tampilkan grid map"));
+    Serial.println(F("path find       : cari path ke goal"));
+    Serial.println(F("path goal <x> <y> : set goal position"));
+    Serial.println(F("path next       : waypoint berikutnya"));
+    Serial.println(F("path obstacle <x> <y> : tambah obstacle"));
+    Serial.println(F("path reset      : reset path planner"));
     Serial.println(F("save            : simpan ke EEPROM (termasuk waypoint learning)"));
     Serial.println(F("load            : muat dari EEPROM & cetak waypoint"));
     Serial.println(F("start           : mulai jalan"));
