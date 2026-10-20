@@ -3,7 +3,8 @@
 #include "ukit_macros.h"
 #include <math.h>
 
-PathPlanner pathPlanner;
+// Global instance defined in LineFollowerFin.ino
+// PathPlanner pathPlanner;
 
 PathPlanner::PathPlanner() {
   // Inisialisasi node pool

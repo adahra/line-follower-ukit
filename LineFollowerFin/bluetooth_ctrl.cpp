@@ -1,5 +1,9 @@
 // bluetooth_ctrl.cpp — Implementasi Bluetooth/BLE Control
 #include "bluetooth_ctrl.h"
+#include "penggerak.h"
+#include "sensor_garis.h"
+#include "pengaman.h"
+#include "lap_timer.h"
 #include "ukit_macros.h"
 #include <stdarg.h>
 
@@ -86,7 +90,7 @@ void BluetoothCtrl::update() {
       now,
       gerak.errorTerakhir(),  // Perlu akses ke error current
       0,  // PID value - perlu akses
-      gerak.kecepatanDasar,
+      kecepatanDasar,  // global variable
       0, 0,  // speed kiri/kanan - perlu akses
       sensor.bacaKiri(),
       sensor.bacaKanan(),
@@ -370,7 +374,24 @@ void BluetoothCtrl::sendResponse(const char *format, ...) {
   va_list args;
   va_start(args, format);
   char buffer[128];
-  vsnprintf(buffer, sizeof(buffer), (const char*)format, args);
+  vsnprintf(buffer, sizeof(buffer), format, args);
+  va_end(args);
+  
+  btSerial->print(F("> "));
+  btSerial->println(buffer);
+}
+
+void BluetoothCtrl::sendResponse(const __FlashStringHelper *format, ...) {
+  if (!btSerial || !connected) return;
+  
+  // Copy Flash string to RAM buffer
+  char formatBuf[128];
+  strcpy_P(formatBuf, (const char*)format);
+  
+  va_list args;
+  va_start(args, format);
+  char buffer[128];
+  vsnprintf(buffer, sizeof(buffer), formatBuf, args);
   va_end(args);
   
   btSerial->print(F("> "));

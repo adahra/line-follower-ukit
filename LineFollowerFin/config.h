@@ -132,9 +132,9 @@ const unsigned long BT_TELEMETRY_MS = 200;    // interval auto telemetry
 const int BT_MODULE_TYPE = 1;                 // 1=HM-10, 2=uKit built-in
 
 // --- PATH PLANNER ---
-const bool ENABLE_PATH_PLANNER = true;        // aktifkan path planning
-const int GRID_CELL_SIZE_CM = 10;             // ukuran cell grid (cm)
-const int PATH_GRID_WIDTH = 32;               // lebar grid
-const int PATH_GRID_HEIGHT = 32;              // tinggi grid
+const bool ENABLE_PATH_PLANNER = false;       // default OFF (RAM ATMega2560 terbatas)
+const int GRID_CELL_SIZE_CM = 20;             // ukuran cell grid (cm)
+const int PATH_GRID_WIDTH = 16;               // lebar grid
+const int PATH_GRID_HEIGHT = 16;              // tinggi grid
 
 #endif

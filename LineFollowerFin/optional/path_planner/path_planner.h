@@ -8,10 +8,10 @@
 #include "config.h"
 #include "sensor_garis.h"
 
-// Ukuran grid map (cells)
-#define GRID_WIDTH  32
-#define GRID_HEIGHT 32
-#define CELL_SIZE_CM 10  // 10cm per cell
+// Ukuran grid map (cells) - 16x16 untuk hemat RAM (ATMega2560: 8KB)
+#define GRID_WIDTH  16
+#define GRID_HEIGHT 16
+#define CELL_SIZE_CM 20  // 20cm per cell (area 3.2m x 3.2m)
 
 // Tipe cell
 enum CellType {

@@ -2,13 +2,15 @@
 #include "sensor_garis.h"
 #include "penggerak.h"
 #include "pengaman.h"
+#include "lap_timer.h"
+#include "mapping.h"
 #include "ukit_extern.h"
 #include "ukit_macros.h"
 #include <string.h>
 #include <ctype.h>
 
-Antarmuka::Antarmuka(Status &st, SensorGaris &sen, Penggerak &g, Pengaman &am, LapTimer &lt, PathPlanner &pp)
-    : status(st), sensor(sen), gerak(g), aman(am), lapTimer(lt), pathPlanner(pp) {}
+Antarmuka::Antarmuka(Status &st, SensorGaris &sen, Penggerak &g, Pengaman &am, LapTimer &lt, Mapper &mp)
+    : status(st), sensor(sen), gerak(g), aman(am), lapTimer(lt), mapper(mp) {}
 
 void Antarmuka::resetSemua() {
   gerak.reset();
@@ -383,8 +385,8 @@ void Antarmuka::parseCommand(char *cmd) {
     // unless we pass it to Antarmuka. 
     // For now, let's handle this via a special signal or just use the .ino logic.
     Serial.println(F("Gunakan command 'mapclear' (diimplementasikan di .ino)"));
-  } else if (strcmp(key, "path") == 0) {
-    pathPlanner.handleCommand(valStr);
+  // } else if (strcmp(key, "path") == 0) {  // Optional: enable with PathPlanner
+  //     pathPlanner.handleCommand(valStr);
   } else if (strcmp(key, "start") == 0) {
     if (!status.jalan) {
       mulai("Serial");
@@ -410,12 +412,12 @@ void Antarmuka::parseCommand(char *cmd) {
     Serial.println(F("tune            : kalibrasi + Auto-Tuning PID sekaligus"));
     Serial.println(F("lap [summary|csv|reset] : lap timer summary/CSV/reset"));
     Serial.println(F("lapconfig <th> [minMs] : set threshold start/finish & min lap time"));
-    Serial.println(F("path map        : tampilkan grid map"));
-    Serial.println(F("path find       : cari path ke goal"));
-    Serial.println(F("path goal <x> <y> : set goal position"));
-    Serial.println(F("path next       : waypoint berikutnya"));
-    Serial.println(F("path obstacle <x> <y> : tambah obstacle"));
-    Serial.println(F("path reset      : reset path planner"));
+    // Serial.println(F("path map        : tampilkan grid map"));      // Optional: PathPlanner
+    // Serial.println(F("path find       : cari path ke goal"));       // Optional: PathPlanner
+    // Serial.println(F("path goal <x> <y> : set goal position"));    // Optional: PathPlanner
+    // Serial.println(F("path next       : waypoint berikutnya"));     // Optional: PathPlanner
+    // Serial.println(F("path obstacle <x> <y> : tambah obstacle"));   // Optional: PathPlanner
+    // Serial.println(F("path reset      : reset path planner"));      // Optional: PathPlanner
     Serial.println(F("save            : simpan ke EEPROM (termasuk waypoint learning)"));
     Serial.println(F("load            : muat dari EEPROM & cetak waypoint"));
     Serial.println(F("start           : mulai jalan"));
@@ -423,7 +425,7 @@ void Antarmuka::parseCommand(char *cmd) {
     Serial.println(F("status          : tampilkan status sedang ini"));
     Serial.println(F("help / ?        : tampilkan ini"));
     Serial.println(F("-----------------------"));
-    Serial.println(F("");
+    Serial.println();
     Serial.println(F("=== MODE via TOMBOL (saat berhenti) ==="));
     Serial.println(F("B1 pendek: Pindah mode Normal <-> Learning <-> Racing"));
     Serial.println(F("B1 lama: Toggle mode Setel Kp/Kd"));
@@ -460,7 +462,7 @@ void Antarmuka::tampilkanStatusJalannya() {
   Serial.print(F(" | Kd: ")); Serial.print(Kd);
   Serial.print(F(" | Ki: ")); Serial.print(Ki);
   Serial.print(F(" | SpeedMaks: ")); Serial.print(kecepatanDasarMaks);
-  Serial.print(F(" | Dasar: ")); Serial.print(gerak.kecepatanDasar);
+  Serial.print(F(" | Dasar: ")); Serial.print(kecepatanDasar);
   
   // LED status
   Serial.println(F(" --- AKHIR STATUS ---"));

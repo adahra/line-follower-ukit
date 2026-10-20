@@ -94,6 +94,7 @@ class BluetoothCtrl {
   void parseAndExecute(const char *cmd);
   bool readBTLine(char *buffer, int maxLen);
   void sendResponse(const char *format, ...);
+  void sendResponse(const __FlashStringHelper *format, ...);
   void sendOK(const char *msg = "");
   void sendError(const char *msg = "");
 };

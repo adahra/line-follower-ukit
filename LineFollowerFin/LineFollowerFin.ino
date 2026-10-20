@@ -10,7 +10,7 @@
 #include "mapping.h"
 #include "lap_timer.h"
 #include "bluetooth_ctrl.h"
-#include "path_planner.h"
+// #include "path_planner.h"  // Optional: enable via config.h + move optional/path_planner/ to sketch folder
 // ucode.h included HERE only (single definition). Other files use ukit_wrapper.h
 
 // Wiring antar modul via referensi (lihat header masing-masing).
@@ -18,11 +18,11 @@ Status status;
 SensorGaris sensor;
 Penggerak gerak;
 Pengaman aman(status, gerak, sensor);
-Antarmuka ui(status, sensor, gerak, aman, lapTimer, pathPlanner);
 Mapper mapper;
 LapTimer lapTimer;
+// PathPlanner pathPlanner;  // Optional: uncomment + include path_planner.h when needed
+Antarmuka ui(status, sensor, gerak, aman, lapTimer, mapper);
 BluetoothCtrl bluetooth(status, gerak, sensor, aman, lapTimer);
-PathPlanner pathPlanner;
 
 void setup() {
   Initialization();
@@ -200,7 +200,7 @@ void loop() {
         // Hanya update saat PID interval tiba (gerak.hitung return true)
         if (ENABLE_LAP_TIMER) {
           float currentError = (bacaKiri - bacaKanan) / 2.0;
-          lapTimer.update(sensor, gerak.kecepatanDasar, currentError);
+          lapTimer.update(sensor, kecepatanDasar, currentError);
         }
       }
     } else {
@@ -221,30 +221,5 @@ void loop() {
     }
 
     delay(2);
-  }
-}
-
-// --- Pemeriksaan kesehatan sensor (non-blocking) ---
-bool cekKesehatanSaatIni = false;
-unsigned long terakhirCekKesehatan = 0;
-const unsigned long INTERVAL_CEK_KESEHATAN = 5000; // Cek setiap 5 detik
-
-// Di dalam loop(), setelah baca sensor tetapi sebelum decision:
-if (status.jalan && !aman.halangan()) {
-  // Periodic health check
-  unsigned long now = millis();
-  if (now - terakhirCekKesehatan >= INTERVAL_CEK_KESEHATAN) {
-    terakhirCekKesehatan = now;
-    cekKesehatanSaatIni = sensor.cekKesehatanSensor();
-    if (!cekKesehatanSaatIni) {
-      Serial.println(F("PENTING: Sensor IR keluar rentang normal!"));
-    }
-  }
-  
-  // Tampilkan status kesehatan di serial secara periodik
-  if (cekKesehatanSaatIni) {
-    Serial.print(F("."));  // Titik berkurang = sensor baik
-  } else {
-    Serial.println(F("!"));  // Tanda sering = sensor masalah
   }
 }

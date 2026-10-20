@@ -11,6 +11,6 @@ class Antarmuka;
 class Mapper;
 class LapTimer;
 class BluetoothCtrl;
-class PathPlanner;
+// class PathPlanner;  // Optional: uncomment when using PathPlanner
 
 #endif
