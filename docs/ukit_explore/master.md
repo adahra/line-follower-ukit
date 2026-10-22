@@ -1,5 +1,3 @@
-> For the complete documentation index, see [llms.txt](https://ubtechedu.gitbook.io/ukit-explore/llms.txt). Markdown versions of documentation pages are available by appending `.md` to page URLs; this page is available as [Markdown](https://ubtechedu.gitbook.io/ukit-explore/master.md).
-
 # About uKit Explore
 
 Basically, uKit Explore is a board that is Arduino based designed for competition usage. It is carefully designed for beginner to be used as the controller for competition, it will help you to explore the wonderful electronics world and how fun the technology is.
