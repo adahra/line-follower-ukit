@@ -1,5 +1,3 @@
-> For the complete documentation index, see [llms.txt](https://ubtechedu.gitbook.io/ukit-explore/llms.txt). Markdown versions of documentation pages are available by appending `.md` to page URLs; this page is available as [Markdown](https://ubtechedu.gitbook.io/ukit-explore/standard/ukit-explore-library-file.md).
-
 # Introduction to uKit Explore Library
 
 uKit Explore main controller is the development board designed by UBTECH for uKit product series. It is based on Arduino Mega 2560 and can be used to control uKit’s electronic components such as servo and DC motors.&#x20;

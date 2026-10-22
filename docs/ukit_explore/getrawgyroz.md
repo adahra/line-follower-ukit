@@ -1,5 +1,3 @@
-> For the complete documentation index, see [llms.txt](https://ubtechedu.gitbook.io/ukit-explore/llms.txt). Markdown versions of documentation pages are available by appending `.md` to page URLs; this page is available as [Markdown](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/imu/getrawgyroz.md).
-
 # IMU::getRawGyroZ()
 
 Get the gyroscope's Z-axis angular velocity
@@ -14,9 +12,7 @@ Get the gyroscope's Z-axis angular velocity
 
 ### Example
 
-{% hint style="info" %}
-This feature requires an upgrade to the latest [SDK](https://ubtechedu.gitbook.io/ukit-explore/ukit-explore-quick-start/get-sdk).
-{% endhint %}
+This feature requires an upgrade to the latest [SDK](get-sdk.md).
 
 Use uKit Explore v2 board to get the XYZ angular velocity of the gyroscope and display it every 400ms to the serial monitor.
 

@@ -1,5 +1,3 @@
-> For the complete documentation index, see [llms.txt](https://ubtechedu.gitbook.io/ukit-explore/llms.txt). Markdown versions of documentation pages are available by appending `.md` to page URLs; this page is available as [Markdown](https://ubtechedu.gitbook.io/ukit-explore/ukit-explore-quick-start/get-sdk.md).
-
 # How to Install uKit Explore Arduino Library
 
 ### Step 1: Download Arduino IDE
@@ -8,9 +6,7 @@ Below is the example for the Windows users. You can download the Arduino IE from
 
 ![](https://3911929090-files.gitbook.io/~/files/v0/b/gitbook-legacy-files/o/assets%2F-Lp2wlXBWybR4t3JbPbo%2F-LpWDlq8FpB6AVpNqpsM%2F-LpWE-Sn68wLA203--RB%2Fimage.png?alt=media\&token=888f39ce-3595-4ead-9d41-d336f026b0e8)
 
-{% hint style="info" %}
 Recommended to use at least Arduino 1.8.0 or above.
-{% endhint %}
 
 Click on the Windows Installers to download it, and then follow the instructions to install the Arduino IDE on your laptop.
 

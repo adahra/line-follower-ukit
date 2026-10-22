@@ -1,5 +1,3 @@
-> For the complete documentation index, see [llms.txt](https://ubtechedu.gitbook.io/ukit-explore/llms.txt). Markdown versions of documentation pages are available by appending `.md` to page URLs; this page is available as [Markdown](https://ubtechedu.gitbook.io/ukit-explore/ukit-explore-quick-start/pinout.md).
-
 # uKit Explore v2 Pinout
 
 ![](https://3911929090-files.gitbook.io/~/files/v0/b/gitbook-legacy-files/o/assets%2F-Lp2wlXBWybR4t3JbPbo%2F-LpR9MmFnvbg10_fryZU%2F-LpRAEulzY0VnGSqDkdk%2FuKit_Explorev2_pinout.jpg?alt=media\&token=a4ac5310-da11-4ccf-a2c5-bc45549fe304)

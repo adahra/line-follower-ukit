@@ -1,5 +1,3 @@
-> For the complete documentation index, see [llms.txt](https://ubtechedu.gitbook.io/ukit-explore/llms.txt). Markdown versions of documentation pages are available by appending `.md` to page URLs; this page is available as [Markdown](https://ubtechedu.gitbook.io/ukit-explore/ukit-explore-quick-start/hui-du-chuan-gan-qi-gu-jian-geng-xin.md).
-
 # Grayscale Sensor Firmware Update
 
 ### 1. Download the grayscale sensor firmware
@@ -8,9 +6,7 @@
 
 &#x20;     b. [V1.0 grayscale sensor firmware](https://link.zhihu.com/?target=https%3A//github.com/UBTEDU/Patrol_Sensor/releases/download/3.3/route3.3.zip)
 
-{% hint style="info" %}
 Note: V1.0 Grayscale Sensor firmware to be used with V1.0 Grayscale Sensor hardware and V1.1 Grayscale Sensor firmware to be used with V1.1 Grayscale Sensor hardware.
-{% endhint %}
 
 ### 2. Install [uKit Explore Blockly](https://www.ubtechedu.com/global/Uploads/file/20190221/uKit-Explore_Setup.zip)
 

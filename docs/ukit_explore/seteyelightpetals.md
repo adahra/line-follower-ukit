@@ -1,5 +1,3 @@
-> For the complete documentation index, see [llms.txt](https://ubtechedu.gitbook.io/ukit-explore/llms.txt). Markdown versions of documentation pages are available by appending `.md` to page URLs; this page is available as [Markdown](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/eyelight/seteyelightpetals.md).
-
 # setEyelightPetals(id,petalsnum,petals)
 
 Customize eye lamps, 8 petals (pixels) light up in different colors.
