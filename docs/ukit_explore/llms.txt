@@ -1,0 +1,69 @@
+# uKit Explore
+
+## English
+
+- [About uKit Explore](https://ubtechedu.gitbook.io/ukit-explore/master.md)
+- [How to Install uKit Explore Arduino Library](https://ubtechedu.gitbook.io/ukit-explore/ukit-explore-quick-start/get-sdk.md)
+- [uKit Explore v2 Pinout](https://ubtechedu.gitbook.io/ukit-explore/ukit-explore-quick-start/pinout.md)
+- [Introduction to Grayscale Sensor and Frequently Asked Questions](https://ubtechedu.gitbook.io/ukit-explore/ukit-explore-quick-start/hui-du-chuan-gan-qi-jie-shou-ji-da-yi.md)
+- [Grayscale Sensor Calibration Guidelines](https://ubtechedu.gitbook.io/ukit-explore/ukit-explore-quick-start/record.md)
+- [Grayscale Sensor Firmware Update](https://ubtechedu.gitbook.io/ukit-explore/ukit-explore-quick-start/hui-du-chuan-gan-qi-gu-jian-geng-xin.md)
+- [Introduction to uKit Explore Library](https://ubtechedu.gitbook.io/ukit-explore/standard/ukit-explore-library-file.md)
+- [Sensor](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor.md)
+- [uKit eye lamp](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/eyelight.md): Functions Syntax
+- [setEyelightAllPetals(id,red,green,blue)](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/eyelight/seteyelightallpetals.md): Control all the 8 petals (pixels) of the eye lamp to light up a set of color.
+- [setEyelightPetals(id,petalsnum,petals)](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/eyelight/seteyelightpetals.md): Customize eye lamps, 8 petals (pixels) light up in different colors.
+- [setEyelightLook(id,face,times,red,green,blue)](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/eyelight/seteyelightlook.md): Set the emoticons to light up different color of expressions (non-blocking)
+- [setEyelightLookUntil(id,face,times,red,green,blue)](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/eyelight/seteyelightlookuntil.md): 设置眼灯亮不同颜色的表情（阻塞）
+- [setEyelightScene(id,scene,times);](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/eyelight/seteyelightscene.md): Set the eye lamp to the different scene mode (non-blocking)
+- [setEyelightSceneUntil(id,scene,times)](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/eyelight/seteyelightsceneuntil.md): Set the eye lamp to the different scene mode (blocking).
+- [setEyelightOff(id)](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/eyelight/seteyelightoff.md): Turn off the eye lamp
+- [uKit Ultrasonic Sensor](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/ultrasonic.md): Functions Syntax
+- [setUltrasonicRgbled(id,red,green,blue)](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/ultrasonic/setultrasonicrgbled.md): Control the ultrasonic sensor’s LED to light up and set the color
+- [setUltrasonicRgbledOff(id)](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/ultrasonic/setultrasonicrgbledoff.md): Turn off the ultrasonic sensor’s LED light.
+- [readUltrasonicDistance(id)](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/ultrasonic/readultrasonicdistance.md): Reading ultrasonic sensor distance
+- [uKit Infrared Sensor](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/infrared.md): Functions Syntax
+- [readInfraredDistance(id)](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/infrared/readinfrareddistance.md): Get infrared sensor distance value.
+- [uKit Touch Sensor](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/button.md): Functions Syntax
+- [readButtonValue(id)](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/button/readbuttonvalue.md): Get the state of the touch sensor
+- [uKit Light Sensor](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/light.md): Functions Syntax
+- [readLightValue(id)](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/light/readlightvalue.md): Get the light value from the light sensor.
+- [uKit Sound Sensor](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/sound.md): Functions Syntax
+- [readSoundValue(id)](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/sound/readsoundvalue.md): Get the sound intensity.
+- [uKit Temperature and Humidity Sensor](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/humiture.md): Functions Syntax
+- [readHumitureValue(id,choice)](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/humiture/readhumiturevalue.md): Get the temperature or humidity value
+- [uKit Color Sensor](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/color.md): Functions Syntax
+- [readColorRgb(id)](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/color/readcolorrgb.md): Get the RGB value of color sensor.
+- [readColor(id,color)](https://ubtechedu.gitbook.io/ukit-explore/standard/sensor/color/readcolor.md): Recognize the specific color from the color sensor
+- [uKit Servo Motor](https://ubtechedu.gitbook.io/ukit-explore/standard/servo.md): Functions Syntax
+- [setServoTurn(id,dir, speed)](https://ubtechedu.gitbook.io/ukit-explore/standard/servo/setservoturn.md): Control the servo motor to rotate 360 °
+- [setServoAngle(id,angle,times)](https://ubtechedu.gitbook.io/ukit-explore/standard/servo/setservoangle.md): Control the servo motor to rotate to a specified angle (non-blocking)
+- [readServoAngleNPD(id)](https://ubtechedu.gitbook.io/ukit-explore/standard/servo/readservoanglenpd.md): Read the angle of the servo motor while the servo motor maintain its position (do not move it)
+- [readServoAnglePD(id)](https://ubtechedu.gitbook.io/ukit-explore/standard/servo/readservoanglepd-id.md): Read the servo angle while the servo is powered off (can be moved)
+- [uKit DC Motor](https://ubtechedu.gitbook.io/ukit-explore/standard/motor.md): Functions Syntax
+- [setMotorTurnAdj(id, speed,time)](https://ubtechedu.gitbook.io/ukit-explore/standard/motor/setmotorturnadj.md): Set the motor to rotate at constant speed (non-blocking)
+- [setMotorTurn(id,pwmDuty)](https://ubtechedu.gitbook.io/ukit-explore/standard/motor/setmotorturn.md): Set the rotation speed of the DC motor using PWM.
+- [setMotorStop(id)](https://ubtechedu.gitbook.io/ukit-explore/standard/motor/setmotorstop.md): Set the motor to stop
+- [readMotorSpeed(id)](https://ubtechedu.gitbook.io/ukit-explore/standard/motor/readmotorspeed-id.md): Read DC Motor speed
+- [uKit Explore Onboard Hardware](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad.md): Functions Syntax
+- [Onboard button](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/button.md): Functions Syntax
+- [button1.Update();](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/button/button1.update.md): Update onboard button status
+- [button1.clicks()](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/button/button1.clicks.md): Get the onboard button status
+- [Onboard Buzzer](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/buzzer.md): Functions Syntax
+- [noTone(pin)](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/buzzer/notone.md): Set the onboard buzzer to stop playing
+- [tone(frequency, duration)](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/buzzer/tone.md): Set the onboard buzzer to sound.
+- [Onboard RGB LED](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/onboard-rgb-led.md): Functions Syntax
+- [setRgbledColor(red,green,blue)](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/onboard-rgb-led/setrgbledcolor.md): Set onboard RGB lights to different colors.
+- [onboard Battery Voltage Level](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/onboard-battery-voltage-level.md): Functions Syntax
+- [readBatteryVoltage()](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/onboard-battery-voltage-level/readbatteryvoltage.md): Get battery voltage
+- [onboard Gyroscope](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/imu.md): Functions Syntax
+- [IMU::init()](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/imu/init.md): Gyroscope initialization function
+- [IMU::read()](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/imu/read.md): Read the Gyroscope sensor
+- [IMU::getRawAccelX()](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/imu/getrawaccelx.md): Get X-axis acceleration value of gyroscope
+- [IMU::getRawAccelY()](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/imu/getrawaccely.md): Get Y-axis acceleration value of gyroscope
+- [IMU::getRawAccelZ()](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/imu/getrawaccelz.md): Get Z-axis acceleration value of gyroscope
+- [IMU::getRawGyroX()](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/imu/getrawgyrox.md): Get the gyroscope's X-axis angular velocity
+- [IMU::getRawGyroY()](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/imu/getrawgyroy.md): Get the gyroscope's Y-axis angular velocity
+- [IMU::getRawGyroZ()](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/imu/getrawgyroz.md): Get the gyroscope's Z-axis angular velocity
+- [IMU::getRoll()](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/imu/getroll.md): Get the roll angle Φ (roll): the angle of rotation around the X axis.
+- [IMU::getPitch()](https://ubtechedu.gitbook.io/ukit-explore/standard/onborad/imu/getpitch.md): Obtain the pitch angle θ (pitch): rotate around the Y axis.
