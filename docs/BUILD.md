@@ -362,7 +362,7 @@ line-follower-ukit/
 
 - [arduino-cli Documentation](https://arduino.github.io/arduino-cli/latest/)
 - [Board Manager JSON Format](https://github.com/arduino/arduino-cli/blob/master/BOARD_MANAGER.md)
-- [uKit Explore 2 Datasheet](https://www.ubtrobot.com/) - cek dokumentasi resmi
+- [uKit Explore 2 Datasheet]([https://www.ubtrobot.com/](https://ubtechedu.gitbook.io/ukit-explore)) - cek dokumentasi resmi
 - [AVRDUDE Manual](https://www.nongnu.org/avrdude/user-manual/avrdude.html)
 
 ---
