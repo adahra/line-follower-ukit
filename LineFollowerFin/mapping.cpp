@@ -7,17 +7,30 @@ Mapper::Mapper() {
 void Mapper::reset() {
   count = 0;
   lastEventTime = 0;
+  raceStartMs = 0;
   for (int i = 0; i < MAX_WAYPOINTS; i++) {
     waypoints[i] = {EVENT_NONE, ACT_NONE, 0};
   }
+}
+
+void Mapper::startLearning() {
+  reset();
+  lastEventTime = millis();  // referensi untuk offset event pertama
+}
+
+void Mapper::startRace() {
+  raceStartMs = millis();  // referensi untuk prediksi time-based
 }
 
 void Mapper::recordEvent(EventType type, ActionType action) {
   if (count >= MAX_WAYPOINTS) return;
 
   unsigned long now = millis();
-  unsigned long offset = (count == 0) ? now : (now - lastEventTime);
-  
+  // Offset = selisih dari event sebelumnya (atau dari startLearning).
+  // lastEventTime di-set oleh startLearning() sebelum event pertama,
+  // sehingga offset event pertama = waktu dari start learning.
+  unsigned long offset = now - lastEventTime;
+
   waypoints[count] = {type, action, offset};
   count++;
   lastEventTime = now;
@@ -26,13 +39,14 @@ void Mapper::recordEvent(EventType type, ActionType action) {
 bool Mapper::checkPrediction(unsigned long currentTime, EventType &outType, ActionType &outAction) {
   if (count == 0) return false;
 
-  // Hitung total waktu sejak start untuk waypoint saat ini
+  // Gunakan waktu relatif terhadap startRace, bukan millis() absolut.
+  unsigned long elapsed = currentTime - raceStartMs;
   unsigned long accumulatedTime = 0;
   for (int i = 0; i < count; i++) {
     accumulatedTime += waypoints[i].timeOffset;
-    
-    // Jika waktu sekarang mendekati waktu waypoint (toleransi 100ms)
-    if (currentTime >= accumulatedTime && currentTime < accumulatedTime + 100) {
+
+    // Jika waktu relatif mendekati waktu waypoint (toleransi 100ms)
+    if (elapsed >= accumulatedTime && elapsed < accumulatedTime + 100) {
       outType = waypoints[i].type;
       outAction = waypoints[i].action;
       return true;

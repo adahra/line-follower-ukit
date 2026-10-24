@@ -165,11 +165,11 @@ All tunable values are in one place. **Tune here** — do not scatter constants 
 - `const int SLEW_MAKS_PER_LOOP = 10` — Max speed change per loop anti-slip
 
 ### Sensor IDs (confirm against wiring)
-- `const int LIGHT_SENSOR_ID = 1`
+- `const int LIGHT_SENSOR_ID = 1` — ID terverifikasi sesuai wiring sensor cahaya
 - `const int EYELIGHT_KIRI = 1`, `EYELIGHT_KANAN = 2`
 - `const int AMBANG_GELAP_NYALA = 100` lux — below this, headlight on
 - `const int AMBANG_GELAP_MATI = 150` lux — above this, headlight off (hysteresis)
-- `const int ULTRASONIC_ID = 1`
+- `const int ULTRASONIC_ID = 1` — ID terverifikasi sesuai wiring ultrasonic depan
 - `const int JARAK_BERHENTI_CM = 5` — stop if obstacle ≤ 5 cm
 - `const int SOUND_SENSOR_ID = 1`
 - `const int TEPUK_AMBANG = 500`, `TEPUK_LEPAS = 350` — clap detection thresholds
@@ -202,14 +202,19 @@ The robot has 3 primary modes, plus sub-modes:
 - Auto headlight, ultrasonic stop, tilt halt
 
 ### MODE_LEARNING
-- Records waypoints via `mapper.recordEvent()` at intersections
-- RGB: Kuning (yellow)
-- Used to build a path for Racing mode
+- Fitur tambahan, bukan mode default.
+- Records waypoints via `mapper.recordEvent()` at intersections.
+- Menyimpan maksimal 50 waypoint di RAM, tiap waypoint berisi tipe event, aksi, dan offset waktu sejak event sebelumnya.
+- RGB: Kuning (yellow).
+- Data dipakai sebagai dasar prediksi Racing; penyimpanan waypoint ke EEPROM belum tersedia walau command `save` mencetak waypoint.
 
 ### MODE_RACING
-- Uses `mapper.checkPrediction()` to anticipate upcoming intersections/actions
-- RGB: Hijau (green)
-- Can optimize speed/profile based on predicted events
+- Fitur tambahan, bukan mode default.
+- Uses `mapper.checkPrediction()` to anticipate upcoming intersections/actions berdasarkan waktu relatif sesi learning.
+- Prediction hanya aktif jika waypoint tersedia di instance `Mapper` yang sama.
+- Toleransi prediction: 100 ms.
+- RGB: Hijau (green) saat berhenti; saat berjalan prediction mengubah LED menjadi putih/hijau/merah/biru sesuai aksi.
+- Prediction saat ini hanya memberi feedback LED dan belum mengubah keputusan belok atau speed secara langsung.
 
 ### Sub-states within `loop()` (when `status.jalan == true`):
 1. **Intersection detection** (both sensors ≥ own threshold):
@@ -237,6 +242,22 @@ The robot has 3 primary modes, plus sub-modes:
   - RGB signals: magenta (Kd tune), kuning (learning), hijau (racing), putih (normal start), mati (idle)
 
 ---
+
+## Auto-Tuning PID (Fitur Tambahan)
+
+Auto-tuning bukan bagian dari loop PID normal. Sequence dipanggil saat robot berhenti melalui command `tune` atau long press Button 1 + Button 2.
+
+Urutan aktual di `Antarmuka::tuningSequence()`:
+
+1. Kalibrasi sensor.
+2. Grid search 16 kombinasi `Kp` `{15, 20, 25, 30}` dan `Kd` `{0.5, 1.0, 1.5, 2.0}`.
+3. Set `Ki = 0.01` selama pengujian.
+4. Uji tiap kombinasi selama 5 detik.
+5. Skor memakai rata-rata `abs(error)` dan penalti oscillation.
+6. Terapkan `Kp`/`Kd` terbaik.
+7. Simpan parameter dan ambang ke EEPROM.
+
+Catatan implementasi: fungsi auto-tuning menjalankan loop blocking. Proteksi utama di `loop()` tidak dipanggil selama pengujian, dan deteksi oscillation aktual perlu audit karena `prevError` diperbarui sebelum pemeriksaan perubahan tanda. Gunakan fitur ini hanya pada lintasan aman.
 
 ## Onboard Tuning UI (No Serial Monitor Needed)
 
@@ -353,7 +374,7 @@ if (!eepromValid && AUTO_CALIBRATE_ON_BOOT) {
 8. **Comments/serial prints in Indonesian** — keep that language for consistency
 
 ### Edge Cases
-- **Sensor IDs (`LIGHT_SENSOR_ID`, `ULTRASONIC_ID`)** are guesses — confirm against actual wiring
+- **Sensor IDs are fixed by verified wiring**: `LIGHT_SENSOR_ID = 1`, `ULTRASONIC_ID = 1`.
 - **90° turns may not be perfectly accurate** — depends on surface, friction, sensor thresholds
 - **EEPROM write skipping** means if you change a value to the same value, it won't be written (useful, but can be confusing during development)
 - **`Ki` and `kecepatanDasarMin` are NOT persisted** — they always revert to code defaults on restart
