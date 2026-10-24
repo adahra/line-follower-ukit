@@ -47,8 +47,8 @@ bool Mapper::checkPrediction(unsigned long currentTime, EventType &outType, Acti
 
     // Jika waktu relatif mendekati waktu waypoint (toleransi 100ms)
     if (elapsed >= accumulatedTime && elapsed < accumulatedTime + 100) {
-      outType = waypoints[i].type;
-      outAction = waypoints[i].action;
+      outType = (EventType)waypoints[i].type;
+      outAction = (ActionType)waypoints[i].action;
       return true;
     }
   }

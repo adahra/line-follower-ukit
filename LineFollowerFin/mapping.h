@@ -18,9 +18,9 @@ enum ActionType {
 };
 
 struct Waypoint {
-  EventType type;
-  ActionType action;
   unsigned long timeOffset; // Waktu sejak waypoint sebelumnya (ms)
+  uint8_t type;
+  uint8_t action;
 };
 
 class Mapper {
