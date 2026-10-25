@@ -78,13 +78,13 @@ setServoTurn(3, 0, speedKanan); // Kanan belakang
 |------|------|----------|---------|
 | 0    | byte | Magic `123` | Valid marker |
 | 4    | float | `Kp` | |
-| 8    | float | `Ki` | **Baru** (sebelumnya tdk disimpan) |
+| 8    | float | reserved / `Ki` lama | Tidak dipakai untuk persistence aktif |
 | 12   | float | `Kd` | |
 | 16   | int | `kecepatanDasarMaks` | |
 | 20   | int | `AMBANG_KIRI` | |
 | 22   | int | `AMBANG_KANAN` | |
 
-> `kecepatanDasarMin` & `Ki` (sebelumnya) **tidak** disimpan — pakai default kode.
+> `Ki` dan `kecepatanDasarMin` **tidak** disimpan — pakai default kode. EEPROM hanya ditulis bila nilai berubah.
 
 ## IMU Onboard
 - `IMU::init()` di `setup()`

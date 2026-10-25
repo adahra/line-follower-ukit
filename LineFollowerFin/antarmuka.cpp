@@ -34,7 +34,7 @@ void Antarmuka::mulai(const char *via) {
   setEyelightLook(1, 0, 7, 0, 0, 254);
   setEyelightLook(2, 0, 7, 0, 0, 254);
   Serial.print(via);
-  Serial.println(": JALAN");
+  Serial.println(F(": JALAN"));
 }
 
 void Antarmuka::berhenti(const char *via) {

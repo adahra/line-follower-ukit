@@ -27,7 +27,23 @@ Robot line follower PID untuk board uKit Explore 2. Seluruh program ada dalam sa
 
 ## Penyimpanan EEPROM
 
-`Kp` (addr 4), `Kd` (addr 8), `kecepatanDasarMaks` (addr 12), ambang kiri (addr 16), ambang kanan (addr 18), dengan penanda `123` di addr 0. `Ki` dan `kecepatanDasarMin` tidak disimpan (selalu nilai default kode).
+Magic `123` disimpan di addr 0. Data konfigurasi aktif:
+
+- `Kp`: addr 4
+- `Kd`: addr 12
+- `kecepatanDasarMaks`: addr 16
+- `AMBANG_KIRI`: addr 20
+- `AMBANG_KANAN`: addr 22
+
+`Ki` dan `kecepatanDasarMin` tidak disimpan; keduanya kembali ke nilai default kode setelah restart. Penulisan memakai `eepromPutHemat`, jadi EEPROM hanya ditulis bila nilai berubah.
+
+## Fitur tambahan
+
+- Bluetooth aktif melalui `BluetoothCtrl` bila `ENABLE_BLUETOOTH = true`.
+- Lap timer aktif bila `ENABLE_LAP_TIMER = true`.
+- Mode `MODE_LEARNING` merekam event persimpangan melalui `Mapper`.
+- Mode `MODE_RACING` memberi prediction berbasis waktu dan feedback LED; prediction belum mengubah keputusan belok utama.
+- Path planner tersedia sebagai kode opsional, tetapi default nonaktif melalui `ENABLE_PATH_PLANNER = false`.
 
 ## Catatan untuk kontributor agen
 

@@ -61,3 +61,8 @@ The following are stored in EEPROM (Magic value `123` at address 0):
 ## Key Constraints
 - **Blocking Calls**: 90° turn helpers use `while` loops that block until the line is found. Do not refactor these into non-blocking code without ensuring the robot maintains its wait-state.
 - **PID Interval**: PID calculations must occur at a constant interval (`PID_INTERVAL_MS = 10`) to ensure the Derivative (D) term remains stable.
+
+
+Selalu baca file kode target sebelum memberi respons
+
+Verifikasi jalur file yang diminta cocok dengan permintaan pengguna
