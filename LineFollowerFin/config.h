@@ -33,6 +33,10 @@ const int SERVO_MAKS_DIPAKAI = 150;  // derate dari 255, jangan naikkan tanpa uj
 const int SLEW_MAKS_PER_LOOP = 10;   // batas perubahan speed per loop anti slip
 const unsigned long BELOK_TIMEOUT_MS = 1500;  // anti macet di while belok 90°
 
+// --- PIVOT RODA DALAM (Counter-Steer saat tikungan tajam) ---
+const bool ENABLE_PIVOT_REVERSE = true; // izinkan roda dalam berputar balik saat PID tinggi
+const int PIVOT_REVERSE_MAKS = 60;      // batas kecepatan mundur roda dalam agar tidak terpelanting
+
 // --- RECOVERY GARIS BERTINGKAT ---
 const unsigned long RECOVERY_T1_MS = 400;      // 0-400ms: putar ringan searah lastError
 const unsigned long RECOVERY_T2_MS = 1200;     // 400-1200ms: putar sedang searah lastError

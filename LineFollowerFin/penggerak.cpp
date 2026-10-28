@@ -72,9 +72,10 @@ bool Penggerak::hitung(int bacaKiri, int bacaKanan, bool paksa) {
   kecepatanKiri = kecepatanDasar - PID_value;
   kecepatanKanan = kecepatanDasar + PID_value;
 
-  // 5. Batasi Output Akhir (derate servo 0-150, bukan 0-255 docs)
-  kecepatanKiri = constrain(kecepatanKiri, 0, SERVO_MAKS_DIPAKAI);
-  kecepatanKanan = constrain(kecepatanKanan, 0, SERVO_MAKS_DIPAKAI);
+  // 5. Batasi Output Akhir (derate servo 0-150, dukung pivot mundur roda dalam)
+  int batasBawah = ENABLE_PIVOT_REVERSE ? -PIVOT_REVERSE_MAKS : 0;
+  kecepatanKiri = constrain(kecepatanKiri, batasBawah, SERVO_MAKS_DIPAKAI);
+  kecepatanKanan = constrain(kecepatanKanan, batasBawah, SERVO_MAKS_DIPAKAI);
 
   // 6. Deadband compensation: servo diam di speed 1-24, paksa ke
   // SERVO_MIN_EFEKTIF agar koreksi PID benar-benar menggerakkan roda.
@@ -98,10 +99,18 @@ void Penggerak::terapkanTerakhir() {
 }
 
 void Penggerak::jalankan(int speedKiri, int speedKanan) {
-  setServoTurn(4, 1, speedKiri);
-  setServoTurn(2, 1, speedKiri);
-  setServoTurn(1, 0, speedKanan);
-  setServoTurn(3, 0, speedKanan);
+  // Sisi kiri (servo 4 & 2): maju dir=1, mundur/pivot dir=0
+  int dirKiri = (speedKiri >= 0) ? 1 : 0;
+  int spdKiri = abs(speedKiri);
+
+  // Sisi kanan (servo 1 & 3): maju dir=0, mundur/pivot dir=1
+  int dirKanan = (speedKanan >= 0) ? 0 : 1;
+  int spdKanan = abs(speedKanan);
+
+  setServoTurn(4, dirKiri, spdKiri);
+  setServoTurn(2, dirKiri, spdKiri);
+  setServoTurn(1, dirKanan, spdKanan);
+  setServoTurn(3, dirKanan, spdKanan);
 }
 
 void Penggerak::berhenti() {
@@ -217,8 +226,8 @@ int Penggerak::terapkanDeadband(int speed) {
     return 0;
   }
 
-  if (speed < SERVO_MIN_EFEKTIF) {
-    return SERVO_MIN_EFEKTIF;
+  if (abs(speed) < SERVO_MIN_EFEKTIF) {
+    return (speed > 0) ? SERVO_MIN_EFEKTIF : -SERVO_MIN_EFEKTIF;
   }
 
   return speed;
