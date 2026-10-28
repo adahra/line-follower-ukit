@@ -32,7 +32,15 @@ const int SERVO_MIN_EFEKTIF = 25;  // speed 1-24 dipaksa ke 25 atau 0
 const int SERVO_MAKS_DIPAKAI = 150;  // derate dari 255, jangan naikkan tanpa uji lintasan
 const int SLEW_MAKS_PER_LOOP = 10;   // batas perubahan speed per loop anti slip
 const unsigned long BELOK_TIMEOUT_MS = 1500;  // anti macet di while belok 90°
-const unsigned long RECOVERY_TIMEOUT_MS = 2000;  // batas putar cari garis, lalu berhenti
+
+// --- RECOVERY GARIS BERTINGKAT ---
+const unsigned long RECOVERY_T1_MS = 400;      // 0-400ms: putar ringan searah lastError
+const unsigned long RECOVERY_T2_MS = 1200;     // 400-1200ms: putar sedang searah lastError
+const unsigned long RECOVERY_T3_MS = 1800;     // 1200-1800ms: sapuan balik lawan lastError
+const unsigned long RECOVERY_TIMEOUT_MS = 2000; // >1800-2000ms: timeout & berhenti total
+const int RECOVERY_SPEED_1 = 35;               // speed putar ringan
+const int RECOVERY_SPEED_2 = 60;               // speed putar sedang
+const int RECOVERY_SPEED_3 = 75;               // speed sapuan balik agresif
 
 // --- ANTI GOYANG SENSOR: filter eksponensial agar 1 bacaan liar
 // tidak langsung jadi koreksi PID penuh (error range kecil, ±10).

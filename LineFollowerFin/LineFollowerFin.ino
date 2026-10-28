@@ -155,20 +155,21 @@ void loop() {
         setRgbledColor(0, 0, 0);
       }
 
-      // --- KONDISI B: LOST LINE RECOVERY (dengan timeout) ---
+      // --- KONDISI B: LOST LINE RECOVERY (dengan timeout & bertingkat) ---
       else if (bacaKiri < AMBANG_KIRI && bacaKanan < AMBANG_KANAN) {
         if (status.recoveryMulai == 0) {
           status.recoveryMulai = millis();
         }
 
-        if (millis() - status.recoveryMulai > RECOVERY_TIMEOUT_MS) {
-          // Garis tak ketemu >2 detik: berhenti + LED merah, tunggu operator.
+        unsigned long durasiRecovery = millis() - status.recoveryMulai;
+        if (durasiRecovery > RECOVERY_TIMEOUT_MS) {
+          // Garis tak ketemu > batas timeout: berhenti + LED merah, tunggu operator.
           // Jangan berputar liar sampai baterai habis.
           gerak.berhenti();
           setRgbledColor(255, 0, 0);
         } else {
           setRgbledColor(255, 0, 255);
-          gerak.putarCariGaris(gerak.errorTerakhir());
+          gerak.putarCariGarisBertingkat(gerak.errorTerakhir(), durasiRecovery);
         }
       }
 

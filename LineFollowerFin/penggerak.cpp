@@ -183,6 +183,31 @@ void Penggerak::putarCariGaris(float lastErr) {
   }
 }
 
+void Penggerak::putarCariGarisBertingkat(float lastErr, unsigned long durasiMs) {
+  int speed = RECOVERY_SPEED_1;
+  int dir = (lastErr > 0) ? 0 : 1;
+
+  if (durasiMs <= RECOVERY_T1_MS) {
+    // Tahap 1: putar ringan searah lastError
+    speed = RECOVERY_SPEED_1;
+    dir = (lastErr > 0) ? 0 : 1;
+  } else if (durasiMs <= RECOVERY_T2_MS) {
+    // Tahap 2: putar sedang searah lastError
+    speed = RECOVERY_SPEED_2;
+    dir = (lastErr > 0) ? 0 : 1;
+  } else {
+    // Tahap 3: sapuan balik agresif lawan arah lastError
+    speed = RECOVERY_SPEED_3;
+    dir = (lastErr > 0) ? 1 : 0;
+  }
+
+  speed = terapkanDeadband(speed);
+  setServoTurn(4, dir, speed);
+  setServoTurn(2, dir, speed);
+  setServoTurn(1, dir, speed);
+  setServoTurn(3, dir, speed);
+}
+
 float Penggerak::errorTerakhir() const {
   return lastError;
 }

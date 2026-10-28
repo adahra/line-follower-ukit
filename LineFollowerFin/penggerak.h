@@ -24,6 +24,7 @@ class Penggerak {
   void belokKanan90(int ambang);
   void putarKalibrasi();
   void putarCariGaris(float lastErr);
+  void putarCariGarisBertingkat(float lastErr, unsigned long durasiMs);
   float errorTerakhir() const;
   void telemetri(int bacaKiri, int bacaKanan);
 
