@@ -14,16 +14,16 @@ extern int kecepatanDasarMin;   // Batas kecepatan terendah saat menikung tajam
 extern int kecepatanDasar;      // Variabel dinamis yang akan dikalibrasi oleh PID
 
 // --- KONSTANTA TUNE (dulu magic number tersebar di badan kode) ---
-const float FAKTOR_REM_ADAPTIF = 0.6;  // agresivitas pengereman saat melenceng
+const float FAKTOR_REM_ADAPTIF = 0.4;  // agresivitas pengereman saat melenceng
 const float BATAS_INTEGRAL = 50;       // anti windup: I dijepit ±nilai ini
 const int SPEED_TOMBOL_MIN = 60;       // batas bawah kecepatan maks via tombol
 const int SPEED_TOMBOL_MAKS = 150;     // batas atas (sama dengan derate servo)
 
 // --- DYNAMIC SPEED PROFILE (Turbo Mode) ---
 const int KECEPATAN_TURBO = 150;       // Kecepatan maksimal saat jalan lurus panjang
-const float LURUS_THRESHOLD = 2.0;    // Jika abs(error) < nilai ini, dianggap jalan lurus
+const float LURUS_THRESHOLD = 1.5;    // Jika abs(error) < nilai ini, dianggap jalan lurus
 const unsigned long LURUS_TIME_REQUIRED = 500; // Waktu (ms) harus lurus sebelum masuk mode Turbo
-const int TURBO_RAMP_SPEED = 2;        // Kenaikan kecepatan per update (agar tidak slip)
+const int TURBO_RAMP_SPEED = 3;        // Kenaikan kecepatan per update (agar tidak slip)
 
 // --- BATAS KHUSUS SERVO 360 (open-loop, lihat docs setServoTurn) ---
 // Docs resmi: speed 0-255. 150 adalah derate yang disengaja agar robot stabil.
@@ -118,15 +118,15 @@ const int ADDR_AMBANG_KANAN = 22;  // ambang kanan (baru; default bila belum ada
 const bool AUTO_CALIBRATE_ON_BOOT = false;  // true = kalibrasi otomatis saat EEPROM invalid
 
 // --- OPSI MEMORI ---
-const bool ENABLE_TELEMETRI = false;        // true = kirim CSV telemetri (pakai RAM + Flash)
+const bool ENABLE_TELEMETRI = true;        // true = kirim CSV telemetri (pakai RAM + Flash)
 
 // --- LAP TIMER ---
 const int LAP_SF_THRESHOLD = 12;       // ambang deteksi start/finish (kedua sensor)
 const unsigned long LAP_MIN_LAP_MS = 3000; // minimal 3 detik per lap
-const bool ENABLE_LAP_TIMER = true;    // aktifkan lap timer
+const bool ENABLE_LAP_TIMER = false;    // aktifkan lap timer
 
 // --- BLUETOOTH / BLE ---
-const bool ENABLE_BLUETOOTH = true;           // aktifkan Bluetooth control
+const bool ENABLE_BLUETOOTH = false;           // aktifkan Bluetooth control
 const unsigned long BT_BAUD = 115200;         // baud rate BT module
 const unsigned long BT_TELEMETRY_MS = 200;    // interval auto telemetry
 const int BT_MODULE_TYPE = 1;                 // 1=HM-10, 2=uKit built-in
