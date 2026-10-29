@@ -9,7 +9,7 @@
 
 class Antarmuka {
  public:
-  Antarmuka(Status &st, SensorGaris &sen, Penggerak &g, Pengaman &am, LapTimer &lt, Mapper &mp);
+  Antarmuka(Status &st, SensorGaris &sen, Penggerak &g, Pengaman &am);
   void cekTombol();   // non-blocking: tanpa delay, pakai cooldown
   void cekTepuk();    // 1x tepuk = toggle jalan/berhenti
   void cekSerial();   // parsing command serial: Kp/Ki/Kd/speed/ambang/calibrate/save/help
@@ -19,14 +19,10 @@ class Antarmuka {
   void berhenti(const char *via);
   void resetSemua();
   void parseCommand(char *cmd);
-  void tuningSequence();
-  void tampilkanStatusJalannya();
   Status &status;
   SensorGaris &sensor;
   Penggerak &gerak;
   Pengaman &aman;
-  LapTimer &lapTimer;
-  Mapper &mapper;
 
   unsigned long cooldownB1 = 0;
   unsigned long cooldownB2 = 0;

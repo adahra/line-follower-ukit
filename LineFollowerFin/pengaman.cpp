@@ -27,33 +27,18 @@ float Pengaman::tegangan() {
 
 // Sekali terkunci, hanya power cycle (restart) yang membuka. Non-blocking.
 bool Pengaman::bateraiKritis() {
-  if (!ENABLE_BATERAI_KRITIS) {
-    return false;
-  }
-
   unsigned long now = millis();
   if (!bateraiLemah && now - cekBateraiTerakhir >= CEK_BATERAI_MS) {
     cekBateraiTerakhir = now;
     float v = readBatteryVoltage();
-
     if (v <= TEGANGAN_MIN) {
       bateraiLemah = true;
-      bateraiPeringatan = false;
       status.jalan = false;
       resetSemua();
       gerak.berhenti();
       Serial.print(F("BATERAI LEMAH: "));
       Serial.print(v);
       Serial.println(F(" V - semua fungsi dihentikan. Restart robot."));
-    } else if (v <= TEGANGAN_PERINGATAN) {
-      if (!bateraiPeringatan) {
-        bateraiPeringatan = true;
-        Serial.print(F("BATERAI PERINGATAN: "));
-        Serial.print(v);
-        Serial.println(F(" V - tegangan rendah, segera isi."));
-      }
-    } else {
-      bateraiPeringatan = false;
     }
   }
 
@@ -61,10 +46,6 @@ bool Pengaman::bateraiKritis() {
     gerak.berhenti();
     setRgbledColor(255, 0, 0);
     return true;
-  }
-
-  if (bateraiPeringatan && BATERAI_PERINGATAN_LED) {
-    setRgbledColor(255, 128, 0);  // oranye = peringatan baterai
   }
 
   return false;

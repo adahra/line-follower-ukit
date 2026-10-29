@@ -28,23 +28,11 @@ const int TURBO_RAMP_SPEED = 2;        // Kenaikan kecepatan per update (agar ti
 // --- BATAS KHUSUS SERVO 360 (open-loop, lihat docs setServoTurn) ---
 // Docs resmi: speed 0-255. 150 adalah derate yang disengaja agar robot stabil.
 // Servo punya deadband: speed kecil hanya berdengung, roda tidak bergerak.
-const int SERVO_MIN_EFEKTIF = 40;  // speed 1-24 dipaksa ke 25 atau 0
+const int SERVO_MIN_EFEKTIF = 25;  // speed 1-24 dipaksa ke 25 atau 0
 const int SERVO_MAKS_DIPAKAI = 150;  // derate dari 255, jangan naikkan tanpa uji lintasan
 const int SLEW_MAKS_PER_LOOP = 10;   // batas perubahan speed per loop anti slip
 const unsigned long BELOK_TIMEOUT_MS = 1500;  // anti macet di while belok 90°
-
-// --- PIVOT RODA DALAM (Counter-Steer saat tikungan tajam) ---
-const bool ENABLE_PIVOT_REVERSE = false; // izinkan roda dalam berputar balik saat PID tinggi
-const int PIVOT_REVERSE_MAKS = 60;      // batas kecepatan mundur roda dalam agar tidak terpelanting
-
-// --- RECOVERY GARIS BERTINGKAT ---
-const unsigned long RECOVERY_T1_MS = 400;      // 0-400ms: putar ringan searah lastError
-const unsigned long RECOVERY_T2_MS = 1200;     // 400-1200ms: putar sedang searah lastError
-const unsigned long RECOVERY_T3_MS = 1800;     // 1200-1800ms: sapuan balik lawan lastError
-const unsigned long RECOVERY_TIMEOUT_MS = 2000; // >1800-2000ms: timeout & berhenti total
-const int RECOVERY_SPEED_1 = 35;               // speed putar ringan
-const int RECOVERY_SPEED_2 = 60;               // speed putar sedang
-const int RECOVERY_SPEED_3 = 75;               // speed sapuan balik agresif
+const unsigned long RECOVERY_TIMEOUT_MS = 2000;  // batas putar cari garis, lalu berhenti
 
 // --- ANTI GOYANG SENSOR: filter eksponensial agar 1 bacaan liar
 // tidak langsung jadi koreksi PID penuh (error range kecil, ±10).
@@ -60,7 +48,7 @@ const unsigned long COOLDOWN_TOMBOL_MS = 300;
 
 // --- LAMPU OTOMATIS SAAT GELAP (sensor cahaya + eye lamp) ---
 // Docs: readLightValue(id) -> 0-4000 lux; setEyelightAllPetals(id,r,g,b).
-// Wiring terverifikasi: sensor cahaya memakai ID 1.
+// Sesuaikan ID sensor cahaya dengan port yang terpasang di robot.
 const int LIGHT_SENSOR_ID = 1;
 const int EYELIGHT_KIRI = 1;
 const int EYELIGHT_KANAN = 2;
@@ -70,7 +58,7 @@ const unsigned long CEK_CAHAYA_MS = 200;  // throttle agar tak baca tiap loop
 
 // --- HALANGAN DEPAN: berhenti bila objek <= 5 cm (sensor ultrasonic) ---
 // Docs: readUltrasonicDistance(id) -> jarak 0-400 cm.
-// Wiring terverifikasi: sensor ultrasonic depan memakai ID 1.
+// Sesuaikan ULTRASONIC_ID dengan port sensor yang menghadap depan.
 const int ULTRASONIC_ID = 1;
 const int JARAK_BERHENTI_CM = 5;
 const unsigned long CEK_HALANGAN_MS = 100;  // ultrasonic butuh jeda antar ping
@@ -89,10 +77,7 @@ const unsigned long TEPUK_COOLDOWN_MS = 800;  // jeda antar toggle
 // --- BATERAI LEMAH: hentikan semua fungsi bila tegangan <= ambang ---
 // Docs: readBatteryVoltage() -> float 0-8.4 V. Dicek throttle 500 ms;
 // sekali lemah, robot dikunci mati sampai power cycle (restart).
-const bool ENABLE_BATERAI_KRITIS = true;   // true = pengecekan TEGANGAN_MIN aktif
 const float TEGANGAN_MIN = 5.5;
-const float TEGANGAN_PERINGATAN = 5.8;      // ambang peringatan (V), di atas TEGANGAN_MIN
-const bool BATERAI_PERINGATAN_LED = true;   // true = nyalakan LED peringatan baterai
 const unsigned long CEK_BATERAI_MS = 500;
 
 // --- TELEMETRI: dump CSV berkala saat jalan untuk tuning berbasis data ---
@@ -134,23 +119,5 @@ const bool AUTO_CALIBRATE_ON_BOOT = false;  // true = kalibrasi otomatis saat EE
 
 // --- OPSI MEMORI ---
 const bool ENABLE_TELEMETRI = false;        // true = kirim CSV telemetri (pakai RAM + Flash)
-
-// --- LAP TIMER ---
-const int LAP_SF_THRESHOLD = 12;       // ambang deteksi start/finish (kedua sensor)
-const unsigned long LAP_MIN_LAP_MS = 3000; // minimal 3 detik per lap
-const bool ENABLE_LAP_TIMER = false;    // aktifkan lap timer
-
-// --- BLUETOOTH / BLE ---
-const bool ENABLE_BLUETOOTH = false;           // aktifkan Bluetooth control
-const unsigned long BT_BAUD = 115200;         // baud rate BT module
-const unsigned long BT_TELEMETRY_MS = 200;    // interval auto telemetry
-const int BT_MODULE_TYPE = 1;                 // 1=HM-10, 2=uKit built-in
-
-// --- PATH PLANNER ---
-const bool ENABLE_PATH_PLANNER = false;       // default OFF (RAM ATMega2560 terbatas)
-const int GRID_CELL_SIZE_CM = 20;             // ukuran cell grid (cm)
-const int PATH_GRID_WIDTH = 16;               // lebar grid
-const int PATH_GRID_HEIGHT = 16;              // tinggi grid
-const int JARAK_OBSTACLE_CM = 30;             // ultrasonic <= ini = cell depan jadi obstacle
 
 #endif

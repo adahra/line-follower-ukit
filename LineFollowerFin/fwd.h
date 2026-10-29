@@ -9,8 +9,5 @@ class Penggerak;
 class Pengaman;
 class Antarmuka;
 class Mapper;
-class LapTimer;
-class BluetoothCtrl;
-// class PathPlanner;  // Optional: uncomment when using PathPlanner
 
 #endif

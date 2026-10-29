@@ -72,10 +72,9 @@ bool Penggerak::hitung(int bacaKiri, int bacaKanan, bool paksa) {
   kecepatanKiri = kecepatanDasar - PID_value;
   kecepatanKanan = kecepatanDasar + PID_value;
 
-  // 5. Batasi Output Akhir (derate servo 0-150, dukung pivot mundur roda dalam)
-  int batasBawah = ENABLE_PIVOT_REVERSE ? -PIVOT_REVERSE_MAKS : 0;
-  kecepatanKiri = constrain(kecepatanKiri, batasBawah, SERVO_MAKS_DIPAKAI);
-  kecepatanKanan = constrain(kecepatanKanan, batasBawah, SERVO_MAKS_DIPAKAI);
+  // 5. Batasi Output Akhir (derate servo 0-150, bukan 0-255 docs)
+  kecepatanKiri = constrain(kecepatanKiri, 0, SERVO_MAKS_DIPAKAI);
+  kecepatanKanan = constrain(kecepatanKanan, 0, SERVO_MAKS_DIPAKAI);
 
   // 6. Deadband compensation: servo diam di speed 1-24, paksa ke
   // SERVO_MIN_EFEKTIF agar koreksi PID benar-benar menggerakkan roda.
@@ -99,18 +98,10 @@ void Penggerak::terapkanTerakhir() {
 }
 
 void Penggerak::jalankan(int speedKiri, int speedKanan) {
-  // Sisi kiri (servo 4 & 2): maju dir=1, mundur/pivot dir=0
-  int dirKiri = (speedKiri >= 0) ? 1 : 0;
-  int spdKiri = abs(speedKiri);
-
-  // Sisi kanan (servo 1 & 3): maju dir=0, mundur/pivot dir=1
-  int dirKanan = (speedKanan >= 0) ? 0 : 1;
-  int spdKanan = abs(speedKanan);
-
-  setServoTurn(4, dirKiri, spdKiri);
-  setServoTurn(2, dirKiri, spdKiri);
-  setServoTurn(1, dirKanan, spdKanan);
-  setServoTurn(3, dirKanan, spdKanan);
+  setServoTurn(4, 1, speedKiri);
+  setServoTurn(2, 1, speedKiri);
+  setServoTurn(1, 0, speedKanan);
+  setServoTurn(3, 0, speedKanan);
 }
 
 void Penggerak::berhenti() {
@@ -192,31 +183,6 @@ void Penggerak::putarCariGaris(float lastErr) {
   }
 }
 
-void Penggerak::putarCariGarisBertingkat(float lastErr, unsigned long durasiMs) {
-  int speed = RECOVERY_SPEED_1;
-  int dir = (lastErr > 0) ? 0 : 1;
-
-  if (durasiMs <= RECOVERY_T1_MS) {
-    // Tahap 1: putar ringan searah lastError
-    speed = RECOVERY_SPEED_1;
-    dir = (lastErr > 0) ? 0 : 1;
-  } else if (durasiMs <= RECOVERY_T2_MS) {
-    // Tahap 2: putar sedang searah lastError
-    speed = RECOVERY_SPEED_2;
-    dir = (lastErr > 0) ? 0 : 1;
-  } else {
-    // Tahap 3: sapuan balik agresif lawan arah lastError
-    speed = RECOVERY_SPEED_3;
-    dir = (lastErr > 0) ? 1 : 0;
-  }
-
-  speed = terapkanDeadband(speed);
-  setServoTurn(4, dir, speed);
-  setServoTurn(2, dir, speed);
-  setServoTurn(1, dir, speed);
-  setServoTurn(3, dir, speed);
-}
-
 float Penggerak::errorTerakhir() const {
   return lastError;
 }
@@ -226,8 +192,8 @@ int Penggerak::terapkanDeadband(int speed) {
     return 0;
   }
 
-  if (abs(speed) < SERVO_MIN_EFEKTIF) {
-    return (speed > 0) ? SERVO_MIN_EFEKTIF : -SERVO_MIN_EFEKTIF;
+  if (speed < SERVO_MIN_EFEKTIF) {
+    return SERVO_MIN_EFEKTIF;
   }
 
   return speed;

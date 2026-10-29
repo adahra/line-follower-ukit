@@ -8,9 +8,6 @@
 #include "pengaman.h"
 #include "antarmuka.h"
 #include "mapping.h"
-#include "lap_timer.h"
-#include "bluetooth_ctrl.h"
-// #include "path_planner.h"  // Optional: enable via config.h + move optional/path_planner/ to sketch folder
 // ucode.h included HERE only (single definition). Other files use ukit_wrapper.h
 
 // Wiring antar modul via referensi (lihat header masing-masing).
@@ -18,11 +15,8 @@ Status status;
 SensorGaris sensor;
 Penggerak gerak;
 Pengaman aman(status, gerak, sensor);
+Antarmuka ui(status, sensor, gerak, aman);
 Mapper mapper;
-LapTimer lapTimer;
-// PathPlanner pathPlanner;  // Optional: uncomment + include path_planner.h when needed
-Antarmuka ui(status, sensor, gerak, aman, lapTimer, mapper);
-BluetoothCtrl bluetooth(status, gerak, sensor, aman, lapTimer);
 
 void setup() {
   Initialization();
@@ -41,27 +35,6 @@ void setup() {
       Serial.println(F("Setup selesai. Kalibrasi manual: tekan 2 tombol bersamaan."));
     }
   }
-  
-  // Inisialisasi Lap Timer
-  lapTimer.begin();
-  lapTimer.setThresholds(LAP_SF_THRESHOLD, LAP_MIN_LAP_MS);
-
-  // Inisialisasi Bluetooth
-  #if ENABLE_BLUETOOTH
-    bluetooth.begin(BT_BAUD, (BTModuleType)BT_MODULE_TYPE);
-    if (bluetooth.isConnected()) {
-      bluetooth.setAutoTelemetry(true, BT_TELEMETRY_MS);
-      Serial.println(F("Bluetooth: Ready"));
-    } else {
-      Serial.println(F("Bluetooth: Not connected (check wiring)"));
-    }
-  #endif
-
-  // Inisialisasi Path Planner
-  #if ENABLE_PATH_PLANNER
-    pathPlanner.begin(PATH_GRID_WIDTH / 2, PATH_GRID_HEIGHT / 2);
-    Serial.println(F("Path Planner: Ready"));
-  #endif
 }
 
 void loop() {
@@ -81,16 +54,6 @@ void loop() {
     ui.cekTepuk();          // toggle jalan/berhenti via tepuk tangan
     ui.cekSerial();         // serial command parser (Kp/Ki/Kd/speed/ambang/calibrate/save/help)
     aman.lampuOtomatis();   // headlight otomatis, non-blocking (throttle 200ms)
-    
-    // Bluetooth update
-    #if ENABLE_BLUETOOTH
-      bluetooth.update();
-    #endif
-
-    // Path Planner update
-    #if ENABLE_PATH_PLANNER
-      pathPlanner.updateMap(sensor, pathPlanner.getRobotGridX(), pathPlanner.getRobotGridY(), 0);
-    #endif
 
     if (status.jalan == true) {
       // Prioritas tertinggi: halangan depan menghentikan semua logika jalan.
@@ -155,21 +118,20 @@ void loop() {
         setRgbledColor(0, 0, 0);
       }
 
-      // --- KONDISI B: LOST LINE RECOVERY (dengan timeout & bertingkat) ---
+      // --- KONDISI B: LOST LINE RECOVERY (dengan timeout) ---
       else if (bacaKiri < AMBANG_KIRI && bacaKanan < AMBANG_KANAN) {
         if (status.recoveryMulai == 0) {
           status.recoveryMulai = millis();
         }
 
-        unsigned long durasiRecovery = millis() - status.recoveryMulai;
-        if (durasiRecovery > RECOVERY_TIMEOUT_MS) {
-          // Garis tak ketemu > batas timeout: berhenti + LED merah, tunggu operator.
+        if (millis() - status.recoveryMulai > RECOVERY_TIMEOUT_MS) {
+          // Garis tak ketemu >2 detik: berhenti + LED merah, tunggu operator.
           // Jangan berputar liar sampai baterai habis.
           gerak.berhenti();
           setRgbledColor(255, 0, 0);
         } else {
           setRgbledColor(255, 0, 255);
-          gerak.putarCariGarisBertingkat(gerak.errorTerakhir(), durasiRecovery);
+          gerak.putarCariGaris(gerak.errorTerakhir());
         }
       }
 
@@ -196,13 +158,6 @@ void loop() {
           gerak.terapkanTerakhir();
           return;
         }
-
-        // --- LAP TIMER UPDATE ---
-        // Hanya update saat PID interval tiba (gerak.hitung return true)
-        if (ENABLE_LAP_TIMER) {
-          float currentError = (bacaKiri - bacaKanan) / 2.0;
-          lapTimer.update(sensor, kecepatanDasar, currentError);
-        }
       }
     } else {
       gerak.saatBerhenti();
@@ -222,5 +177,30 @@ void loop() {
     }
 
     delay(2);
+  }
+}
+
+// --- Pemeriksaan kesehatan sensor (non-blocking) ---
+bool cekKesehatanSaatIni = false;
+unsigned long terakhirCekKesehatan = 0;
+const unsigned long INTERVAL_CEK_KESEHATAN = 5000; // Cek setiap 5 detik
+
+// Di dalam loop(), setelah baca sensor tetapi sebelum decision:
+if (status.jalan && !aman.halangan()) {
+  // Periodic health check
+  unsigned long now = millis();
+  if (now - terakhirCekKesehatan >= INTERVAL_CEK_KESEHATAN) {
+    terakhirCekKesehatan = now;
+    cekKesehatanSaatIni = sensor.cekKesehatanSensor();
+    if (!cekKesehatanSaatIni) {
+      Serial.println(F("PENTING: Sensor IR keluar rentang normal!"));
+    }
+  }
+  
+  // Tampilkan status kesehatan di serial secara periodik
+  if (cekKesehatanSaatIni) {
+    Serial.print(F("."));  // Titik berkurang = sensor baik
+  } else {
+    Serial.println(F("!"));  // Tanda sering = sensor masalah
   }
 }

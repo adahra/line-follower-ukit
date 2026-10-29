@@ -31,7 +31,6 @@ class Pengaman {
   bool halanganDepan = false;
   unsigned long cekBateraiTerakhir = 0;
   bool bateraiLemah = false;
-  bool bateraiPeringatan = false;
   unsigned long imuTerakhir = 0;
   float imuRoll = 0, imuPitch = 0, imuAccelMag = 0;
   unsigned long irBekuSejak = 0;

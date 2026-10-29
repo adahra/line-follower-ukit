@@ -4,8 +4,7 @@ Robot line follower PID untuk board uKit Explore 2. Seluruh program ada dalam sa
 
 ## Kebutuhan
 
-- **Arduino IDE** dengan library `uKitExplore2` terinstal (tidak disertakan di repo ini).
-- **Atau arduino-cli** (lihat [BUILD.md](docs/BUILD.md) untuk compile/upload via CLI).
+- Arduino IDE dengan library `uKitExplore2` terinstal (tidak disertakan di repo ini).
 - Library bawaan `EEPROM.h`.
 - Untuk verifikasi: compile `LineFollowerFin/LineFollowerFin.ino` di Arduino IDE. Tidak ada automated test/lint/CI.
 
@@ -17,7 +16,7 @@ Robot line follower PID untuk board uKit Explore 2. Seluruh program ada dalam sa
    - **Garis hilang** (kedua sensor < ambang): LED magenta, berputar di tempat ke arah sisi `lastError` terakhir.
    - **Tracer PID normal**: error = `(kiri − kanan) / 2`, dengan `I` dijepit ±50 dan kecepatan dasar adaptif (`maks − |PID| × 0,6`, dijepit ke `[min, maks]`).
 3. Konvensi hardware: sensor kiri = `readInfraredDistance(2)`, kanan = `(1)`; servo 4+2 = sisi kiri (arah `1`), servo 1+3 = sisi kanan (arah `0`); kecepatan di-derate 0–150 (docs membolehkan 0–255).
-4. Fitur keselamatan: berhenti otomatis bila halangan depan ≤ 5 cm (sensor ultrasonic ID 1, prioritas tertinggi); eye lamp menyala putih otomatis saat gelap (< 100 lux, mati > 150 lux) memakai sensor cahaya ID 1.
+4. Fitur keselamatan: berhenti otomatis bila halangan depan ≤ 5 cm (sensor ultrasonic, prioritas tertinggi); eye lamp menyala putih otomatis saat gelap (< 100 lux, mati > 150 lux). ID sensor cahaya/ultrasonic masih tebakan — sesuaikan dengan wiring (`LIGHT_SENSOR_ID`, `ULTRASONIC_ID`).
 
 ## Tuning tanpa laptop (tombol onboard)
 
@@ -27,23 +26,7 @@ Robot line follower PID untuk board uKit Explore 2. Seluruh program ada dalam sa
 
 ## Penyimpanan EEPROM
 
-Magic `123` disimpan di addr 0. Data konfigurasi aktif:
-
-- `Kp`: addr 4
-- `Kd`: addr 12
-- `kecepatanDasarMaks`: addr 16
-- `AMBANG_KIRI`: addr 20
-- `AMBANG_KANAN`: addr 22
-
-`Ki` dan `kecepatanDasarMin` tidak disimpan; keduanya kembali ke nilai default kode setelah restart. Penulisan memakai `eepromPutHemat`, jadi EEPROM hanya ditulis bila nilai berubah.
-
-## Fitur tambahan
-
-- Bluetooth aktif melalui `BluetoothCtrl` bila `ENABLE_BLUETOOTH = true`.
-- Lap timer aktif bila `ENABLE_LAP_TIMER = true`.
-- Mode `MODE_LEARNING` merekam event persimpangan melalui `Mapper`.
-- Mode `MODE_RACING` memberi prediction berbasis waktu dan feedback LED; prediction belum mengubah keputusan belok utama.
-- Path planner tersedia sebagai kode opsional, tetapi default nonaktif melalui `ENABLE_PATH_PLANNER = false`.
+`Kp` (addr 4), `Kd` (addr 8), `kecepatanDasarMaks` (addr 12), ambang kiri (addr 16), ambang kanan (addr 18), dengan penanda `123` di addr 0. `Ki` dan `kecepatanDasarMin` tidak disimpan (selalu nilai default kode).
 
 ## Catatan untuk kontributor agen
 
