@@ -48,7 +48,7 @@ const unsigned long COOLDOWN_TOMBOL_MS = 300;
 
 // --- LAMPU OTOMATIS SAAT GELAP (sensor cahaya + eye lamp) ---
 // Docs: readLightValue(id) -> 0-4000 lux; setEyelightAllPetals(id,r,g,b).
-// Sesuaikan ID sensor cahaya dengan port yang terpasang di robot.
+// Wiring terverifikasi: sensor cahaya memakai ID 1.
 const int LIGHT_SENSOR_ID = 1;
 const int EYELIGHT_KIRI = 1;
 const int EYELIGHT_KANAN = 2;
@@ -58,7 +58,7 @@ const unsigned long CEK_CAHAYA_MS = 200;  // throttle agar tak baca tiap loop
 
 // --- HALANGAN DEPAN: berhenti bila objek <= 5 cm (sensor ultrasonic) ---
 // Docs: readUltrasonicDistance(id) -> jarak 0-400 cm.
-// Sesuaikan ULTRASONIC_ID dengan port sensor yang menghadap depan.
+// Wiring terverifikasi: sensor ultrasonic depan memakai ID 1.
 const int ULTRASONIC_ID = 1;
 const int JARAK_BERHENTI_CM = 5;
 const unsigned long CEK_HALANGAN_MS = 100;  // ultrasonic butuh jeda antar ping
@@ -119,5 +119,23 @@ const bool AUTO_CALIBRATE_ON_BOOT = false;  // true = kalibrasi otomatis saat EE
 
 // --- OPSI MEMORI ---
 const bool ENABLE_TELEMETRI = false;        // true = kirim CSV telemetri (pakai RAM + Flash)
+
+// --- LAP TIMER ---
+const int LAP_SF_THRESHOLD = 12;       // ambang deteksi start/finish (kedua sensor)
+const unsigned long LAP_MIN_LAP_MS = 3000; // minimal 3 detik per lap
+const bool ENABLE_LAP_TIMER = true;    // aktifkan lap timer
+
+// --- BLUETOOTH / BLE ---
+const bool ENABLE_BLUETOOTH = true;           // aktifkan Bluetooth control
+const unsigned long BT_BAUD = 115200;         // baud rate BT module
+const unsigned long BT_TELEMETRY_MS = 200;    // interval auto telemetry
+const int BT_MODULE_TYPE = 1;                 // 1=HM-10, 2=uKit built-in
+
+// --- PATH PLANNER ---
+const bool ENABLE_PATH_PLANNER = false;       // default OFF (RAM ATMega2560 terbatas)
+const int GRID_CELL_SIZE_CM = 20;             // ukuran cell grid (cm)
+const int PATH_GRID_WIDTH = 16;               // lebar grid
+const int PATH_GRID_HEIGHT = 16;              // tinggi grid
+const int JARAK_OBSTACLE_CM = 30;             // ultrasonic <= ini = cell depan jadi obstacle
 
 #endif
