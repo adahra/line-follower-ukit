@@ -118,7 +118,7 @@ struct Status {
 - `telemetri(int bacaKiri, int bacaKanan)` — Dump CSV telemetry data.
 
 ### `Pengaman` (pengaman.h)
-- `bateraiKritis()` — Return true if battery voltage ≤ `TEGANGAN_MIN` (5.5V), locking all functions until power cycle.
+- `bateraiKritis()` — Return true if battery voltage ≤ `TEGANGAN_MIN` (5.5V), locking all functions until power cycle. Gated by `ENABLE_BATERAI_KRITIS`; emits orange LED + serial when `TEGANGAN_PERINGATAN` exceeded.
 - `miring()` — Return true if IMU tilt > `TILT_MAKS_DERAJAT` (45°).
 - `halangan()` — Return true if ultrasonic distance ≤ `JARAK_BERHENTI_CM` (5 cm).
 - `macet(int bacaKiri, int bacaKanan)` — Return true if robot is stuck (IR readings stable + accelerometer magnitude stable for `STUCK_DIAM_MS` = 2000ms).
@@ -160,7 +160,7 @@ All tunable values are in one place. **Tune here** — do not scatter constants 
 - `const int TURBO_RAMP_SPEED = 2` — Speed ramp per update to avoid slipping
 
 ### Servo Limits
-- `const int SERVO_MIN_EFEKTIF = 25` — Speeds 1–24 forced to 25 or 0 (deadband compensation)
+- `const int SERVO_MIN_EFEKTIF = 40` — Speeds 1–40 forced to 40 or 0 (deadband compensation)
 - `const int SERVO_MAKS_DIPAKAI = 150` — Derated from 255; do not increase without track testing
 - `const int SLEW_MAKS_PER_LOOP = 10` — Max speed change per loop anti-slip
 
@@ -345,6 +345,7 @@ if (!eepromValid && AUTO_CALIBRATE_ON_BOOT) {
 | Feature | Trigger | Action |
 |---------|---------|--------|
 | **Battery Critical** | `tegangan() ≤ TEGANGAN_MIN` (5.5V) | Lock all functions; robot stays stopped until power cycle (restart) |
+| **Battery Warning** | `TEGANGAN_MIN < tegangan() ≤ TEGANGAN_PERINGATAN` (5.8V) | Orange LED + serial notice; continues running |
 | **Tilt/Miring** | IMU tilt > 45° | Motors disabled until robot is flat again |
 | **Front Obstacle** | Ultrasonic ≤ 5 cm | **Priority over ALL drive logic** — robot stops immediately |
 | **Stuck Detector** | IR stable + accel magnitude stable for 2s | Robot stops; requires operator intervention |

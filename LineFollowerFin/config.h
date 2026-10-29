@@ -28,13 +28,13 @@ const int TURBO_RAMP_SPEED = 2;        // Kenaikan kecepatan per update (agar ti
 // --- BATAS KHUSUS SERVO 360 (open-loop, lihat docs setServoTurn) ---
 // Docs resmi: speed 0-255. 150 adalah derate yang disengaja agar robot stabil.
 // Servo punya deadband: speed kecil hanya berdengung, roda tidak bergerak.
-const int SERVO_MIN_EFEKTIF = 25;  // speed 1-24 dipaksa ke 25 atau 0
+const int SERVO_MIN_EFEKTIF = 40;  // speed 1-24 dipaksa ke 25 atau 0
 const int SERVO_MAKS_DIPAKAI = 150;  // derate dari 255, jangan naikkan tanpa uji lintasan
 const int SLEW_MAKS_PER_LOOP = 10;   // batas perubahan speed per loop anti slip
 const unsigned long BELOK_TIMEOUT_MS = 1500;  // anti macet di while belok 90°
 
 // --- PIVOT RODA DALAM (Counter-Steer saat tikungan tajam) ---
-const bool ENABLE_PIVOT_REVERSE = true; // izinkan roda dalam berputar balik saat PID tinggi
+const bool ENABLE_PIVOT_REVERSE = false; // izinkan roda dalam berputar balik saat PID tinggi
 const int PIVOT_REVERSE_MAKS = 60;      // batas kecepatan mundur roda dalam agar tidak terpelanting
 
 // --- RECOVERY GARIS BERTINGKAT ---
@@ -89,7 +89,10 @@ const unsigned long TEPUK_COOLDOWN_MS = 800;  // jeda antar toggle
 // --- BATERAI LEMAH: hentikan semua fungsi bila tegangan <= ambang ---
 // Docs: readBatteryVoltage() -> float 0-8.4 V. Dicek throttle 500 ms;
 // sekali lemah, robot dikunci mati sampai power cycle (restart).
+const bool ENABLE_BATERAI_KRITIS = true;   // true = pengecekan TEGANGAN_MIN aktif
 const float TEGANGAN_MIN = 5.5;
+const float TEGANGAN_PERINGATAN = 5.8;      // ambang peringatan (V), di atas TEGANGAN_MIN
+const bool BATERAI_PERINGATAN_LED = true;   // true = nyalakan LED peringatan baterai
 const unsigned long CEK_BATERAI_MS = 500;
 
 // --- TELEMETRI: dump CSV berkala saat jalan untuk tuning berbasis data ---
@@ -135,10 +138,10 @@ const bool ENABLE_TELEMETRI = false;        // true = kirim CSV telemetri (pakai
 // --- LAP TIMER ---
 const int LAP_SF_THRESHOLD = 12;       // ambang deteksi start/finish (kedua sensor)
 const unsigned long LAP_MIN_LAP_MS = 3000; // minimal 3 detik per lap
-const bool ENABLE_LAP_TIMER = true;    // aktifkan lap timer
+const bool ENABLE_LAP_TIMER = false;    // aktifkan lap timer
 
 // --- BLUETOOTH / BLE ---
-const bool ENABLE_BLUETOOTH = true;           // aktifkan Bluetooth control
+const bool ENABLE_BLUETOOTH = false;           // aktifkan Bluetooth control
 const unsigned long BT_BAUD = 115200;         // baud rate BT module
 const unsigned long BT_TELEMETRY_MS = 200;    // interval auto telemetry
 const int BT_MODULE_TYPE = 1;                 // 1=HM-10, 2=uKit built-in
