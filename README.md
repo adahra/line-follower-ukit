@@ -4,7 +4,8 @@ Robot line follower PID untuk board uKit Explore 2. Seluruh program ada dalam sa
 
 ## Kebutuhan
 
-- Arduino IDE dengan library `uKitExplore2` terinstal (tidak disertakan di repo ini).
+- **Arduino IDE** dengan library `uKitExplore2` terinstal (tidak disertakan di repo ini).
+- **Atau arduino-cli** (lihat [BUILD.md](BUILD.md) untuk compile/upload via CLI).
 - Library bawaan `EEPROM.h`.
 - Untuk verifikasi: compile `LineFollowerFin/LineFollowerFin.ino` di Arduino IDE. Tidak ada automated test/lint/CI.
 

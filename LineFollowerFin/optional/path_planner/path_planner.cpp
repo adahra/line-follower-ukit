@@ -67,71 +67,22 @@ void PathPlanner::updateMap(SensorGaris &sensor, int robotX, int robotY, float r
   
   // Jika kedua sensor mendeteksi garis, mark cell depan sebagai line
   if (leftIR >= 8 && rightIR >= 8) {  // threshold approx
-    int frontX, frontY;
-    cellDepan(frontX, frontY);
+    int frontX = robotGridX;
+    int frontY = robotGridY;
+    
+    // Hitung cell depan berdasarkan heading
+    if (robotHeading >= -45 && robotHeading < 45) frontY--;      // North
+    else if (robotHeading >= 45 && robotHeading < 135) frontX++; // East
+    else if (robotHeading >= 135 || robotHeading < -135) frontY++; // South
+    else frontX--; // West
+    
     if (isValid(frontX, frontY)) {
       grid[frontX][frontY] = CELL_LINE;
     }
   }
-
-  updateObstacle();
-}
-
-// Cell tepat di depan robot berdasarkan heading (0 = Utara, searah jarum jam).
-void PathPlanner::cellDepan(int &x, int &y) const {
-  x = robotGridX;
-  y = robotGridY;
-  if (robotHeading >= -45 && robotHeading < 45) y--;             // Utara
-  else if (robotHeading >= 45 && robotHeading < 135) x++;        // Timur
-  else if (robotHeading >= 135 || robotHeading < -135) y++;      // Selatan
-  else x--;                                                      // Barat
-}
-
-// Deteksi halangan dari ultrasonic depan. Ping di-throttle karena sensor
-// butuh jeda antar pengukuran. Cell yang tadi ditandai otomatis dibuka lagi
-// saat jarak sudah aman, supaya map tidak menyimpan halangan yang hilang.
-void PathPlanner::updateObstacle() {
-  unsigned long now = millis();
-  if (now - cekUltrasonikTerakhir < CEK_HALANGAN_MS) {
-    return;
-  }
-  cekUltrasonikTerakhir = now;
-
-  int jarak = readUltrasonicDistance(ULTRASONIC_ID);
-  // 0 = bacaan tak valid / di luar jangkauan -> abaikan, seperti di pengaman.
-  if (jarak <= 0) {
-    return;
-  }
-
-  int frontX, frontY;
-  cellDepan(frontX, frontY);
-  if (!isValid(frontX, frontY)) {
-    return;
-  }
-
-  if (jarak <= JARAK_OBSTACLE_CM) {
-    if (obstacleX != frontX || obstacleY != frontY) {
-      markObstacle(frontX, frontY, 0);  // hanya cell depan, jangan kunci robot
-      obstacleX = frontX;
-      obstacleY = frontY;
-      Serial.print(F("Halangan dipetakan di ("));
-      Serial.print(frontX); Serial.print(F(",")); Serial.print(frontY);
-      Serial.print(F(") jarak ")); Serial.print(jarak); Serial.println(F(" cm"));
-    }
-  } else if (obstacleX >= 0) {
-    // Halangan hilang: buka hanya area yang ditandai otomatis
-    for (int dx = -1; dx <= 1; dx++) {
-      for (int dy = -1; dy <= 1; dy++) {
-        int nx = obstacleX + dx;
-        int ny = obstacleY + dy;
-        if (isValid(nx, ny) && grid[nx][ny] == CELL_OBSTACLE) {
-          grid[nx][ny] = CELL_UNKNOWN;
-        }
-      }
-    }
-    obstacleX = -1;
-    obstacleY = -1;
-  }
+  
+  // TODO: Integrate ultrasonic untuk obstacle detection
+  // if (ultrasonic < threshold) markObstacle(...)
 }
 
 void PathPlanner::setGoal(int goalX_, int goalY_) {

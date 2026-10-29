@@ -77,7 +77,7 @@ class BluetoothCtrl {
   unsigned long commandCheckInterval = 50;
 
   // Command buffer
-  static const int CMD_BUFFER_SIZE = 64;  // Perintah BT proyek tidak melebihi 63 karakter
+  static const int CMD_BUFFER_SIZE = 128;
   char cmdBuffer[CMD_BUFFER_SIZE];
   int cmdBufferPos = 0;
 

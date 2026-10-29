@@ -112,11 +112,6 @@ class PathPlanner {
   int robotGridX = GRID_WIDTH / 2;
   int robotGridY = GRID_HEIGHT / 2;
   float robotHeading = 0;  // derajat, 0 = Utara
-
-  // Obstacle dari ultrasonic: cell yang ditandai otomatis + throttle ping
-  int obstacleX = -1;
-  int obstacleY = -1;
-  unsigned long cekUltrasonikTerakhir = 0;
   
   // Goal
   int goalX = -1;
@@ -133,10 +128,6 @@ class PathPlanner {
   float moveCost(int x1, int y1, int x2, int y2) const;
   PathNode* getNode(int x, int y);
   void clearNodes();
-
-  // Mapping helpers
-  void cellDepan(int &x, int &y) const;
-  void updateObstacle();
   
   // Node pool untuk A* (avoid malloc)
   static const int MAX_NODES = GRID_WIDTH * GRID_HEIGHT;

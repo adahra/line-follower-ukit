@@ -6,7 +6,7 @@
 #include "config.h"
 #include "sensor_garis.h"
 
-#define MAX_LAPS 10  // Batasi histori agar SRAM cukup untuk kontrol robot
+#define MAX_LAPS 20
 
 struct LapRecord {
   unsigned long lapTime;    // ms
