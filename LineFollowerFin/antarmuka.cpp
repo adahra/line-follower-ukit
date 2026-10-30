@@ -22,6 +22,8 @@ void Antarmuka::resetSemua() {
 void Antarmuka::mulai(const char *via) {
   sensor.simpan();
   resetSemua();  // start bersih: tanpa hutang integral/derivatif run lama
+  // Jangan reset runStartTime di sini — recordEvent/checkPrediction auto-
+  // baseline agar offset waypoint konsisten dengan elapsed (lihat mapping.cpp).
   status.jalan = true;
   setEyelightLook(1, 0, 7, 0, 0, 254);
   setEyelightLook(2, 0, 7, 0, 0, 254);

@@ -30,18 +30,23 @@ class Mapper {
   // Mode Learning: Rekam event yang terjadi
   void recordEvent(EventType type, ActionType action);
   
-  // Mode Racing: Prediksi event berikutnya berdasarkan waktu
+  // Mode Racing: Prediksi event berikutnya berdasarkan waktu relatif sejak run.
   bool checkPrediction(unsigned long currentTime, EventType &outType, ActionType &outAction);
-  
+
   void reset();
   int getWaypointCount() const;
   void debugPrint();
+  // Baseline timer hitung sejak run dimulai (panggil saat racing start).
+  // Jika tidak dipanggil, checkPrediction auto-baseline di panggilan pertama.
+  void mulaiRun();
 
  private:
   static const int MAX_WAYPOINTS = 50;
   Waypoint waypoints[MAX_WAYPOINTS];
   int count = 0;
   unsigned long lastEventTime = 0;
+  unsigned long runStartTime = 0;   // millis() saat run dimulai (baseline)
+  int lastPredictedIndex = -1;      // tiap waypoint hanya diprediksi sekali
 };
 
 #endif
