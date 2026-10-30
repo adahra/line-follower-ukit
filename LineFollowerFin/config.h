@@ -56,7 +56,7 @@ const unsigned long COOLDOWN_TOMBOL_MS = 300;
 
 // --- LAMPU OTOMATIS SAAT GELAP (sensor cahaya + eye lamp) ---
 // Docs: readLightValue(id) -> 0-4000 lux; setEyelightAllPetals(id,r,g,b).
-// Wiring terverifikasi: sensor cahaya memakai ID 1.
+// Sesuaikan ID sensor cahaya dengan port yang terpasang di robot.
 const int LIGHT_SENSOR_ID = 1;
 const int EYELIGHT_KIRI = 1;
 const int EYELIGHT_KANAN = 2;
@@ -66,7 +66,7 @@ const unsigned long CEK_CAHAYA_MS = 200;  // throttle agar tak baca tiap loop
 
 // --- HALANGAN DEPAN: berhenti bila objek <= 5 cm (sensor ultrasonic) ---
 // Docs: readUltrasonicDistance(id) -> jarak 0-400 cm.
-// Wiring terverifikasi: sensor ultrasonic depan memakai ID 1.
+// Sesuaikan ULTRASONIC_ID dengan port sensor yang menghadap depan.
 const int ULTRASONIC_ID = 1;
 const int JARAK_BERHENTI_CM = 5;
 const unsigned long CEK_HALANGAN_MS = 100;  // ultrasonic butuh jeda antar ping
@@ -144,6 +144,5 @@ const bool ENABLE_PATH_PLANNER = false;       // default OFF (RAM ATMega2560 ter
 const int GRID_CELL_SIZE_CM = 20;             // ukuran cell grid (cm)
 const int PATH_GRID_WIDTH = 16;               // lebar grid
 const int PATH_GRID_HEIGHT = 16;              // tinggi grid
-const int JARAK_OBSTACLE_CM = 30;             // ultrasonic <= ini = cell depan jadi obstacle
 
 #endif

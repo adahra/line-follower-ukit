@@ -35,14 +35,14 @@ setServoTurn(3, 0, speedKanan); // Kanan belakang
 ## Sensor Ultrasonic (Halangan Depan)
 | Config | Nilai | Keterangan |
 |--------|-------|------------|
-| `ULTRASONIC_ID` | 1 | ID terverifikasi; sensor ultrasonic menghadap depan |
+| `ULTRASONIC_ID` | 1 | Port sensor ultrasonic menghadap depan |
 | `JARAK_BERHENTI_CM` | 5 | Stop bila ≤ 5 cm |
 | `CEK_HALANGAN_MS` | 100 | Throttle ping |
 
 ## Sensor Cahaya (Auto Headlight)
 | Config | Nilai | Keterangan |
 |--------|-------|------------|
-| `LIGHT_SENSOR_ID` | 1 | ID terverifikasi; port sensor cahaya |
+| `LIGHT_SENSOR_ID` | 1 | Port sensor cahaya |
 | `EYELIGHT_KIRI` | 1 | Eye lamp kiri |
 | `EYELIGHT_KANAN` | 2 | Eye lamp kanan |
 | `AMBANG_GELAP_NYALA` | 100 lux | Nyala putih di bawah ini |
@@ -78,13 +78,13 @@ setServoTurn(3, 0, speedKanan); // Kanan belakang
 |------|------|----------|---------|
 | 0    | byte | Magic `123` | Valid marker |
 | 4    | float | `Kp` | |
-| 8    | float | reserved / `Ki` lama | Tidak dipakai untuk persistence aktif |
+| 8    | float | `Ki` | **Baru** (sebelumnya tdk disimpan) |
 | 12   | float | `Kd` | |
 | 16   | int | `kecepatanDasarMaks` | |
 | 20   | int | `AMBANG_KIRI` | |
 | 22   | int | `AMBANG_KANAN` | |
 
-> `Ki` dan `kecepatanDasarMin` **tidak** disimpan — pakai default kode. EEPROM hanya ditulis bila nilai berubah.
+> `kecepatanDasarMin` & `Ki` (sebelumnya) **tidak** disimpan — pakai default kode.
 
 ## IMU Onboard
 - `IMU::init()` di `setup()`

@@ -23,18 +23,10 @@ void Antarmuka::mulai(const char *via) {
   sensor.simpan();
   resetSemua();  // start bersih: tanpa hutang integral/derivatif run lama
   status.jalan = true;
-
-  // Inisialisasi mapper sesuai mode operasi
-  if (status.modeOperasi == MODE_LEARNING) {
-    mapper.startLearning();
-  } else if (status.modeOperasi == MODE_RACING) {
-    mapper.startRace();
-  }
-
   setEyelightLook(1, 0, 7, 0, 0, 254);
   setEyelightLook(2, 0, 7, 0, 0, 254);
   Serial.print(via);
-  Serial.println(F(": JALAN"));
+  Serial.println(": JALAN");
 }
 
 void Antarmuka::berhenti(const char *via) {
@@ -50,26 +42,6 @@ void Antarmuka::cekTombol() {
   unsigned long now = millis();
   int buttonState1 = readButtonValue(1);
   int buttonState2 = readButtonValue(2);
-
-  // --- B1+B2 bersamaan: Kalibrasi (tekan biasa) / Auto-Tuning (tekan lama) ---
-  // Cek SEBELUM handler tombol tunggal agar tekan bersamaan tidak
-  // "dimakan" oleh cooldown individual.
-  if (buttonState1 != 0 && buttonState2 != 0 && !status.jalan) {
-    cooldownB1 = now;
-    cooldownB2 = now;
-    if (buttonState1 == 3 || buttonState2 == 3) {
-      // Tekan lama: Kalibrasi + Auto-Tuning PID
-      Serial.println(F(">>> Memulai Kalibrasi + Auto-Tuning PID <<<"));
-      tuningSequence();
-    } else {
-      // Tekan biasa: Kalibrasi sensor saja
-      Serial.println(F(">>> Kalibrasi sensor <<<"));
-      sensor.kalibrasi(gerak);
-      setRgbledColor(255, 255, 0);
-      Serial.println(F("Kalibrasi selesai."));
-    }
-    return;
-  }
 
   // --- Non-blocking tombol detector ---
   // Deteksi edge dan cooldown untuk tombol tunggal

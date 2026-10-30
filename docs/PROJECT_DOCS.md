@@ -118,7 +118,7 @@ struct Status {
 - `telemetri(int bacaKiri, int bacaKanan)` — Dump CSV telemetry data.
 
 ### `Pengaman` (pengaman.h)
-- `bateraiKritis()` — Return true if battery voltage ≤ `TEGANGAN_MIN` (5.5V), locking all functions until power cycle. Gated by `ENABLE_BATERAI_KRITIS`; emits orange LED + serial when `TEGANGAN_PERINGATAN` exceeded.
+- `bateraiKritis()` — Return true if battery voltage ≤ `TEGANGAN_MIN` (5.5V), locking all functions until power cycle.
 - `miring()` — Return true if IMU tilt > `TILT_MAKS_DERAJAT` (45°).
 - `halangan()` — Return true if ultrasonic distance ≤ `JARAK_BERHENTI_CM` (5 cm).
 - `macet(int bacaKiri, int bacaKanan)` — Return true if robot is stuck (IR readings stable + accelerometer magnitude stable for `STUCK_DIAM_MS` = 2000ms).
@@ -160,16 +160,16 @@ All tunable values are in one place. **Tune here** — do not scatter constants 
 - `const int TURBO_RAMP_SPEED = 2` — Speed ramp per update to avoid slipping
 
 ### Servo Limits
-- `const int SERVO_MIN_EFEKTIF = 40` — Speeds 1–40 forced to 40 or 0 (deadband compensation)
+- `const int SERVO_MIN_EFEKTIF = 25` — Speeds 1–24 forced to 25 or 0 (deadband compensation)
 - `const int SERVO_MAKS_DIPAKAI = 150` — Derated from 255; do not increase without track testing
 - `const int SLEW_MAKS_PER_LOOP = 10` — Max speed change per loop anti-slip
 
 ### Sensor IDs (confirm against wiring)
-- `const int LIGHT_SENSOR_ID = 1` — ID terverifikasi sesuai wiring sensor cahaya
+- `const int LIGHT_SENSOR_ID = 1`
 - `const int EYELIGHT_KIRI = 1`, `EYELIGHT_KANAN = 2`
 - `const int AMBANG_GELAP_NYALA = 100` lux — below this, headlight on
 - `const int AMBANG_GELAP_MATI = 150` lux — above this, headlight off (hysteresis)
-- `const int ULTRASONIC_ID = 1` — ID terverifikasi sesuai wiring ultrasonic depan
+- `const int ULTRASONIC_ID = 1`
 - `const int JARAK_BERHENTI_CM = 5` — stop if obstacle ≤ 5 cm
 - `const int SOUND_SENSOR_ID = 1`
 - `const int TEPUK_AMBANG = 500`, `TEPUK_LEPAS = 350` — clap detection thresholds
@@ -202,19 +202,14 @@ The robot has 3 primary modes, plus sub-modes:
 - Auto headlight, ultrasonic stop, tilt halt
 
 ### MODE_LEARNING
-- Fitur tambahan, bukan mode default.
-- Records waypoints via `mapper.recordEvent()` at intersections.
-- Menyimpan maksimal 50 waypoint di RAM, tiap waypoint berisi tipe event, aksi, dan offset waktu sejak event sebelumnya.
-- RGB: Kuning (yellow).
-- Data dipakai sebagai dasar prediksi Racing; penyimpanan waypoint ke EEPROM belum tersedia walau command `save` mencetak waypoint.
+- Records waypoints via `mapper.recordEvent()` at intersections
+- RGB: Kuning (yellow)
+- Used to build a path for Racing mode
 
 ### MODE_RACING
-- Fitur tambahan, bukan mode default.
-- Uses `mapper.checkPrediction()` to anticipate upcoming intersections/actions berdasarkan waktu relatif sesi learning.
-- Prediction hanya aktif jika waypoint tersedia di instance `Mapper` yang sama.
-- Toleransi prediction: 100 ms.
-- RGB: Hijau (green) saat berhenti; saat berjalan prediction mengubah LED menjadi putih/hijau/merah/biru sesuai aksi.
-- Prediction saat ini hanya memberi feedback LED dan belum mengubah keputusan belok atau speed secara langsung.
+- Uses `mapper.checkPrediction()` to anticipate upcoming intersections/actions
+- RGB: Hijau (green)
+- Can optimize speed/profile based on predicted events
 
 ### Sub-states within `loop()` (when `status.jalan == true`):
 1. **Intersection detection** (both sensors ≥ own threshold):
@@ -242,22 +237,6 @@ The robot has 3 primary modes, plus sub-modes:
   - RGB signals: magenta (Kd tune), kuning (learning), hijau (racing), putih (normal start), mati (idle)
 
 ---
-
-## Auto-Tuning PID (Fitur Tambahan)
-
-Auto-tuning bukan bagian dari loop PID normal. Sequence dipanggil saat robot berhenti melalui command `tune` atau long press Button 1 + Button 2.
-
-Urutan aktual di `Antarmuka::tuningSequence()`:
-
-1. Kalibrasi sensor.
-2. Grid search 16 kombinasi `Kp` `{15, 20, 25, 30}` dan `Kd` `{0.5, 1.0, 1.5, 2.0}`.
-3. Set `Ki = 0.01` selama pengujian.
-4. Uji tiap kombinasi selama 5 detik.
-5. Skor memakai rata-rata `abs(error)` dan penalti oscillation.
-6. Terapkan `Kp`/`Kd` terbaik.
-7. Simpan parameter dan ambang ke EEPROM.
-
-Catatan implementasi: fungsi auto-tuning menjalankan loop blocking. Proteksi utama di `loop()` tidak dipanggil selama pengujian, dan deteksi oscillation aktual perlu audit karena `prevError` diperbarui sebelum pemeriksaan perubahan tanda. Gunakan fitur ini hanya pada lintasan aman.
 
 ## Onboard Tuning UI (No Serial Monitor Needed)
 
@@ -345,7 +324,6 @@ if (!eepromValid && AUTO_CALIBRATE_ON_BOOT) {
 | Feature | Trigger | Action |
 |---------|---------|--------|
 | **Battery Critical** | `tegangan() ≤ TEGANGAN_MIN` (5.5V) | Lock all functions; robot stays stopped until power cycle (restart) |
-| **Battery Warning** | `TEGANGAN_MIN < tegangan() ≤ TEGANGAN_PERINGATAN` (5.8V) | Orange LED + serial notice; continues running |
 | **Tilt/Miring** | IMU tilt > 45° | Motors disabled until robot is flat again |
 | **Front Obstacle** | Ultrasonic ≤ 5 cm | **Priority over ALL drive logic** — robot stops immediately |
 | **Stuck Detector** | IR stable + accel magnitude stable for 2s | Robot stops; requires operator intervention |
@@ -375,7 +353,7 @@ if (!eepromValid && AUTO_CALIBRATE_ON_BOOT) {
 8. **Comments/serial prints in Indonesian** — keep that language for consistency
 
 ### Edge Cases
-- **Sensor IDs are fixed by verified wiring**: `LIGHT_SENSOR_ID = 1`, `ULTRASONIC_ID = 1`.
+- **Sensor IDs (`LIGHT_SENSOR_ID`, `ULTRASONIC_ID`)** are guesses — confirm against actual wiring
 - **90° turns may not be perfectly accurate** — depends on surface, friction, sensor thresholds
 - **EEPROM write skipping** means if you change a value to the same value, it won't be written (useful, but can be confusing during development)
 - **`Ki` and `kecepatanDasarMin` are NOT persisted** — they always revert to code defaults on restart
