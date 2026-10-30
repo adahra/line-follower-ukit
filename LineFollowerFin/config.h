@@ -120,4 +120,21 @@ const bool AUTO_CALIBRATE_ON_BOOT = false;  // true = kalibrasi otomatis saat EE
 // --- OPSI MEMORI ---
 const bool ENABLE_TELEMETRI = false;        // true = kirim CSV telemetri (pakai RAM + Flash)
 
+// --- LAP TIMER ---
+const int LAP_SF_THRESHOLD = 12;       // ambang deteksi start/finish (kedua sensor)
+const unsigned long LAP_MIN_LAP_MS = 3000; // minimal 3 detik per lap
+const bool ENABLE_LAP_TIMER = true;    // aktifkan lap timer
+
+// --- BLUETOOTH / BLE ---
+const bool ENABLE_BLUETOOTH = true;           // aktifkan Bluetooth control
+const unsigned long BT_BAUD = 115200;         // baud rate BT module
+const unsigned long BT_TELEMETRY_MS = 200;    // interval auto telemetry
+const int BT_MODULE_TYPE = 1;                 // 1=HM-10, 2=uKit built-in
+
+// --- PATH PLANNER ---
+const bool ENABLE_PATH_PLANNER = false;       // default OFF (RAM ATMega2560 terbatas)
+const int GRID_CELL_SIZE_CM = 20;             // ukuran cell grid (cm)
+const int PATH_GRID_WIDTH = 16;               // lebar grid
+const int PATH_GRID_HEIGHT = 16;              // tinggi grid
+
 #endif
