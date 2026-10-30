@@ -1,11 +1,12 @@
 // config.cpp — definisi variabel global (hanya satu translation unit).
 #include "config.h"
 
-// Zigzag di lurus = Kp/Kd terlalu tinggi (error=1 -> PID=32 -> overcorrect).
-// Turunkan Kp agar koreksi kecil halus; Kd diturunkan agar D noise tak dipaku.
-float Kp = 6.0;
-float Ki = 0.15;
-float Kd = 3.0;
+// Zigzag di lurus + mengikuti di tikungan = Kp/Kd masih terlalu tinggi di
+// daerah error kecil (overcorrect). Tikungan OK berarti Kp cukup; jangan
+// turun terlalu jauh. Kd turun paling banyak (D noise pemicu zigzag).
+float Kp = 5.0;
+float Ki = 0.1;
+float Kd = 1.5;
 
 int kecepatanDasarMaks = 110;
 int kecepatanDasarMin = 55;  // 50->55: di atas deadband 25, tikungan tak mati total

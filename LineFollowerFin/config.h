@@ -14,29 +14,37 @@ extern int kecepatanDasarMin;   // Batas kecepatan terendah saat menikung tajam
 extern int kecepatanDasar;      // Variabel dinamis yang akan dikalibrasi oleh PID
 
 // --- KONSTANTA TUNE (dulu magic number tersebar di badan kode) ---
-const float FAKTOR_REM_ADAPTIF = 0.4;  // agresivitas pengereman saat melenceng
+// 0.4 -> 0.35: pengereman adaptif ikut-ikutan PID oscillasi,
+// bikin speed berombak di lurus (zigzag). Turunkan agar speed stabil.
+const float FAKTOR_REM_ADAPTIF = 0.35;
 const float BATAS_INTEGRAL = 50;       // anti windup: I dijepit ±nilai ini
 const int SPEED_TOMBOL_MIN = 60;       // batas bawah kecepatan maks via tombol
 const int SPEED_TOMBOL_MAKS = 150;     // batas atas (sama dengan derate servo)
 
 // --- DYNAMIC SPEED PROFILE (Turbo Mode) ---
-const int KECEPATAN_TURBO = 150;       // Kecepatan maksimal saat jalan lurus panjang
-const float LURUS_THRESHOLD = 1.5;    // Jika abs(error) < nilai ini, dianggap jalan lurus
+// 150 -> 120: turunkan ceiling turbo di lurus (150 bikin overshoot).
+const int KECEPATAN_TURBO = 120;
+// 1.5 -> 3.0: turbo HANYA aktif di lurus benar (error > 3 = tikungan).
+// 1.5 terlalu longgar -> turbo aktif di tengah zigzag -> semakin labil.
+const float LURUS_THRESHOLD = 3.0;
 const unsigned long LURUS_TIME_REQUIRED = 500; // Waktu (ms) harus lurus sebelum masuk mode Turbo
-const int TURBO_RAMP_SPEED = 3;        // Kenaikan kecepatan per update (agar tidak slip)
+const int TURBO_RAMP_SPEED = 1;        // 3->1: turbo naik perlahan (cepat bikin slip/overshoot di lurus)
 
 // --- BATAS KHUSUS SERVO 360 (open-loop, lihat docs setServoTurn) ---
 // Docs resmi: speed 0-255. 150 adalah derate yang disengaja agar robot stabil.
 // Servo punya deadband: speed kecil hanya berdengung, roda tidak bergerak.
 const int SERVO_MIN_EFEKTIF = 25;  // speed 1-24 dipaksa ke 25 atau 0
 const int SERVO_MAKS_DIPAKAI = 150;  // derate dari 255, jangan naikkan tanpa uji lintasan
-const int SLEW_MAKS_PER_LOOP = 10;   // batas perubahan speed per loop anti slip
+// 10 -> 14: slew membatasi perubahan speed per loop -> motor lamban
+// di lurus, bikin zigzag lambat. Naikkan sedikit agar PID bisa mengikuti.
+const int SLEW_MAKS_PER_LOOP = 14;
 const unsigned long BELOK_TIMEOUT_MS = 1500;  // anti macet di while belok 90°
 const unsigned long RECOVERY_TIMEOUT_MS = 2000;  // batas putar cari garis, lalu berhenti
 
 // --- ANTI GOYANG SENSOR: filter eksponensial agar 1 bacaan liar
 // tidak langsung jadi koreksi PID penuh (error range kecil, ±10).
-const float ALPHA_SENSOR = 0.5;  // bobot bacaan baru 0-1, makin besar makin responsif
+// 0.5 -> 0.4: filter lebih halus, redam bacaan liar yang jadi sumber D noise.
+const float ALPHA_SENSOR = 0.4;
 
 // --- PID interval tetap: D = error-lastError hanya valid bila dt konstan.
 // Tanpa ini, delay tombol (300-1000ms) membuat D melonjak acak.
@@ -83,7 +91,7 @@ const unsigned long CEK_BATERAI_MS = 500;
 // --- TELEMETRI: dump CSV berkala saat jalan untuk tuning berbasis data ---
 // Format: t(ms),err,pid,dasar,kiri,kanan,senK,senN. Buka via Serial Plotter.
 // Header dicetak sekali tiap run.
-const unsigned long TELEM_MS = 100;
+const unsigned long TELEM_MS = 50;
 
 // --- IMU ONBOARD: deteksi miring/terangkat + deteksi macet ---
 // Docs: IMU::init() sekali di setup; IMU::read() tiap loop (butuh SDK terbaru).
