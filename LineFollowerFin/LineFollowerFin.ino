@@ -123,28 +123,8 @@ void loop() {
         }
       }
 
-      // --- KONDISI A: DETEKSI PERSEMPATAN / PERTIGAAN ATAU LOST LINE ---
-      // Both sensor putih (>= ambang). Bisa 2 hal:
-      //   1. Intersection: loop sebelumnya di garis (dalamGaris=true) -> putih
-      //      lebar = persimpangan, putar sesuai sensor.
-      //   2. Lost line: loop sebelumnya di garis lebar (dalamGaris=false) ->
-      //      keluar garis = garis putus, recovery.
+      // --- KONDISI A: DETEKSI PERSEMPATAN / PERTIGAAN ---
       if (bacaKiri >= AMBANG_KIRI && bacaKanan >= AMBANG_KANAN) {
-        if (!status.dalamGaris) {
-          // Lost line: garis putus setelah di garis hitam lebar.
-          if (status.recoveryMulai == 0) {
-            status.recoveryMulai = millis();
-          }
-          if (millis() - status.recoveryMulai > RECOVERY_TIMEOUT_MS) {
-            gerak.berhenti();
-            setRgbledColor(255, 0, 0);
-          } else {
-            setRgbledColor(255, 0, 255);
-            gerak.putarCariGaris(gerak.errorTerakhir());
-          }
-          return;
-        }
-
         setRgbledColor(255, 255, 255);
         gerak.majuManual(kecepatanDasarMin,
                          150);  // Lewati perempatan dengan kecepatan aman
@@ -172,22 +152,24 @@ void loop() {
           Serial.println(act);
         }
 
-        // Setelah lewat perempatan: robot berada di putih lebar (luar garis).
-        status.dalamGaris = false;
         setRgbledColor(0, 0, 0);
       }
 
-      // --- KONDISI B: DI DALAM GARIS HITAM LEBAR (both sensor hitam) ---
-      // Sensor IR: hitam = bacaan rendah (< ambang), putih = tinggi (>= ambang).
-      // Both hitam = robot di tengah garis lebar, BUKAN hilang garis.
-      // Hilang garis seharusnya both putih (di luar garis), tapi itu sudah
-      // ditangani Kondisi A (intersection). Kondisi B lama salah: recovery
-      // di both hitam bikin robot putar liar di garis panjang (melenceng).
+      // --- KONDISI B: LOST LINE RECOVERY (dengan timeout) ---
       else if (bacaKiri < AMBANG_KIRI && bacaKanan < AMBANG_KANAN) {
-        setRgbledColor(0, 255, 255);  // cyan = di garis hitam lebar
-        gerak.majuTerus();            // maju lurus, jangan recovery
-        status.recoveryMulai = 0;     // reset state recovery
-        status.dalamGaris = true;     // di tengah garis, mengikuti
+        if (status.recoveryMulai == 0) {
+          status.recoveryMulai = millis();
+        }
+
+        if (millis() - status.recoveryMulai > RECOVERY_TIMEOUT_MS) {
+          // Garis tak ketemu >2 detik: berhenti + LED merah, tunggu operator.
+          // Jangan berputar liar sampai baterai habis.
+          gerak.berhenti();
+          setRgbledColor(255, 0, 0);
+        } else {
+          setRgbledColor(255, 0, 255);
+          gerak.putarCariGaris(gerak.errorTerakhir());
+        }
       }
 
       // --- KONDISI C: MODE TRACER PID NORMAL DENGAN ADAPTIVE SPEED ---
@@ -207,8 +189,6 @@ void loop() {
         if (dariRecovery) {
           gerak.resetIntegralSetelahRecovery((bacaKiri - bacaKanan) / 2.0);
         }
-
-        status.dalamGaris = true;     // satu sensor putih = sedang ikut garis
 
         // Di antara interval PID, pertahankan speed terakhir.
         if (!gerak.hitung(bacaKiri, bacaKanan, dariRecovery)) {
