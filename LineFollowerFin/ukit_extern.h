@@ -14,10 +14,10 @@
 #include "ClickButton.h"
 
 // Extern globals from ucode.h (defined in LineFollowerFin.ino via ucode.h)
-extern uKitMotor uKitMotor;
-extern uKitServo uKitServo;
-extern uKitSensor uKitSensor;
-extern uKitId uKitId;
+extern class uKitMotor uKitMotor;
+extern class uKitServo uKitServo;
+extern class uKitSensor uKitSensor;
+extern class uKitId uKitId;
 extern OnBoardHW Sensor;
 extern TransforRobot transfor_robot;
 extern VisionDiscrim mVisionDiscrim;

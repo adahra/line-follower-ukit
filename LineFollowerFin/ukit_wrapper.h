@@ -19,10 +19,10 @@
 // Global objects from ucode.h (defined in .ino via ucode.h)
 extern OnBoardHW Sensor;
 extern TransforRobot transfor_robot;
-extern uKitMotor uKitMotor;
-extern uKitServo uKitServo;
-extern uKitSensor uKitSensor;
-extern uKitId uKitId;
+extern class uKitMotor uKitMotor;
+extern class uKitServo uKitServo;
+extern class uKitSensor uKitSensor;
+extern class uKitId uKitId;
 extern VisionDiscrim mVisionDiscrim;
 extern ClickButton button1;
 
