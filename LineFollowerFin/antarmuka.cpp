@@ -49,6 +49,38 @@ void Antarmuka::cekTombol() {
   int buttonState1 = readButtonValue(1);
   int buttonState2 = readButtonValue(2);
 
+  // --- COMBO B1+B2 DICEK DULU, sebelum handler tombol tunggal ---
+  // Tanpa ini, branch tombol tunggal tetap menambah Kp / ganti mode tiap
+  // 300 ms dan terus me-reset cooldownB1 sehingga alur "tekan lagi dalam
+  // 2 detik untuk Auto-Tune" hampir mustahil tercapai.
+  // Alur baru: tahan keduanya >= 2 detik = kalibrasi + auto-tune;
+  // lepas sebelum 2 detik = kalibrasi sensor saja.
+  if (!status.jalan && buttonState1 != 0 && buttonState2 != 0) {
+    if (comboMulai == 0) {
+      comboMulai = now;
+      comboSelesai = false;
+      Serial.println(F("Combo B1+B2: tahan 2 detik = Auto-Tune, lepas lebih cepat = kalibrasi saja."));
+    } else if (!comboSelesai && now - comboMulai >= 2000) {
+      comboSelesai = true;
+      Serial.println(F(">>> Memulai Kalibrasi + Auto-Tuning PID <<<"));
+      tuningSequence();
+    }
+    return;  // combo aktif: tombol tunggal tidak diproses
+  }
+
+  // Tombol dilepas sebelum 2 detik: kalibrasi sensor saja (sekali per combo).
+  if (comboMulai != 0) {
+    if (!comboSelesai && buttonState1 == 0 && buttonState2 == 0) {
+      Serial.println(F(">>> Kalibrasi sensor..."));
+      sensor.kalibrasi(gerak);
+      setRgbledColor(255, 255, 0);  // kuning selesai kalibrasi
+      Serial.println(F("Kalibrasi selesai. LED kuning."));
+    }
+    comboMulai = 0;
+    comboSelesai = false;
+    return;  // frame lepas: jangan langsung proses tombol tunggal
+  }
+
   // --- Non-blocking tombol detector ---
   // Deteksi edge dan cooldown untuk tombol tunggal
   if (buttonState1 != 0 && now - cooldownB1 >= COOLDOWN_TOMBOL_MS) {
@@ -133,38 +165,7 @@ void Antarmuka::cekTombol() {
     }
   }
 
-  // --- Kalibrasi + Auto-Tuning: B1+B2 bersamaan ---
-  // Deteksi awal tekan bersamaan
-  if (buttonState1 != 0 && buttonState2 != 0 && !status.jalan &&
-      now - cooldownB1 >= COOLDOWN_TOMBOL_MS &&
-      now - cooldownB2 >= COOLDOWN_TOMBOL_MS) {
-    // Catat waktu tekan pertama kali
-    if (cooldownB1 == 0 && cooldownB2 == 0) {
-      cooldownB1 = now;  // Tanda tombol pertama ditekan
-      Serial.println(F("--- MEMULAI SEQUENCE: Press again for Auto-Tune ---"));
-      Serial.println(F("Tekan lagi B1+B2 dalam 2 detik untuk Auto-Tuning"));
-      Serial.println(F("Atau tunggu 2 detik untuk kalibrasi saja..."));
-    } else {
-      // Sudah pernah tekan, cek durini ini kali
-      if (now - cooldownB1 < 2000) {
-        // < 2 detik: Hanya kalibrasi sensor
-        Serial.println(F(">>> Kalibrasi sensor BLU..."));
-        cooldownB1 = 0;
-        cooldownB2 = 0;
-        sensor.kalibrasi(gerak);
-        setRgbledColor(255, 255, 0); // Kuning selesai kalibrasi
-        Serial.println(F("Kalibrasi selesai. LED kuning."));
-      } else {
-        // > 2 detik: Kalibrasi + Auto-Tuning PID
-        Serial.println(F(">>> Memulai Kalibrasi + Auto-Tuning PID <<<"));
-        cooldownB1 = 0;
-        cooldownB2 = 0;
-        // Mulai sequence: Kalibrasi -> Auto-Tuning -> Simpan
-        tuningSequence();
-      }
-    }
-    return;
-  }
+  // --- Kalibrasi + Auto-Tuning via combo sudah ditangani di awal cekTombol ---
 }
 
 void Antarmuka::cekTepuk() {
@@ -308,10 +309,12 @@ void Antarmuka::parseCommand(char *cmd) {
     }
   } else if (strcmp(key, "save") == 0) {
     sensor.simpan();
+    mapper.simpan();  // peta waypoint learning ikut persisten
     mapper.debugPrint();
     Serial.println(F("Disimpan ke EEPROM."));
   } else if (strcmp(key, "load") == 0) {
     sensor.muat();
+    mapper.muat();
     mapper.debugPrint();
     sensor.cetak();
     Serial.print(F("Waypoint tersimpan: "));
@@ -473,39 +476,62 @@ void Antarmuka::tuningSequence() {
       Ki = 0.01; // Ki tetap kecil
       
       // Jalankan robot sebentar untuk test respons
+      // Mulai test dari state PID/motor bersih agar skor antar kombinasi
+      // sebanding dan turbo/slew run sebelumnya tidak ikut.
+      gerak.reset();
+
       status.jalan = true;
       unsigned long testStart = millis();
       const unsigned long TEST_DURATION = 5000; // 5 detik test
+      unsigned long garisHilangMulai = 0;
       
       float totalError = 0;
       int errorSamples = 0;
       bool oscillating = false;
       float prevError = 0;
+      bool punyaSample = false;
       
       while (millis() - testStart < TEST_DURATION) {
         if (!status.jalan) break;
         
-        // Baca sensor dan hitung PID (dengan interval 10ms)
+        // Safety tetap berjalan selama robot digerakkan auto-tune:
+        // halangan/tilt/baterai lemah menghentikan test ini seketika.
+        if (aman.bateraiKritis() || aman.miring() || aman.halangan()) {
+          break;
+        }
+        
+        // Baca sensor dan SICALAKAN PID sungguhan lewat gerak.hitung()
+        // (sebelumnya robot tidak pernah digerakkan -> skor tidak bermakna).
         int bacaKiri = sensor.bacaKiri();
         int bacaKanan = sensor.bacaKanan();
         float error = (bacaKiri - bacaKanan) / 2.0;
         
-        // Hitung P dan D sederhana
-        float P = error;
-        float D = error - prevError;
-        prevError = error;
+        // Garis hilang terlalu lama: hentikan test, kombinasi ini buruk.
+        if (bacaKiri < AMBANG_KIRI && bacaKanan < AMBANG_KANAN) {
+          if (garisHilangMulai == 0) garisHilangMulai = millis();
+          if (millis() - garisHilangMulai > RECOVERY_TIMEOUT_MS) break;
+        } else {
+          garisHilangMulai = 0;
+        }
+        
+        gerak.hitung(bacaKiri, bacaKanan, true);
+        
         totalError += abs(error);
         errorSamples++;
         
-        // Deteksi oscillasi: error berubah tanda berkali-kali
-        if ( (error > 0 && prevError < 0) || (error < 0 && prevError > 0) ) {
+        // Deteksi oscillasi: bandingkan SEBELUM update prevError
+        // (sebelumnya dibandingkan dengan diri sendiri -> selalu false).
+        if (punyaSample && ((error > 0 && prevError < 0) || (error < 0 && prevError > 0))) {
           oscillating = true;
         }
+        prevError = error;
+        punyaSample = true;
         
         delay(10); // Approximate PID interval
       }
       
       status.jalan = false;
+      gerak.saatBerhenti();  // motor berhenti + memori slew dibuang
       
       // Hitung skor: error rata-rata + penalty oscillasi
       float avgError = errorSamples > 0 ? totalError / errorSamples : 9999;
@@ -535,7 +561,9 @@ void Antarmuka::tuningSequence() {
   
   // Step 4: Simpan ke EEPROM
   setRgbledColor(0, 255, 0); // hijau = selesai
+  gerak.saatBerhenti();
   sensor.simpan(); // Simpan Kp, Kd, ambang, speed ke EEPROM
+  mapper.simpan();  // peta waypoint ikut tersimpan
   
   Serial.println(F("--- SEQUENCE SELESAI ---"));
   Serial.print(F("Parameter disimpan: Kp=")); Serial.print(Kp);

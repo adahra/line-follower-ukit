@@ -11,6 +11,10 @@ void Penggerak::reset() {
   PID_value = 0;
   prevKiri = 0;
   prevKanan = 0;
+  // Turbo ikut direset: tanpa ini, waktuLurusMulai/kecepatanTurboAktif
+  // nyangkut antar run dan turbo bisa langsung aktif dari nilai lama.
+  waktuLurusMulai = 0;
+  kecepatanTurboAktif = 0;
   pidTerakhir = 0;
   telemHeader = false;  // cetak header CSV lagi di run berikutnya
   telemTerakhir = 0;

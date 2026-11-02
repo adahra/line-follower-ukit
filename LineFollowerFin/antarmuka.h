@@ -30,6 +30,8 @@ class Antarmuka {
 
   unsigned long cooldownB1 = 0;
   unsigned long cooldownB2 = 0;
+  unsigned long comboMulai = 0;   // awal tahan B1+B2 bersamaan
+  bool comboSelesai = false;      // true = auto-tune sudah jalan, lepas tak perlu kalibrasi
   unsigned long cekSuaraTerakhir = 0;
   unsigned long tepukTerakhir = 0;
   bool tepukSiap = true;

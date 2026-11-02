@@ -37,6 +37,7 @@ void setup() {
   IMU::init();
   if (protocolRunState == false) {
     sensor.muat();
+    mapper.muat();  // peta waypoint LEARNING persisten antar power cycle
     bool eepromValid = (EEPROM.read(ADDR_EEPROM_CHECK) == 123);
     if (!eepromValid && AUTO_CALIBRATE_ON_BOOT) {
       Serial.println(F("EEPROM invalid + AUTO_CALIBRATE_ON_BOOT=true -> kalibrasi otomatis..."));

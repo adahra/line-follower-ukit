@@ -36,6 +36,9 @@ class Mapper {
   void reset();
   int getWaypointCount() const;
   void debugPrint();
+  // Peta waypoint persisten ke EEPROM (dipanggil via perintah 'save').
+  void simpan();
+  void muat();
   // Baseline timer hitung sejak run dimulai (panggil saat racing start).
   // Jika tidak dipanggil, checkPrediction auto-baseline di panggilan pertama.
   void mulaiRun();
