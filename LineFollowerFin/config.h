@@ -16,96 +16,97 @@ extern int kecepatanDasar;      // Variabel dinamis yang akan dikalibrasi oleh P
 // --- KONSTANTA TUNE (dulu magic number tersebar di badan kode) ---
 // 0.4 -> 0.35: pengereman adaptif ikut-ikutan PID oscillasi,
 // bikin speed berombak di lurus (zigzag). Turunkan agar speed stabil.
-const float FAKTOR_REM_ADAPTIF = 0.35;
-const float BATAS_INTEGRAL = 50;       // anti windup: I dijepit ±nilai ini
-const int SPEED_TOMBOL_MIN = 60;       // batas bawah kecepatan maks via tombol
-const int SPEED_TOMBOL_MAKS = 150;     // batas atas (sama dengan derate servo)
+
+#define FAKTOR_REM_ADAPTIF 0.35
+#define BATAS_INTEGRAL 50       // anti windup: I dijepit ±nilai ini
+#define SPEED_TOMBOL_MIN 60     // batas bawah kecepatan maks via tombol
+#define SPEED_TOMBOL_MAKS 150   // batas atas (sama dengan derate servo)
 
 // --- DYNAMIC SPEED PROFILE (Turbo Mode) ---
 // 150 -> 120: turunkan ceiling turbo di lurus (150 bikin overshoot).
-const int KECEPATAN_TURBO = 120;
+#define KECEPATAN_TURBO 120
 // 1.5 -> 3.0: turbo HANYA aktif di lurus benar (error > 3 = tikungan).
 // 1.5 terlalu longgar -> turbo aktif di tengah zigzag -> semakin labil.
-const float LURUS_THRESHOLD = 3.0;
-const unsigned long LURUS_TIME_REQUIRED = 500; // Waktu (ms) harus lurus sebelum masuk mode Turbo
-const int TURBO_RAMP_SPEED = 1;        // 3->1: turbo naik perlahan (cepat bikin slip/overshoot di lurus)
+#define LURUS_THRESHOLD 3.0
+#define LURUS_TIME_REQUIRED 500  // Waktu (ms) harus lurus sebelum masuk mode Turbo
+#define TURBO_RAMP_SPEED 1       // 3->1: turbo naik perlahan (cepat bikin slip/overshoot di lurus)
 
 // --- BATAS KHUSUS SERVO 360 (open-loop, lihat docs setServoTurn) ---
 // Docs resmi: speed 0-255. 150 adalah derate yang disengaja agar robot stabil.
 // Servo punya deadband: speed kecil hanya berdengung, roda tidak bergerak.
-const int SERVO_MIN_EFEKTIF = 25;  // speed 1-24 dipaksa ke 25 atau 0
-const int SERVO_MAKS_DIPAKAI = 150;  // derate dari 255, jangan naikkan tanpa uji lintasan
+#define SERVO_MIN_EFEKTIF 25     // speed 1-24 dipaksa ke 25 atau 0
+#define SERVO_MAKS_DIPAKAI 150   // derate dari 255, jangan naikkan tanpa uji lintasan
 // 10 -> 14: slew membatasi perubahan speed per loop -> motor lamban
 // di lurus, bikin zigzag lambat. Naikkan sedikit agar PID bisa mengikuti.
-const int SLEW_MAKS_PER_LOOP = 14;
-const unsigned long BELOK_TIMEOUT_MS = 1500;  // anti macet di while belok 90°
-const unsigned long RECOVERY_TIMEOUT_MS = 2000;  // batas putar cari garis, lalu berhenti
+#define SLEW_MAKS_PER_LOOP 14
+#define BELOK_TIMEOUT_MS 1500    // anti macet di while belok 90°
+#define RECOVERY_TIMEOUT_MS 2000 // batas putar cari garis, lalu berhenti
 
 // --- ANTI GOYANG SENSOR: filter eksponensial agar 1 bacaan liar
 // tidak langsung jadi koreksi PID penuh (error range kecil, ±10).
 // 0.5 -> 0.4: filter lebih halus, redam bacaan liar yang jadi sumber D noise.
-const float ALPHA_SENSOR = 0.4;
+#define ALPHA_SENSOR 0.4
 
 // --- PID interval tetap: D = error-lastError hanya valid bila dt konstan.
 // Tanpa ini, delay tombol (300-1000ms) membuat D melonjak acak.
-const unsigned long PID_INTERVAL_MS = 10;
+#define PID_INTERVAL_MS 10
 
 // --- TOMBOL NON-BLOCKING: cooldown millis() + edge-detect.
 // delay() di sini membuat robot buta garis selama ratusan ms.
-const unsigned long COOLDOWN_TOMBOL_MS = 300;
+#define COOLDOWN_TOMBOL_MS 300
 
 // --- LAMPU OTOMATIS SAAT GELAP (sensor cahaya + eye lamp) ---
 // Docs: readLightValue(id) -> 0-4000 lux; setEyelightAllPetals(id,r,g,b).
 // Sesuaikan ID sensor cahaya dengan port yang terpasang di robot.
-const int LIGHT_SENSOR_ID = 1;
-const int EYELIGHT_KIRI = 1;
-const int EYELIGHT_KANAN = 2;
-const int AMBANG_GELAP_NYALA = 100;       // lux: di bawah ini lampu menyala
-const int AMBANG_GELAP_MATI = 150;        // lux: histeresis, di atas ini lampu mati
-const unsigned long CEK_CAHAYA_MS = 200;  // throttle agar tak baca tiap loop
+#define LIGHT_SENSOR_ID 1
+#define EYELIGHT_KIRI 1
+#define EYELIGHT_KANAN 2
+#define AMBANG_GELAP_NYALA 100    // lux: di bawah ini lampu menyala
+#define AMBANG_GELAP_MATI 150    // lux: histeresis, di atas ini lampu mati
+#define CEK_CAHAYA_MS 200        // throttle agar tak baca tiap loop
 
 // --- HALANGAN DEPAN: berhenti bila objek <= 5 cm (sensor ultrasonic) ---
 // Docs: readUltrasonicDistance(id) -> jarak 0-400 cm.
 // Sesuaikan ULTRASONIC_ID dengan port sensor yang menghadap depan.
-const int ULTRASONIC_ID = 1;
-const int JARAK_BERHENTI_CM = 5;
-const unsigned long CEK_HALANGAN_MS = 100;  // ultrasonic butuh jeda antar ping
+#define ULTRASONIC_ID 1
+#define JARAK_BERHENTI_CM 5
+#define CEK_HALANGAN_MS 100      // ultrasonic butuh jeda antar ping
 
 // --- TEPUK TANGAN: toggle jalan/berhenti via sensor suara ---
 // Docs: readSoundValue(id) -> intensitas 0-1023.
 // Tepuk = lonjakan melewati ambang; histeresis + cooldown mencegah
 // satu tepukan dibaca berkali-kali. Sesuaikan ID dan ambang di bawah
 // dengan hasil Serial monitor di ruangan lomba (ambang saat ini tebakan).
-const int SOUND_SENSOR_ID = 1;
-const int TEPUK_AMBANG = 500;
-const int TEPUK_LEPAS = 350;                  // histeresis: suara harus turun segini dulu
-const unsigned long CEK_SUARA_MS = 30;        // polling cepat agar tepuk tak terlewat
-const unsigned long TEPUK_COOLDOWN_MS = 800;  // jeda antar toggle
+#define SOUND_SENSOR_ID 1
+#define TEPUK_AMBANG 500
+#define TEPUK_LEPAS 350          // histeresis: suara harus turun segini dulu
+#define CEK_SUARA_MS 30          // polling cepat agar tepuk tak terlewat
+#define TEPUK_COOLDOWN_MS 800    // jeda antar toggle
 
 // --- BATERAI LEMAH: hentikan semua fungsi bila tegangan <= ambang ---
 // Docs: readBatteryVoltage() -> float 0-8.4 V. Dicek throttle 500 ms;
 // sekali lemah, robot dikunci mati sampai power cycle (restart).
-const float TEGANGAN_MIN = 5.5;
-const unsigned long CEK_BATERAI_MS = 500;
+#define TEGANGAN_MIN 5.5
+#define CEK_BATERAI_MS 500
 
 // --- TELEMETRI: dump CSV berkala saat jalan untuk tuning berbasis data ---
 // Format: t(ms),err,pid,dasar,kiri,kanan,senK,senN. Buka via Serial Plotter.
 // Header dicetak sekali tiap run.
-const unsigned long TELEM_MS = 50;
+#define TELEM_MS 50
 
 // --- IMU ONBOARD: deteksi miring/terangkat + deteksi macet ---
 // Docs: IMU::init() sekali di setup; IMU::read() tiap loop (butuh SDK terbaru).
 // getRawGyroZ() = yaw °/detik; getRoll()/getPitch() = kemiringan derajat.
-const unsigned long CEK_IMU_MS = 50;
-const float TILT_MAKS_DERAJAT = 45.0;  // di atas ini = terangkat/terbalik
+#define CEK_IMU_MS 50
+#define TILT_MAKS_DERAJAT 45.0   // di atas ini = terangkat/terbalik
 
 // --- Deteksi macet: diperintah jalan tapi tak bergerak ---
 // Kriteria ganda (keduanya harus diam): bacaan IR beku + magnitude
 // akselerasi stabil selama STUCK_DIAM_MS. Kalau trek lurus panjang
 // memicu false positive, naikkan STUCK_DIAM_MS atau toleransinya.
-const unsigned long STUCK_DIAM_MS = 2000;
-const int STUCK_TOLERANSI_IR = 1;
-const float STUCK_TOLERANSI_ACCEL = 0.15;  // 15% perubahan magnitude
+#define STUCK_DIAM_MS 2000
+#define STUCK_TOLERANSI_IR 1
+#define STUCK_TOLERANSI_ACCEL 0.15  // 15% perubahan magnitude
 
 // --- AMBANG SENSOR GARIS (default awal; dioverride kalibrasi/EEPROM) ---
 // Ambang per sensor: dua sensor fisik jarang identik, ambang tunggal
@@ -114,35 +115,54 @@ extern int AMBANG_KIRI;
 extern int AMBANG_KANAN;
 
 // --- ALAMAT ADDRESS EEPROM ---
-const int ADDR_EEPROM_CHECK = 0;
-const int ADDR_KP = 4;
-const int ADDR_KI = 8;
-const int ADDR_KD = 12;
-const int ADDR_SPEED = 16;
-const int ADDR_AMBANG = 20;        // ambang kiri (format lama: ambang tunggal)
-const int ADDR_AMBANG_KANAN = 22;  // ambang kanan (baru; default bila belum ada)
+#define ADDR_EEPROM_CHECK 0
+#define ADDR_KP 4
+#define ADDR_KI 8
+#define ADDR_KD 12
+#define ADDR_SPEED 16
+#define ADDR_AMBANG 20        // ambang kiri (format lama: ambang tunggal)
+#define ADDR_AMBANG_KANAN 22  // ambang kanan (baru; default bila belum ada)
 
 // --- OPSI BOOT ---
-const bool AUTO_CALIBRATE_ON_BOOT = false;  // true = kalibrasi otomatis saat EEPROM invalid
+#define AUTO_CALIBRATE_ON_BOOT false  // true = kalibrasi otomatis saat EEPROM invalid
 
 // --- OPSI MEMORI ---
-const bool ENABLE_TELEMETRI = true;        // true = kirim CSV telemetri (pakai RAM + Flash)
+#define ENABLE_TELEMETRI false         // true = kirim CSV telemetri (pakai RAM + Flash)
 
 // --- LAP TIMER ---
-const int LAP_SF_THRESHOLD = 12;       // ambang deteksi start/finish (kedua sensor)
-const unsigned long LAP_MIN_LAP_MS = 3000; // minimal 3 detik per lap
-const bool ENABLE_LAP_TIMER = false;    // aktifkan lap timer
+#define LAP_SF_THRESHOLD 12           // ambang deteksi start/finish (kedua sensor)
+#define LAP_MIN_LAP_MS 3000           // minimal 3 detik per lap
+#define ENABLE_LAP_TIMER false        // aktifkan lap timer
 
 // --- BLUETOOTH / BLE ---
-const bool ENABLE_BLUETOOTH = false;           // aktifkan Bluetooth control
-const unsigned long BT_BAUD = 115200;         // baud rate BT module
-const unsigned long BT_TELEMETRY_MS = 200;    // interval auto telemetry
-const int BT_MODULE_TYPE = 1;                 // 1=HM-10, 2=uKit built-in
+#define ENABLE_BLUETOOTH false        // aktifkan Bluetooth control
+#define BT_BAUD 115200                // baud rate BT module
+#define BT_TELEMETRY_MS 200           // interval auto telemetry
+#define BT_MODULE_TYPE 1              // 1=HM-10, 2=uKit built-in
+
+// --- SERIAL OUTPUT ---
+// Matikan seluruh output Serial biar beneran silent (bisa dibuat tidak ikut compile via macro)
+#ifndef ENABLE_SERIAL_OUTPUT
+#define ENABLE_SERIAL_OUTPUT true
+#endif
+#if ENABLE_BLUETOOTH
+#undef ENABLE_SERIAL_OUTPUT
+#define ENABLE_SERIAL_OUTPUT true
+#endif
+
+// --- SERIAL MODE ---
+#define ENABLE_SERIAL_MODE true       // bisa di-disable jika tidak perlu
+#if ENABLE_BLUETOOTH
+#undef ENABLE_SERIAL_MODE
+#define ENABLE_SERIAL_MODE true       // serial wajib aktif jika Bluetooth aktif
+#endif
 
 // --- PATH PLANNER ---
-const bool ENABLE_PATH_PLANNER = false;       // default OFF (RAM ATMega2560 terbatas)
-const int GRID_CELL_SIZE_CM = 20;             // ukuran cell grid (cm)
-const int PATH_GRID_WIDTH = 16;               // lebar grid
-const int PATH_GRID_HEIGHT = 16;              // tinggi grid
+#define ENABLE_PATH_PLANNER false     // default OFF (RAM ATMega2560 terbatas)
+#define GRID_CELL_SIZE_CM 20          // ukuran cell grid (cm)
+#define PATH_GRID_WIDTH 16            // lebar grid
+#define PATH_GRID_HEIGHT 16           // tinggi grid
+
+#include "serial_silent.h"
 
 #endif

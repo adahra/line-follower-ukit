@@ -6,7 +6,7 @@
 #include "config.h"
 #include "sensor_garis.h"
 
-#define MAX_LAPS 20
+#define MAX_LAPS 15
 
 struct LapRecord {
   unsigned long lapTime;    // ms

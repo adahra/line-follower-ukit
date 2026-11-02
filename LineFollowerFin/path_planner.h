@@ -128,6 +128,10 @@ class PathPlanner {
   float moveCost(int x1, int y1, int x2, int y2) const;
   PathNode* getNode(int x, int y);
   void clearNodes();
+
+  // Ultrasonic obstacle detection (throttled)
+  unsigned long lastUltrasonicCheck = 0;
+  void cekHalanganGrid();
   
   // Node pool untuk A* (avoid malloc)
   static const int MAX_NODES = GRID_WIDTH * GRID_HEIGHT;

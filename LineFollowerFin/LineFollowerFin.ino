@@ -9,8 +9,12 @@
 #include "antarmuka.h"
 #include "mapping.h"
 #include "lap_timer.h"
+#if ENABLE_BLUETOOTH
 #include "bluetooth_ctrl.h"
-// #include "path_planner.h"  // Optional: enable via config.h + move optional/path_planner/ to sketch folder
+#endif
+#if ENABLE_PATH_PLANNER
+#include "path_planner.h"  // Optional: enable via config.h + move optional/path_planner/ to sketch folder
+#endif
 // ucode.h included HERE only (single definition). Other files use ukit_wrapper.h
 
 // Wiring antar modul via referensi (lihat header masing-masing).
@@ -20,9 +24,13 @@ Penggerak gerak;
 Pengaman aman(status, gerak, sensor);
 Mapper mapper;
 LapTimer lapTimer;
-// PathPlanner pathPlanner;  // Optional: uncomment + include path_planner.h when needed
+#if ENABLE_PATH_PLANNER
+PathPlanner pathPlanner;  // Optional: uncomment + include path_planner.h when needed
+#endif
 Antarmuka ui(status, sensor, gerak, aman, lapTimer, mapper);
+#if ENABLE_BLUETOOTH
 BluetoothCtrl bluetooth(status, gerak, sensor, aman, lapTimer);
+#endif
 
 void setup() {
   Initialization();
@@ -79,7 +87,9 @@ void loop() {
 
     ui.cekTombol();
     ui.cekTepuk();          // toggle jalan/berhenti via tepuk tangan
+#if ENABLE_SERIAL_MODE
     ui.cekSerial();         // serial command parser (Kp/Ki/Kd/speed/ambang/calibrate/save/help)
+#endif
     aman.lampuOtomatis();   // headlight otomatis, non-blocking (throttle 200ms)
     
     // Bluetooth update
@@ -103,23 +113,28 @@ void loop() {
 
       // --- RACING PREDICTION ---
       if (status.modeOperasi == MODE_RACING) {
-        EventType predType;
-        ActionType predAct;
-        if (mapper.checkPrediction(millis(), predType, predAct)) {
-          // Robot memprediksi akan ada event segera
-          // Optimasi: Bisa kurangi kecepatan sedikit untuk stabilitas belokan
-          // atau siapkan Turbo jika predAct == ACT_STRAIGHT
-          
-          // Feedback LED saat ada prediction akan datang
-          if (predAct == ACT_STRAIGHT) {
-            setRgbledColor(255, 255, 255); // Putih = lurus
-          } else if (predAct == ACT_LEFT) {
-            setRgbledColor(0, 255, 0); // Hijau = belok kiri
-          } else if (predAct == ACT_RIGHT) {
-            setRgbledColor(255, 0, 0); // Merah = belok kanan
-          }
-        } else {
+        if (mapper.getWaypointCount() == 0) {
+          // Tidak ada waypoint terrekam: lewati prediksi (tanpa peta).
           setRgbledColor(0, 0, 255); // Biru = tidak ada event prediction
+        } else {
+          EventType predType;
+          ActionType predAct;
+          if (mapper.checkPrediction(millis(), predType, predAct)) {
+            // Robot memprediksi akan ada event segera
+            // Optimasi: Bisa kurangi kecepatan sedikit untuk stabilitas belokan
+            // atau siapkan Turbo jika predAct == ACT_STRAIGHT
+             
+            // Feedback LED saat ada prediction akan datang
+            if (predAct == ACT_STRAIGHT) {
+              setRgbledColor(255, 255, 255); // Putih = lurus
+            } else if (predAct == ACT_LEFT) {
+              setRgbledColor(0, 255, 0); // Hijau = belok kiri
+            } else if (predAct == ACT_RIGHT) {
+              setRgbledColor(255, 0, 0); // Merah = belok kanan
+            }
+          } else {
+            setRgbledColor(0, 0, 255); // Biru = tidak ada event prediction
+          }
         }
       }
 

@@ -1,5 +1,6 @@
 // path_planner.cpp — Implementasi Path Planning dengan A*
 #include "path_planner.h"
+#include "ukit_extern.h"
 #include "ukit_macros.h"
 #include <math.h>
 
@@ -81,8 +82,30 @@ void PathPlanner::updateMap(SensorGaris &sensor, int robotX, int robotY, float r
     }
   }
   
-  // TODO: Integrate ultrasonic untuk obstacle detection
-  // if (ultrasonic < threshold) markObstacle(...)
+  // --- Integrate ultrasonic untuk obstacle detection (throttled) ---
+  // Baca jarak via API yang sama dengan pengaman.cpp: readUltrasonicDistance(ULTRASONIC_ID).
+  // Throttle CEK_HALANGAN_MS agar sensor tidak dipanggil tiap loop (butuh jeda antar ping).
+  unsigned long nowMs = millis();
+  if (nowMs - lastUltrasonicCheck >= CEK_HALANGAN_MS) {
+    lastUltrasonicCheck = nowMs;
+    int jarak = readUltrasonicDistance(ULTRASONIC_ID);
+    // 0 = bacaan tak valid (di luar jangkauan) -> abaikan.
+    if (jarak > 0 && jarak <= JARAK_BERHENTI_CM) {
+      // Hitung cell depan berdasarkan heading (sama dengan logika garis di atas)
+      int frontX = robotGridX;
+      int frontY = robotGridY;
+      if (robotHeading >= -45 && robotHeading < 45) frontY--;      // North
+      else if (robotHeading >= 45 && robotHeading < 135) frontX++; // East
+      else if (robotHeading >= 135 || robotHeading < -135) frontY++; // South
+      else frontX--; // West
+
+      if (isValid(frontX, frontY)) {
+        // Cell berikutnya langsung terhalang -> tandai sebagai obstacle
+        // (radius 0 = hanya cell depan, konsisten dengan jarak 5 cm).
+        markObstacle(frontX, frontY, 0);
+      }
+    }
+  }
 }
 
 void PathPlanner::setGoal(int goalX_, int goalY_) {

@@ -25,6 +25,10 @@ void Antarmuka::mulai(const char *via) {
   // Jangan reset runStartTime di sini — recordEvent/checkPrediction auto-
   // baseline agar offset waypoint konsisten dengan elapsed (lihat mapping.cpp).
   status.jalan = true;
+  // Hanya mode Learning/Racing yang membutuhkan baseline timer untuk prediksi.
+  if (status.modeOperasi == MODE_LEARNING || status.modeOperasi == MODE_RACING) {
+    mapper.mulaiRun();
+  }
   setEyelightLook(1, 0, 7, 0, 0, 254);
   setEyelightLook(2, 0, 7, 0, 0, 254);
   Serial.print(via);
@@ -71,12 +75,15 @@ void Antarmuka::cekTombol() {
       } else {
         Kd += 0.5;
       }
-      Serial.print(!status.modeSetelKd && !status.jalan ? F("Mode: ") : F("Kp: "));
-      // Tampilkan mode saat ini
-      if (!status.modeSetelKd && !status.jalan) {
-        Serial.println(status.modeOperasi == MODE_NORMAL ? F("NORMAL") : status.modeOperasi == MODE_LEARNING ? F("LEARNING") : F("RACING"));
+      // Label & nilai: tampilkan mode hanya saat berhenti dan BUKAN mode setel Kd.
+      bool showMode = (!status.modeSetelKd && !status.jalan);
+      Serial.print(showMode ? F("Mode: ") : (status.modeSetelKd ? F("Kd: ") : F("Kp: ")));
+      if (showMode) {
+        Serial.println(status.modeOperasi == MODE_NORMAL ? F("NORMAL")
+                       : status.modeOperasi == MODE_LEARNING ? F("LEARNING")
+                       : F("RACING"));
       } else {
-        Serial.println(!status.modeSetelKd ? Kp : Kd);
+        Serial.println(status.modeSetelKd ? Kd : Kp);
       }
     } else if (buttonState1 == 2) {
       if (!status.modeSetelKd) {
@@ -157,68 +164,6 @@ void Antarmuka::cekTombol() {
       }
     }
     return;
-  }
-
-  if (buttonState1 != 0 && now - cooldownB1 >= COOLDOWN_TOMBOL_MS) {
-    cooldownB1 = now;
-    if (buttonState1 == 1) {
-      if (!status.modeSetelKd) {
-        Kp += 1.0;
-      } else {
-        Kd += 0.5;
-      }
-
-      Serial.print(!status.modeSetelKd ? F("Kp: ") : F("Kd: "));
-      Serial.println(!status.modeSetelKd ? Kp : Kd);
-    } else if (buttonState1 == 2) {
-      if (!status.modeSetelKd) {
-        Kp -= 1.0;
-        if (Kp < 0) {
-          Kp = 0;
-        }
-      } else {
-        Kd -= 0.5;
-        if (Kd < 0) {
-          Kd = 0;
-        }
-      }
-
-      Serial.print(!status.modeSetelKd ? F("Kp: ") : F("Kd: "));
-      Serial.println(!status.modeSetelKd ? Kp : Kd);
-    } else if (buttonState1 == 3) {
-      if (status.jalan) {
-        berhenti("Tombol1");
-      } else {
-        status.modeSetelKd = !status.modeSetelKd;
-        Serial.print(F("Mode setel Kd: "));
-        Serial.println(status.modeSetelKd ? F("YA") : F("TIDAK"));
-      }
-    }
-  }
-
-  if (buttonState2 != 0 && now - cooldownB2 >= COOLDOWN_TOMBOL_MS) {
-    cooldownB2 = now;
-    if (buttonState2 == 1) {
-      kecepatanDasarMaks += 10;
-      if (kecepatanDasarMaks > SPEED_TOMBOL_MAKS) {
-        kecepatanDasarMaks = SPEED_TOMBOL_MAKS;
-      }
-
-      Serial.print(F("Target Speed Maks: "));
-      Serial.println(kecepatanDasarMaks);
-    } else if (buttonState2 == 2) {
-      kecepatanDasarMaks -= 10;
-      if (kecepatanDasarMaks < SPEED_TOMBOL_MIN) {
-        kecepatanDasarMaks = SPEED_TOMBOL_MIN;
-      }
-
-      Serial.print(F("Target Speed Maks: "));
-      Serial.println(kecepatanDasarMaks);
-    } else if (buttonState2 == 3) {
-      if (!status.jalan) {
-        mulai("Tombol2");
-      }
-    }
   }
 }
 
@@ -372,7 +317,9 @@ void Antarmuka::parseCommand(char *cmd) {
     Serial.print(F("Waypoint tersimpan: "));
     Serial.println(mapper.getWaypointCount());
   } else if (strcmp(key, "mode") == 0) {
-    if (strcmp(valStr, "learn") == 0) {
+    if (status.jalan) {
+      Serial.println(F("ERROR: Tidak dapat mengubah mode saat robot sedang jalan. Berhentikan dulu."));
+    } else if (strcmp(valStr, "learn") == 0) {
       status.modeOperasi = MODE_LEARNING;
       Serial.println(F("Mode: LEARNING (Rekam Lintasan)"));
     } else if (strcmp(valStr, "race") == 0) {
@@ -383,12 +330,18 @@ void Antarmuka::parseCommand(char *cmd) {
       Serial.println(F("Mode: NORMAL"));
     }
   } else if (strcmp(key, "mapclear") == 0) {
-    // Note: mapper instance is in .ino, so we can't access it directly here 
-    // unless we pass it to Antarmuka. 
-    // For now, let's handle this via a special signal or just use the .ino logic.
-    Serial.println(F("Gunakan command 'mapclear' (diimplementasikan di .ino)"));
-  // } else if (strcmp(key, "path") == 0) {  // Optional: enable with PathPlanner
-  //     pathPlanner.handleCommand(valStr);
+    if (status.jalan) {
+      Serial.println(F("ERROR: Robot sedang jalan, hentikan dulu sebelum mapclear."));
+    } else {
+      mapper.reset();
+      Serial.println(F("Peta waypoint direset (mapclear)."));
+    }
+  } else if (strcmp(key, "path") == 0) {
+#if ENABLE_PATH_PLANNER
+    pathPlanner.handleCommand(valStr);
+#else
+    Serial.println(F("Path planner dinonaktifkan (ENABLE_PATH_PLANNER=false)."));
+#endif
   } else if (strcmp(key, "start") == 0) {
     if (!status.jalan) {
       mulai("Serial");
@@ -414,17 +367,20 @@ void Antarmuka::parseCommand(char *cmd) {
     Serial.println(F("tune            : kalibrasi + Auto-Tuning PID sekaligus"));
     Serial.println(F("lap [summary|csv|reset] : lap timer summary/CSV/reset"));
     Serial.println(F("lapconfig <th> [minMs] : set threshold start/finish & min lap time"));
-    // Serial.println(F("path map        : tampilkan grid map"));      // Optional: PathPlanner
-    // Serial.println(F("path find       : cari path ke goal"));       // Optional: PathPlanner
-    // Serial.println(F("path goal <x> <y> : set goal position"));    // Optional: PathPlanner
-    // Serial.println(F("path next       : waypoint berikutnya"));     // Optional: PathPlanner
-    // Serial.println(F("path obstacle <x> <y> : tambah obstacle"));   // Optional: PathPlanner
-    // Serial.println(F("path reset      : reset path planner"));      // Optional: PathPlanner
+#if ENABLE_PATH_PLANNER
+    Serial.println(F("path map        : tampilkan grid map"));
+    Serial.println(F("path find       : cari path ke goal"));
+    Serial.println(F("path goal <x> <y> : set goal position"));
+    Serial.println(F("path next       : waypoint berikutnya"));
+    Serial.println(F("path obstacle <x> <y> : tambah obstacle"));
+    Serial.println(F("path reset      : reset path planner"));
+#endif
     Serial.println(F("save            : simpan ke EEPROM (termasuk waypoint learning)"));
     Serial.println(F("load            : muat dari EEPROM & cetak waypoint"));
     Serial.println(F("start           : mulai jalan"));
     Serial.println(F("stop            : berhenti"));
     Serial.println(F("status          : tampilkan status sedang ini"));
+    Serial.println(F("mapclear        : hapus semua waypoint peta (harus berhenti)"));
     Serial.println(F("help / ?        : tampilkan ini"));
     Serial.println(F("-----------------------"));
     Serial.println();

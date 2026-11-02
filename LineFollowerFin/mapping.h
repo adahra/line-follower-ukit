@@ -41,7 +41,7 @@ class Mapper {
   void mulaiRun();
 
  private:
-  static const int MAX_WAYPOINTS = 50;
+  static const int MAX_WAYPOINTS = 30;
   Waypoint waypoints[MAX_WAYPOINTS];
   int count = 0;
   unsigned long lastEventTime = 0;
