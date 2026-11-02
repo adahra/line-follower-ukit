@@ -1,0 +1,33 @@
+name: Compile Check
+
+on: [push, pull_request]
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup arduino-cli
+        uses: arduino/setup-arduino-cli@v1
+        
+      - name: Install AVR core
+        run: arduino-cli core install arduino:avr
+        
+      - name: Install uKit library
+        run: |
+          mkdir -p ~/Arduino/libraries
+          # Copy uKitExplore2 library jika ada di repo
+          # atau download dari release
+          
+      - name: Compile main sketch
+        run: |
+          cd LineFollowerFin
+          arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin.ino
+          
+      - name: Compile test sketches
+        run: |
+          cd LineFollowerFin
+          arduino-cli compile --fqbn arduino:avr:mega TestLapTimer.ino
+          arduino-cli compile --fqbn arduino:avr:mega TestBluetooth.ino
+          arduino-cli compile --fqbn arduino:avr:mega TestPathPlanner.ino
