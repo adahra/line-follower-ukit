@@ -1,5 +1,8 @@
 #include "mapping.h"
 
+#include <EEPROM.h>
+#include "config.h"
+
 Mapper::Mapper() {
   reset();
 }
@@ -86,4 +89,32 @@ void Mapper::debugPrint() {
     Serial.println(waypoints[i].timeOffset);
   }
   Serial.println(F("----------------"));
+}
+
+// Peta waypoint persisten ke EEPROM: magic(1) + count(2) + array Waypoint.
+// Waypoint punya padding (8 byte/entri), total ~243 byte dari 4 KB EEPROM.
+void Mapper::simpan() {
+  EEPROM.update(ADDR_MAP, 77);  // penanda peta valid
+  EEPROM.put(ADDR_MAP + 1, count);
+  EEPROM.put(ADDR_MAP + 3, waypoints);
+  Serial.print(F("Peta disimpan ke EEPROM: "));
+  Serial.print(count);
+  Serial.println(F(" waypoint."));
+}
+
+void Mapper::muat() {
+  if (EEPROM.read(ADDR_MAP) != 77) {
+    return;  // belum pernah disimpan: pakai peta kosong
+  }
+  int n;
+  EEPROM.get(ADDR_MAP + 1, n);
+  if (n < 0 || n > MAX_WAYPOINTS) {
+    Serial.println(F("Peta EEPROM invalid, abaikan."));
+    return;
+  }
+  EEPROM.get(ADDR_MAP + 3, waypoints);
+  count = n;
+  Serial.print(F("Peta dimuat dari EEPROM: "));
+  Serial.print(count);
+  Serial.println(F(" waypoint."));
 }

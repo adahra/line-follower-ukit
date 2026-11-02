@@ -122,6 +122,7 @@ extern int AMBANG_KANAN;
 #define ADDR_SPEED 16
 #define ADDR_AMBANG 20        // ambang kiri (format lama: ambang tunggal)
 #define ADDR_AMBANG_KANAN 22  // ambang kanan (baru; default bila belum ada)
+#define ADDR_MAP 24           // peta waypoint (magic + count + array Waypoint)
 
 // --- OPSI BOOT ---
 #define AUTO_CALIBRATE_ON_BOOT false  // true = kalibrasi otomatis saat EEPROM invalid
