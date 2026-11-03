@@ -45,7 +45,9 @@ extern int kecepatanDasar;      // Variabel dinamis yang akan dikalibrasi oleh P
 // --- ANTI GOYANG SENSOR: filter eksponensial agar 1 bacaan liar
 // tidak langsung jadi koreksi PID penuh (error range kecil, ±10).
 // 0.5 -> 0.4: filter lebih halus, redam bacaan liar yang jadi sumber D noise.
-#define ALPHA_SENSOR 0.4
+// 0.4 -> 0.65: filter terlalu berat (5 siklus untuk 90%), koreksi datang terlambat.
+// 0.65 = 2-3 siklus untuk 90%: respons lebih menggigit tanpa kehilangan redam noise.
+#define ALPHA_SENSOR 0.65
 
 // --- PID interval tetap: D = error-lastError hanya valid bila dt konstan.
 // Tanpa ini, delay tombol (300-1000ms) membuat D melonjak acak.

@@ -27,7 +27,7 @@ Order/priority (from code): protocol() if not running; check battery critical �
 
 ## Tuning & EEPROM
 - Tuning via buttons (no serial needed): Btn1 short adjusts Kp/Kd depending on `modeSetelKd` (toggle long-press while stopped), long-press while running stops. Btn2 short adjusts max speed ±10 (60–150), long-press saves EEPROM + starts. RGB shows states.
-- Persisted: magic `123` at 0, `Kp`(4), `Kd`(12), `kecepatanDasarMaks`(16), `AMBANG_KIRI`(18), `AMBANG_KANAN`(22). Not persisted: `Ki`, `kecepatanDasarMin`. Writes via `eepromPutHemat` (only if changed). Manual calibration: both buttons together while stopped → spin ~3s, compute per-sensor thresholds clamped to 5–14.
+- Persisted: magic `123` at 0, `Kp`(4), `Kd`(12), `kecepatanDasarMaks`(16), `AMBANG_KIRI`(18), `AMBANG_KANAN`(22). Not persisted: `Ki`, `kecepatanDasarMin`. Writes via `eepromPutHemat` (only if changed). Manual calibration: both buttons together while stopped → spin ~3s, compute per-sensor thresholds clamped to 3–18.
 - `setup()`: `Initialization()` → `IMU::init()`; if not in protocol run state load EEPROM + mapper, auto-calibrate only if invalid and `AUTO_CALIBRATE_ON_BOOT` true.
 
 ## Gotchas (must preserve)
@@ -36,7 +36,7 @@ Order/priority (from code): protocol() if not running; check battery critical �
 - I term clamped ±50; integral reset after recovery. Adaptive speed uses factor in code/config.
 - Ultrasonic priority over all drive logic when running.
 - Lost-line timeout 2000ms then stop (red). Stuck detector can stop robot.
-- Sensor thresholds per-sensor (left/right) with clamping 5–14.
+- Sensor thresholds per-sensor (left/right) with clamping 3–18.
 - Path planner files live in sketch root and are only included if `ENABLE_PATH_PLANNER`.
 - Serial output controlled by `ENABLE_SERIAL_OUTPUT`/`ENABLE_SERIAL_MODE` (Bluetooth forces serial on).
 

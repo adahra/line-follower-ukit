@@ -63,8 +63,8 @@ void SensorGaris::kalibrasi(Penggerak &gerak) {
 
   gerak.berhenti();
 
-  AMBANG_KANAN = constrain((maksKanan + minKanan) / 2, 5, 14);
-  AMBANG_KIRI = constrain((maksKiri + minKiri) / 2, 5, 14);
+  AMBANG_KANAN = constrain((maksKanan + minKanan) / 2, 3, 18);
+  AMBANG_KIRI = constrain((maksKiri + minKiri) / 2, 3, 18);
   Serial.print(F("Ambang kiri: "));
   Serial.print(AMBANG_KIRI);
   Serial.print(F(" kanan: "));
@@ -98,8 +98,8 @@ void SensorGaris::muat() {
     EEPROM.get(ADDR_AMBANG, AMBANG_KIRI);
     EEPROM.get(ADDR_AMBANG_KANAN, AMBANG_KANAN);
     // Kompatibel format lama (satu ambang): sampah EEPROM dijepit ke rentang valid.
-    AMBANG_KIRI = constrain(AMBANG_KIRI, 5, 14);
-    AMBANG_KANAN = constrain(AMBANG_KANAN, 5, 14);
+    AMBANG_KIRI = constrain(AMBANG_KIRI, 3, 18);
+    AMBANG_KANAN = constrain(AMBANG_KANAN, 3, 18);
   }
 }
 
