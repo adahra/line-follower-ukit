@@ -2,12 +2,15 @@
 // Upload ke uKit Explore 2, buka Serial Monitor 115200
 // Test grid mapping, A* pathfinding, obstacle avoidance
 
-#include "ukit_wrapper.h"
+#include "ucode.h"
 
 // ===== KONFIGURASI GRID =====
 const int GRID_W = 16;
 const int GRID_H = 16;
 const int CELL_SIZE = 10; // cm
+
+bool valid(int x, int y);
+bool blocked(int x, int y);
 
 enum CellType { UNK=0, EMP=1, LINE=2, OBS=3, STA=4, VIS=5 };
 
@@ -255,8 +258,8 @@ void findPath() {
       }
       // Reverse
       for (int i=0; i<pathLen/2; i++) {
-        swap(pathX[i], pathX[pathLen-1-i]);
-        swap(pathY[i], pathY[pathLen-1-i]);
+        int tx = pathX[i]; pathX[i] = pathX[pathLen-1-i]; pathX[pathLen-1-i] = tx;
+        int ty = pathY[i]; pathY[i] = pathY[pathLen-1-i]; pathY[pathLen-1-i] = ty;
       }
       pathIdx = 0;
       return;
