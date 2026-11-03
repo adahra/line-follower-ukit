@@ -67,7 +67,7 @@ void PathPlanner::updateMap(SensorGaris &sensor, int robotX, int robotY, float r
   int rightIR = sensor.bacaKanan();
   
   // Jika kedua sensor mendeteksi garis, mark cell depan sebagai line
-  if (leftIR >= 8 && rightIR >= 8) {  // threshold approx
+  if (leftIR >= AMBANG_KIRI && rightIR >= AMBANG_KANAN) {
     int frontX = robotGridX;
     int frontY = robotGridY;
     
@@ -154,7 +154,7 @@ PathResult PathPlanner::findPath(int startX, int startY, int goalX_, int goalY_)
       // Reconstruct path
       PathNode *pathNode = current;
       int pathLength = 0;
-      while (pathNode && pathLength < 64) {
+      while (pathNode && pathLength < MAX_WAYPOINTS) {
         result.waypoints[pathLength][0] = pathNode->x;
         result.waypoints[pathLength][1] = pathNode->y;
         pathLength++;
@@ -458,46 +458,45 @@ void PathPlanner::handleCommand(const char *cmd) {
   
   for (char *p = key; *p; ++p) *p = tolower(*p);
   
-  if (strcmp(key, "path") == 0) {
-    if (strcmp(valStr, "map") == 0) {
-      printMap();
-    } else if (strcmp(valStr, "find") == 0) {
-      if (hasGoal_) {
-        currentPath = findPath(robotGridX, robotGridY, goalX, goalY);
-        printPath(currentPath);
-      } else {
-        Serial.println(F("No goal set. Use: path goal <x> <y>"));
-      }
-    } else if (strcmp(valStr, "goal") == 0) {
-      // Parse: path goal <x> <y>
-      int gx, gy;
-      if (sscanf(valStr + 5, "%d %d", &gx, &gy) == 2) { // skip "goal "
-        setGoal(gx, gy);
-        Serial.print(F("Goal set to (")); Serial.print(goalX); Serial.print(F(",")); Serial.print(goalY); Serial.println(F(")"));
-        printPath(currentPath);
-      } else {
-        Serial.println(F("Usage: path goal <x> <y>"));
-      }
-    } else if (strcmp(valStr, "reset") == 0) {
-      reset();
-      Serial.println(F("Path planner reset"));
-    } else if (strcmp(valStr, "next") == 0) {
-      int nx, ny;
-      if (getNextWaypoint(robotGridX, robotGridY, nx, ny)) {
-        Serial.print(F("Next waypoint: (")); Serial.print(nx); Serial.print(F(",")); Serial.print(ny); Serial.println(F(")"));
-      } else {
-        Serial.println(F("No active path or goal reached"));
-      }
-    } else if (strcmp(valStr, "obstacle") == 0) {
-      int ox, oy;
-      if (sscanf(valStr + 9, "%d %d", &ox, &oy) == 2) { // skip "obstacle "
-        markObstacle(ox, oy, 1);
-        Serial.print(F("Obstacle marked at (")); Serial.print(ox); Serial.print(F(",")); Serial.print(oy); Serial.println(F(")"));
-      } else {
-        Serial.println(F("Usage: path obstacle <x> <y>"));
-      }
+  if (strcmp(key, "map") == 0) {
+    printMap();
+  } else if (strcmp(key, "find") == 0) {
+    if (hasGoal_) {
+      currentPath = findPath(robotGridX, robotGridY, goalX, goalY);
+      printPath(currentPath);
     } else {
-      Serial.println(F("Path commands: map, find, goal <x> <y>, reset, next, obstacle <x> <y>"));
+      Serial.println(F("No goal set. Use: path goal <x> <y>"));
     }
+  } else if (strcmp(key, "goal") == 0) {
+    // Parse: path goal <x> <y> — valStr = "x y"
+    int gx, gy;
+    if (sscanf(valStr, "%d %d", &gx, &gy) == 2) {
+      setGoal(gx, gy);
+      Serial.print(F("Goal set to (")); Serial.print(goalX); Serial.print(F(",")); Serial.print(goalY); Serial.println(F(")"));
+      printPath(currentPath);
+    } else {
+      Serial.println(F("Usage: path goal <x> <y>"));
+    }
+  } else if (strcmp(key, "reset") == 0) {
+    reset();
+    Serial.println(F("Path planner reset"));
+  } else if (strcmp(key, "next") == 0) {
+    int nx, ny;
+    if (getNextWaypoint(robotGridX, robotGridY, nx, ny)) {
+      Serial.print(F("Next waypoint: (")); Serial.print(nx); Serial.print(F(",")); Serial.print(ny); Serial.println(F(")"));
+    } else {
+      Serial.println(F("No active path or goal reached"));
+    }
+  } else if (strcmp(key, "obstacle") == 0) {
+    // Parse: path obstacle <x> <y> — valStr = "x y"
+    int ox, oy;
+    if (sscanf(valStr, "%d %d", &ox, &oy) == 2) {
+      markObstacle(ox, oy, 1);
+      Serial.print(F("Obstacle marked at (")); Serial.print(ox); Serial.print(F(",")); Serial.print(oy); Serial.println(F(")"));
+    } else {
+      Serial.println(F("Usage: path obstacle <x> <y>"));
+    }
+  } else {
+    Serial.println(F("Path commands: map, find, goal <x> <y>, reset, next, obstacle <x> <y>"));
   }
 }

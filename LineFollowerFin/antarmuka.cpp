@@ -15,6 +15,12 @@
 extern RcCtrl rc;
 #endif
 
+#if ENABLE_PATH_PLANNER
+#include "path_planner.h"
+// pathPlanner adalah global yang dideklarasikan di LineFollowerFin.ino (di dalam #if ENABLE_PATH_PLANNER).
+extern PathPlanner pathPlanner;
+#endif
+
 Antarmuka::Antarmuka(Status &st, SensorGaris &sen, Penggerak &g, Pengaman &am, LapTimer &lt, Mapper &mp)
     : status(st), sensor(sen), gerak(g), aman(am), lapTimer(lt), mapper(mp) {}
 

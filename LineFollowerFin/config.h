@@ -163,8 +163,8 @@ extern int AMBANG_KANAN;
 // --- PATH PLANNER ---
 #define ENABLE_PATH_PLANNER false     // default OFF (RAM ATMega2560 terbatas)
 #define GRID_CELL_SIZE_CM 20          // ukuran cell grid (cm)
-#define PATH_GRID_WIDTH 16            // lebar grid
-#define PATH_GRID_HEIGHT 16           // tinggi grid
+#define PATH_GRID_WIDTH 8             // lebar grid (8x8 untuk hemat RAM)
+#define PATH_GRID_HEIGHT 8            // tinggi grid
 
 // --- FUZZY PID ---
 // Adaptive PID: fuzzy controller menghasilkan delta Kp/Kd/Ki berdasarkan

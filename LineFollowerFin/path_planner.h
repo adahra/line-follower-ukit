@@ -8,10 +8,11 @@
 #include "config.h"
 #include "sensor_garis.h"
 
-// Ukuran grid map (cells) - 16x16 untuk hemat RAM (ATMega2560: 8KB)
-#define GRID_WIDTH  16
-#define GRID_HEIGHT 16
-#define CELL_SIZE_CM 20  // 20cm per cell (area 3.2m x 3.2m)
+// Ukuran grid map (cells) - 8x8 untuk hemat RAM (ATMega2560: 8KB)
+#define GRID_WIDTH  8
+#define GRID_HEIGHT 8
+#define CELL_SIZE_CM 40  // 40cm per cell (area 3.2m x 3.2m, sama dengan 16x16@20cm)
+#define MAX_WAYPOINTS 32
 
 // Tipe cell
 enum CellType {
@@ -27,7 +28,7 @@ enum CellType {
 enum Direction {
   DIR_N  = 0,  // North (atas)
   DIR_NE = 1,  // North-East
-  Dir_E  = 2,  // East (kanan)
+  DIR_E  = 2,  // East (kanan)
   DIR_SE = 3,  // South-East
   DIR_S  = 4,  // South (bawah)
   DIR_SW = 5,  // South-West
@@ -51,7 +52,7 @@ struct PathNode {
 
 // Path result
 struct PathResult {
-  int waypoints[64][2];  // x,y pairs
+  int waypoints[MAX_WAYPOINTS][2];  // x,y pairs
   int count = 0;
   bool found = false;
   float totalCost = 0;

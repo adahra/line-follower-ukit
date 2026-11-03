@@ -5,9 +5,9 @@
 #include "ucode.h"
 
 // ===== KONFIGURASI GRID =====
-const int GRID_W = 16;
-const int GRID_H = 16;
-const int CELL_SIZE = 10; // cm
+const int GRID_W = 8;
+const int GRID_H = 8;
+const int CELL_SIZE = 40; // cm (area 3.2m x 3.2m)
 
 bool valid(int x, int y);
 bool blocked(int x, int y);
@@ -30,7 +30,7 @@ int robotX = GRID_W/2, robotY = GRID_H/2;
 int goalX = -1, goalY = -1;
 bool hasGoal = false;
 
-int pathX[64], pathY[64];
+int pathX[32], pathY[32];
 int pathLen = 0, pathIdx = 0;
 
 // ===== SETUP =====
@@ -42,8 +42,8 @@ void setup() {
   resetPlanner();
   
   Serial.println(F("\n=== TEST PATH PLANNER A* ==="));
-  Serial.println(F("Grid: 16x16, Cell: 10cm"));
-  Serial.println(F("Robot di tengah (8,8)"));
+  Serial.println(F("Grid: 8x8, Cell: 40cm"));
+  Serial.println(F("Robot di tengah (4,4)"));
   Serial.println(F(""));
   Serial.println(F("Perintah:"));
   Serial.println(F("  map           - tampilkan map"));
@@ -250,7 +250,7 @@ void findPath() {
     if (cur == goalNode) {
       // Reconstruct
       Node* p = cur;
-      while (p && pathLen < 64) {
+      while (p && pathLen < 32) {
         pathX[pathLen] = p->x;
         pathY[pathLen] = p->y;
         pathLen++;
@@ -339,7 +339,7 @@ void printMap() {
     }
     Serial.println();
   }
-  Serial.println(F("  0123456789ABCDEF"));
+  Serial.println(F("  01234567"));
   Serial.println(F("+------------------+\n"));
 }
 
