@@ -161,7 +161,7 @@ extern int AMBANG_KANAN;
 #endif
 
 // --- PATH PLANNER ---
-#define ENABLE_PATH_PLANNER true     // default OFF (RAM ATMega2560 terbatas)
+#define ENABLE_PATH_PLANNER false     // default OFF (RAM ATMega2560 terbatas)
 #define GRID_CELL_SIZE_CM 20          // ukuran cell grid (cm)
 #define PATH_GRID_WIDTH 8             // lebar grid (8x8 untuk hemat RAM)
 #define PATH_GRID_HEIGHT 8            // tinggi grid

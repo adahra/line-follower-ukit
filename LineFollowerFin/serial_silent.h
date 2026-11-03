@@ -17,6 +17,8 @@ public:
   int read() { return -1; }
   size_t readBytes(char *, size_t) { return 0; }
   size_t readBytes(uint8_t *, size_t) { return 0; }
+  size_t readBytesUntil(char, char *, size_t) { return 0; }
+  size_t readBytesUntil(char, uint8_t *, size_t) { return 0; }
   String readString() { return String(""); }
   String readStringUntil(char) { return String(""); }
   
