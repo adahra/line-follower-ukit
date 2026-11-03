@@ -3,7 +3,7 @@
 // Letakkan robot di trek oval dengan garis start/finish tebal
 
 #include <EEPROM.h>
-#include "ukit_wrapper.h"  // pakai wrapper agar bisa compile tanpa ucode.h full
+#include "ucode.h"
 
 // ===== KONFIGURASI TEST =====
 const int LAP_SF_THRESHOLD = 12;       // Ambang deteksi start/finish (kedua sensor)
