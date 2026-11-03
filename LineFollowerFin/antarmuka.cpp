@@ -9,6 +9,12 @@
 #include <string.h>
 #include <ctype.h>
 
+#if ENABLE_RC
+#include "rc_ctrl.h"
+// rc adalah global yang dideklarasikan di LineFollowerFin.ino (di dalam #if ENABLE_RC).
+extern RcCtrl rc;
+#endif
+
 Antarmuka::Antarmuka(Status &st, SensorGaris &sen, Penggerak &g, Pengaman &am, LapTimer &lt, Mapper &mp)
     : status(st), sensor(sen), gerak(g), aman(am), lapTimer(lt), mapper(mp) {}
 
@@ -88,7 +94,7 @@ void Antarmuka::cekTombol() {
     if (buttonState1 == 1) {
       // Mode cycling hanya saat robot berhenti dan BUKAN mode setel Kd
       if (!status.jalan && !status.modeSetelKd) {
-        // Pindah mode: Normal -> Learning -> Racing -> Normal
+        // Pindah mode: Normal -> Learning -> Racing -> RC -> Normal
         if (status.modeOperasi == MODE_NORMAL) {
           status.modeOperasi = MODE_LEARNING;
           Serial.println(F("Mode: LEARNING (Rekam Lintasan)"));
@@ -98,6 +104,10 @@ void Antarmuka::cekTombol() {
           Serial.println(F("Mode: RACING (Gunakan Peta)"));
           setRgbledColor(0, 255, 0); // Hijau = racing
         } else if (status.modeOperasi == MODE_RACING) {
+          status.modeOperasi = MODE_RC;
+          Serial.println(F("Mode: RC (Remote Control)"));
+          setRgbledColor(0, 255, 255); // Cyan = RC
+        } else if (status.modeOperasi == MODE_RC) {
           status.modeOperasi = MODE_NORMAL;
           Serial.println(F("Mode: NORMAL"));
           setRgbledColor(0, 0, 0); // Hitam = normal
@@ -113,7 +123,8 @@ void Antarmuka::cekTombol() {
       if (showMode) {
         Serial.println(status.modeOperasi == MODE_NORMAL ? F("NORMAL")
                        : status.modeOperasi == MODE_LEARNING ? F("LEARNING")
-                       : F("RACING"));
+                       : status.modeOperasi == MODE_RACING ? F("RACING")
+                       : F("RC"));
       } else {
         Serial.println(status.modeSetelKd ? Kd : Kp);
       }
@@ -328,9 +339,31 @@ void Antarmuka::parseCommand(char *cmd) {
     } else if (strcmp(valStr, "race") == 0) {
       status.modeOperasi = MODE_RACING;
       Serial.println(F("Mode: RACING (Gunakan Peta)"));
+    } else if (strcmp(valStr, "rc") == 0) {
+      status.modeOperasi = MODE_RC;
+      Serial.println(F("Mode: RC (Remote Control)"));
     } else {
       status.modeOperasi = MODE_NORMAL;
       Serial.println(F("Mode: NORMAL"));
+    }
+  } else if (strcmp(key, "rc") == 0) {
+    if (strcmp(valStr, "on") == 0) {
+      status.modeOperasi = MODE_RC;
+      Serial.println(F("RC mode: ON (MODE_RC)"));
+    } else if (strcmp(valStr, "off") == 0) {
+      status.modeOperasi = MODE_NORMAL;
+      Serial.println(F("RC mode: OFF (kembali ke MODE_NORMAL)"));
+    } else if (strcmp(valStr, "status") == 0) {
+#if ENABLE_RC
+      Serial.print(F("RC Throttle: ")); Serial.print(rc.getThrottle());
+      Serial.print(F("% | Steering: ")); Serial.print(rc.getSteering());
+      Serial.print(F("% | Signal: "));
+      Serial.println(rc.isSignalLost() ? F("HILANG") : F("OK"));
+#else
+      Serial.println(F("RC tidak aktif (ENABLE_RC=false)."));
+#endif
+    } else {
+      Serial.println(F("Penggunaan: rc on | rc off | rc status"));
     }
   } else if (strcmp(key, "mapclear") == 0) {
     if (status.jalan) {
@@ -366,6 +399,8 @@ void Antarmuka::parseCommand(char *cmd) {
     Serial.println(F("ambang <val>    : set ambang kiri & kanan (1-20)"));
     Serial.println(F("ambangk <val>   : set ambang kiri saja"));
     Serial.println(F("ambangn <val>   : set ambang kanan saja"));
+    Serial.println(F("mode <val>      : set mode (learn/race/rc/normal)"));
+    Serial.println(F("rc on|off|status: aktifkan/nonaktifkan/cek status RC"));
     Serial.println(F("calibrate       : jalankan kalibrasi sensor (harus berhenti)"));
     Serial.println(F("tune            : kalibrasi + Auto-Tuning PID sekaligus"));
     Serial.println(F("lap [summary|csv|reset] : lap timer summary/CSV/reset"));
@@ -388,7 +423,7 @@ void Antarmuka::parseCommand(char *cmd) {
     Serial.println(F("-----------------------"));
     Serial.println();
     Serial.println(F("=== MODE via TOMBOL (saat berhenti) ==="));
-    Serial.println(F("B1 pendek: Pindah mode Normal <-> Learning <-> Racing"));
+    Serial.println(F("B1 pendek: Pindah mode Normal <-> Learning <-> Racing <-> RC"));
     Serial.println(F("B1 lama: Toggle mode Setel Kp/Kd"));
     Serial.println(F("B1+B2: Kalibrasi sensor (pendek) / Auto-Tuning (lama)"));
   } else {
@@ -407,6 +442,7 @@ void Antarmuka::tampilkanStatusJalannya() {
     case 0: Serial.println(F("NORMAL")); break;
     case 1: Serial.println(F("LEARNING")); break;
     case 2: Serial.println(F("RACING")); break;
+    case 3: Serial.println(F("RC")); break;
   }
   Serial.print(F("modeSetelKd: ")); Serial.println(status.modeSetelKd ? F("YA") : F("TIDAK"));
   Serial.print(F("recoveryMulai: ")); Serial.print(status.recoveryMulai); Serial.println(F(" ms"));
