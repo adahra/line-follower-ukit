@@ -75,7 +75,8 @@ Mode dapat diatur via antarmuka/serial (lihat `antarmuka`).
 Semua default **false**:
 - **Lap timer** (`ENABLE_LAP_TIMER`): deteksi garis start/finish, hitung waktu lap (`LAP_SF_THRESHOLD`, `LAP_MIN_LAP_MS`).
 - **Bluetooth/BLE** (`ENABLE_BLUETOOTH`): kontrol & telemetri via Bluetooth (`BT_BAUD`, `BT_MODULE_TYPE`, `BT_TELEMETRY_MS`).
-- **Path planner** (`ENABLE_PATH_PLANNER`): perencanaan jalur A* berbasis grid, integrasi dengan deteksi halangan ultrasonic. File `path_planner.*` sudah berada di root sketch folder, di-include hanya bila diaktifkan. `GRID_CELL_SIZE_CM`, `PATH_GRID_WIDTH`, `PATH_GRID_HEIGHT` dapat disesuaikan (perlu diperhatikan RAM ATMega2560).
+- **Path planner** (`ENABLE_PATH_PLANNER`): perencanaan jalur A* berbasis grid, integrasi dengan deteksi halangan ultrasonic. File `path_planner.*` sudah berada di root sketch folder, di-include hanya bila diaktifkan. `GRID_CELL_SIZE_CM`, `PATH_GRID_WIDTH`, `PATH_GRID_HEIGHT` dapat disesuaikan (perlu diperhatikan RAM ATMega2560). Lihat [docs/PATH_PLANNER.md](docs/PATH_PLANNER.md) untuk dokumentasi lengkap algoritma A* dan arsitektur grid.
+- **Fuzzy PID** (`ENABLE_FUZZY_PID`): kontrol PID adaptif berbasis logika fuzzy untuk performa tracking yang lebih halus. Lihat [docs/FUZZY_PID.md](docs/FUZZY_PID.md) untuk dokumentasi lengkap algoritma fuzzy adaptive PID.
 
 Catatan: `TELEMETRI` serial CSV bisa diaktifkan (`ENABLE_TELEMETRI`) untuk tuning; `IMU` digunakan untuk tilt/stuck detection.
 

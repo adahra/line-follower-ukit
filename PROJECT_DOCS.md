@@ -19,6 +19,8 @@ The robot follows a black line on a white surface using IR sensors, with PID con
 9. [Safety Features](#safety-features)
 10. [Known Gotchas & Constraints](#gotchas--constraints)
 11. [Building & Verifying](#building--verifying)
+12. [Path Planner & A*](#path-planner--a*)
+13. [Fuzzy Logic PID](#fuzzy-logic-pid)
 
 ---
 
@@ -420,5 +422,13 @@ arduino-cli compile -b arduino:avr:uno LineFollowerFin/  # adjust board as neede
 | `ukit_extern.h` | Extern declarations for uKit globals (include in .cpp files) |
 | `ukit_macros.h` | Only macros from ucode.h, no global definitions (include in .cpp files) |
 
+
+## Path Planner & A*
+
+Lihat [docs/PATH_PLANNER.md](docs/PATH_PLANNER.md) untuk dokumentasi komprehensif tentang subsystem Path Planner dan algoritma A* (grid 8x8, obstacle avoidance, serial commands, integrasi dengan loop(), dan perbandingan dengan Mapper).
+
+## Fuzzy Logic PID
+
+Lihat [docs/FUZZY_PID.md](docs/FUZZY_PID.md) untuk dokumentasi komprehensif tentang Fuzzy Adaptive PID — struktur 2-input/3-output, aturan Mamdani 5x5, defuzzifikasi weighted average, dan integrasi dengan Penggerak::hitung().
 ---
 *Documentation generated from codebase analysis. Comments and serial prints follow Indonesian language convention.*
