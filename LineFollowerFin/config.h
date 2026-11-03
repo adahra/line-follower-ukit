@@ -164,6 +164,32 @@ extern int AMBANG_KANAN;
 #define PATH_GRID_WIDTH 16            // lebar grid
 #define PATH_GRID_HEIGHT 16           // tinggi grid
 
+// --- FUZZY PID ---
+// Adaptive PID: fuzzy controller menghasilkan delta Kp/Kd/Ki berdasarkan
+// error dan delta_error. Aktifkan untuk respons PID yang dinamis.
+#define ENABLE_FUZZY_PID false         // aktifkan fuzzy adaptive PID
+#define FUZZY_ERROR_MAX 10.0           // range error masukan [-10, 10]
+#define FUZZY_DERROR_MAX 10.0          // range delta_error masukan [-10, 10]
+#define FUZZY_DKP_MAX 5.0              // range delta Kp keluaran [-5, 5]
+#define FUZZY_DKD_MAX 2.0              // range delta Kd keluaran [-2, 2]
+#define FUZZY_DKI_MAX 0.5              // range delta Ki keluaran [-0.5, 0.5]
+
+// --- REMOTE CONTROL (RC) ---
+// RC receiver dibaca lewat digital pin (PWM/PPM) atau Serial (ESP-based).
+#define ENABLE_RC false               // aktifkan RC control
+#define RC_BAUD 115200                // baud rate untuk RC Serial
+#define RC_PIN 2                      // digital pin untuk PWM/PPM input
+#define RC_MIN_US 1000                // pulse width minimum (us)
+#define RC_MAX_US 2000                // pulse width maksimum (us)
+#define RC_CENTER_US 1500             // pulse width tengah (netral)
+#define RC_DEADBAND_US 50             // toleransi dekat center = tidak ada steer
+#define RC_STEER_GAIN 1.0             // pengali delta steering
+#define RC_PULSE_TIMEOUT_MS 500       // timeout kehilangan sinyal
+#define RC_SCALE_MIN 0                // throttle skala minimum (%)
+#define RC_SCALE_MAX 100              // throttle skala maksimum (%)
+#define RC_BUTTON_A_PIN 3            // opsi: pin untuk channel tombol A
+#define RC_BUTTON_B_PIN 4            // opsi: pin untuk channel tombol B
+
 #include "serial_silent.h"
 
 #endif

@@ -5,7 +5,8 @@
 enum ModeOperasi {
   MODE_NORMAL = 0,
   MODE_LEARNING,
-  MODE_RACING
+  MODE_RACING,
+  MODE_RC
 };
 
 struct Status {

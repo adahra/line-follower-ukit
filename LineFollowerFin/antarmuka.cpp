@@ -65,18 +65,31 @@ void Antarmuka::cekTombol() {
     if (comboMulai == 0) {
       comboMulai = now;
       comboSelesai = false;
-      Serial.println(F("Combo B1+B2: tahan 2 detik = Auto-Tune, lepas lebih cepat = kalibrasi saja."));
+      comboFuzzyToggle = false;
+      Serial.println(F("Combo B1+B2: tahan 2 detik = Auto-Tune, 1 detik = toggle Fuzzy, lepas cepat = kalibrasi."));
     } else if (!comboSelesai && now - comboMulai >= 2000) {
       comboSelesai = true;
       Serial.println(F(">>> Memulai Kalibrasi + Auto-Tuning PID <<<"));
       tuningSequence();
+    } else if (!comboSelesai && !comboFuzzyToggle && now - comboMulai >= 1000) {
+      // Tahan 1-2 detik: toggle Fuzzy PID
+      comboFuzzyToggle = true;
+#if ENABLE_FUZZY_PID
+      bool fuzzyOn = !gerak.isFuzzyEnabled();
+      gerak.setFuzzyEnabled(fuzzyOn);
+      Serial.print(F("Fuzzy PID: "));
+      Serial.println(fuzzyOn ? F("ON") : F("OFF"));
+#else
+      Serial.println(F("Fuzzy PID tidak aktif (ENABLE_FUZZY_PID=false)."));
+#endif
     }
     return;  // combo aktif: tombol tunggal tidak diproses
   }
 
   // Tombol dilepas sebelum 2 detik: kalibrasi sensor saja (sekali per combo).
+  // Kecuali jika fuzzy toggle sudah jalan (1 detik): lepas = tidak ada aksi tambahan.
   if (comboMulai != 0) {
-    if (!comboSelesai && buttonState1 == 0 && buttonState2 == 0) {
+    if (!comboSelesai && !comboFuzzyToggle && buttonState1 == 0 && buttonState2 == 0) {
       Serial.println(F(">>> Kalibrasi sensor..."));
       sensor.kalibrasi(gerak);
       setRgbledColor(255, 255, 0);  // kuning selesai kalibrasi
@@ -84,6 +97,7 @@ void Antarmuka::cekTombol() {
     }
     comboMulai = 0;
     comboSelesai = false;
+    comboFuzzyToggle = false;
     return;  // frame lepas: jangan langsung proses tombol tunggal
   }
 
@@ -365,6 +379,23 @@ void Antarmuka::parseCommand(char *cmd) {
     } else {
       Serial.println(F("Penggunaan: rc on | rc off | rc status"));
     }
+  } else if (strcmp(key, "fuzzy") == 0) {
+#if ENABLE_FUZZY_PID
+    if (strcmp(valStr, "on") == 0) {
+      gerak.setFuzzyEnabled(true);
+      Serial.println(F("Fuzzy PID: ON (adaptive gains aktif)"));
+    } else if (strcmp(valStr, "off") == 0) {
+      gerak.setFuzzyEnabled(false);
+      Serial.println(F("Fuzzy PID: OFF (static gains dari config/EEPROM)"));
+    } else {
+      // Tampilkan status saja
+      Serial.print(F("Fuzzy PID: "));
+      Serial.println(gerak.isFuzzyEnabled() ? F("ON") : F("OFF"));
+      Serial.println(F("Penggunaan: fuzzy on | fuzzy off | fuzzy"));
+    }
+#else
+    Serial.println(F("Fuzzy PID tidak aktif (ENABLE_FUZZY_PID=false)."));
+#endif
   } else if (strcmp(key, "mapclear") == 0) {
     if (status.jalan) {
       Serial.println(F("ERROR: Robot sedang jalan, hentikan dulu sebelum mapclear."));
@@ -401,6 +432,7 @@ void Antarmuka::parseCommand(char *cmd) {
     Serial.println(F("ambangn <val>   : set ambang kanan saja"));
     Serial.println(F("mode <val>      : set mode (learn/race/rc/normal)"));
     Serial.println(F("rc on|off|status: aktifkan/nonaktifkan/cek status RC"));
+    Serial.println(F("fuzzy on|off   : aktifkan/nonaktifkan/cek Fuzzy adaptive PID"));
     Serial.println(F("calibrate       : jalankan kalibrasi sensor (harus berhenti)"));
     Serial.println(F("tune            : kalibrasi + Auto-Tuning PID sekaligus"));
     Serial.println(F("lap [summary|csv|reset] : lap timer summary/CSV/reset"));
@@ -425,7 +457,7 @@ void Antarmuka::parseCommand(char *cmd) {
     Serial.println(F("=== MODE via TOMBOL (saat berhenti) ==="));
     Serial.println(F("B1 pendek: Pindah mode Normal <-> Learning <-> Racing <-> RC"));
     Serial.println(F("B1 lama: Toggle mode Setel Kp/Kd"));
-    Serial.println(F("B1+B2: Kalibrasi sensor (pendek) / Auto-Tuning (lama)"));
+    Serial.println(F("B1+B2: Kalibrasi (lepas cepat) / Toggle Fuzzy (tahan 1s) / Auto-Tuning (tahan 2s)"));
   } else {
     Serial.print(F("Perintah tidak dikenal: "));
     Serial.println(cmd);
@@ -460,6 +492,9 @@ void Antarmuka::tampilkanStatusJalannya() {
   Serial.print(F(" | Ki: ")); Serial.print(Ki);
   Serial.print(F(" | SpeedMaks: ")); Serial.print(kecepatanDasarMaks);
   Serial.print(F(" | Dasar: ")); Serial.print(kecepatanDasar);
+#if ENABLE_FUZZY_PID
+  Serial.print(F(" | Fuzzy: ")); Serial.print(gerak.isFuzzyEnabled() ? F("ON") : F("OFF"));
+#endif
   
   // LED status
   Serial.println(F(" --- AKHIR STATUS ---"));

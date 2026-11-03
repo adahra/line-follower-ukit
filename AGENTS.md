@@ -1,33 +1,46 @@
 # AGENTS.md
 
-Modular Arduino sketch in `LineFollowerFin/` (sketch must stay in same-name folder). `.ino` holds only objects, `setup()`, and the `loop()` state machine; logic lives in classes (one `.h`/`.cpp` pair each, wired via refs in `.ino`):
-
-- `config.h` — all tunable values (PID, speeds, thresholds, timeouts, sensor IDs). Tune here.
-- `status.h` — shared `Status` struct (`jalan`, `modeSetelKd`, `recoveryMulai`).
-- `sensor_garis.*` — IR filter, per-sensor thresholds, calibration, EEPROM (incl. `eepromPutHemat` template — must stay in header).
-- `penggerak.*` — PID compute, deadband/slew, all motor helpers, telemetry.
-- `antarmuka.*` — onboard buttons + clap toggle (start/stop sequences).
-- `pengaman.*` — battery latch, tilt halt, ultrasonic stop, stuck detector, auto headlight.
+## Structure
+- Sketch folder: `LineFollowerFin/` (name must match). Only `objects`, `setup()`, `loop()` in `LineFollowerFin.ino`; logic split into classes via refs.
+- Core modules: `config.h/.cpp`, `status.h`, `fwd.h`, `sensor_garis.*`, `penggerak.*`, `antarmuka.*`, `pengaman.*`, `mapping.*`, `lap_timer.*`, `bluetooth_ctrl.*`, `rc_ctrl.*`, `path_planner.*` (optional), `fuzzy_pid.h` (optional).
+- `ucode.h` included only in `.ino`; `.cpp` files use `ukit_wrapper.h`/`ukit_extern.h`/`ukit_macros.h`.
+- Forward declarations in `fwd.h` are mandatory (template `eepromPutHemat` breaks auto-prototype). Keep `eepromPutHemat` in `sensor_garis.h`.
 
 ## Toolchain
-- Target: Arduino (uKit Explore 2 board). Requires external `uKitExplore2.h` library + built-in `EEPROM.h` — neither is vendored here.
-- Verify by compiling `LineFollowerFin/LineFollowerFin.ino` in Arduino IDE with the uKitExplore2 library installed. There is no automated test or check script.
+- Target: uKit Explore 2 (Arduino Mega2560). Needs external `uKitExplore2.h` + built-ins (`EEPROM.h`, `Arduino.h`). Not vendored.
+- Compile: `LineFollowerFin/LineFollowerFin.ino` in Arduino IDE or via arduino-cli (see `BUILD.md`). Tests exist in `LineFollowerFin/tests/` (`TestLapTimer`, `TestBluetooth`, `TestPathPlanner`). CI compiles main + tests. No unit test runner.
+- Optional features toggled via `config.h` `ENABLE_*` (Fuzzy PID, Path Planner, Bluetooth, RC, Lap Timer). Default mostly false to save RAM.
 
-## Architecture (all in one file)
-- `setup()`: `Initialization()` → `bacaNilaiDariEEPROM()`. No auto-calibration at boot; manual via `mulaiKalibrasiSensor()` by pressing both buttons together while stopped (spins 3s, auto-computes per-sensor thresholds `AMBANG_KIRI`/`AMBANG_KANAN`, each clamped to 5–14).
-- `loop()`: `cekTombol()` → run/stop state machine with 3 branches when running: intersection (both sensors ≥ own threshold) → lost-line recovery (both < own threshold, spins toward `lastError` side) → normal PID tracer with adaptive base speed.
-- Motor mapping: servos 4+2 = left side (dir `1`), servos 1+3 = right side (dir `0`). Speed derated to 0–150 (docs allow 0–255) with deadband compensation at 25 and slew limit ±10/loop. Keep this polarity when editing drive helpers.
-- Persistence: `Kp`, `Kd`, `kecepatanDasarMaks`, `AMBANG_KIRI`/`AMBANG_KANAN` stored via `EEPROM.put/get` at byte offsets 4/8/12/16/18 with magic `123` at addr 0, writes skipped when unchanged. Note: `Ki` and `kecepatanDasarMin` are NOT persisted.
-- Safety/features: front ultrasonic stop (≤5 cm, priority over all drive logic), auto headlight on eye lamps when dark (<100 lux, off >150 lux), lost-line recovery times out after 2 s. Sensor IDs (`LIGHT_SENSOR_ID`, `ULTRASONIC_ID`) are guesses — confirm against wiring.
+## Hardware/Conventions
+- Sensor IR: `readInfraredDistance(2)` = kiri, `readInfraredDistance(1)` = kanan. Error = `(kiri - kanan)/2`.
+- Motors: servos 4+2 = kiri (dir `1`), servos 1+3 = kanan (dir `0`). Derated to 0–150, deadband ~25, slew ±14/loop by default.
+- Sensor IDs (`LIGHT_SENSOR_ID`, `ULTRASONIC_ID`, `SOUND_SENSOR_ID`) may differ by wiring.
+- Comments/serial prints mostly Indonesian — keep consistent.
 
-## Onboard tuning UI (no serial input needed)
-- Button 1 short presses adjust Kp (±1.0) or Kd (±0.5) depending on `modeSetelKd`; long-press toggles that mode when stopped, stops robot when running.
-- Button 2: ±10 max speed (clamped 60–150); long-press saves EEPROM and starts run.
-- RGB LED signals state (white = intersection/start, magenta = lost-line / Kd-tune mode, yellow = calibrating). Preserve these when changing behavior.
+## Flow & State Machine (`loop()`)
+Order/priority (from code): protocol() if not running; check battery critical → return; check tilt → return; `ui.cekTombol()`, `ui.cekTepuk()`, `ui.cekSerial()` (if enabled), `aman.lampuOtomatis()`; update optional modules (BT/RC/PathPlanner); if `status.jalan`:
+1. Ultrasonic stop ≤5 cm has highest priority → return.
+2. RACING prediction via `Mapper` if enabled (LED feedback). RC mode takes over completely if enabled.
+3. Intersection (both ≥ threshold): white LED, `majuManual(min,150)`, re-read sensors, decide straight/left/right by comparison, call `belokKiri90`/`belokKanan90` or `majuTerus()`, record to `Mapper` if LEARNING.
+4. Lost-line (both < threshold): start recovery timer if first time; if > `RECOVERY_TIMEOUT_MS` (2000ms) stop + red LED; else spin toward `lastError` via `putarCariGaris()`.
+5. Normal: check stuck (`aman.macet`), reset integral on recovery exit (`resetIntegralSetelahRecovery`), `gerak.hitung()` uses fixed interval `PID_INTERVAL_MS` (10ms); if not ready call `terapkanTerakhir()` and return; update lap timer if enabled.
 
-## Gotchas
-- Sensor convention: `readInfraredDistance(2)` = left, `(1)` = right. Error = `(kiri - kanan)/2`.
-- `I` term clamped to ±50; `kecepatanDasar` adapts as `maks - abs(PID)*0.6`, clamped to `[min, maks]`.
-- The file contains a template helper (`eepromPutHemat`) which breaks Arduino's auto-prototype generator — explicit forward declarations before `setup()` are mandatory; keep them when adding functions.
-- 90° turn helpers block in `while` loops waiting for the line — do not add `delay`-free refactors without keeping that wait.
-- Comments/serial prints are in Indonesian — keep that language for consistency.
+## Tuning & EEPROM
+- Tuning via buttons (no serial needed): Btn1 short adjusts Kp/Kd depending on `modeSetelKd` (toggle long-press while stopped), long-press while running stops. Btn2 short adjusts max speed ±10 (60–150), long-press saves EEPROM + starts. RGB shows states.
+- Persisted: magic `123` at 0, `Kp`(4), `Kd`(12), `kecepatanDasarMaks`(16), `AMBANG_KIRI`(18), `AMBANG_KANAN`(22). Not persisted: `Ki`, `kecepatanDasarMin`. Writes via `eepromPutHemat` (only if changed). Manual calibration: both buttons together while stopped → spin ~3s, compute per-sensor thresholds clamped to 5–14.
+- `setup()`: `Initialization()` → `IMU::init()`; if not in protocol run state load EEPROM + mapper, auto-calibrate only if invalid and `AUTO_CALIBRATE_ON_BOOT` true.
+
+## Gotchas (must preserve)
+- `eepromPutHemat` template in header + explicit forward decls before `setup()` required.
+- 90° turn helpers (`belokKiri90`/`belokKanan90`) block in `while` waiting for line.
+- I term clamped ±50; integral reset after recovery. Adaptive speed uses factor in code/config.
+- Ultrasonic priority over all drive logic when running.
+- Lost-line timeout 2000ms then stop (red). Stuck detector can stop robot.
+- Sensor thresholds per-sensor (left/right) with clamping 5–14.
+- Path planner files live in sketch root and are only included if `ENABLE_PATH_PLANNER`.
+- Serial output controlled by `ENABLE_SERIAL_OUTPUT`/`ENABLE_SERIAL_MODE` (Bluetooth forces serial on).
+
+## Quick Commands
+- Verify: open `LineFollowerFin/LineFollowerFin.ino` in Arduino IDE with uKitExplore2 installed.
+- CLI: see `BUILD.md` (arduino-cli examples for `arduino:avr:mega`).
+- CI: `.github/workflows/compile.yml` compiles main + all three tests.

@@ -4,6 +4,9 @@
 
 #include "fwd.h"
 #include "config.h"
+#if ENABLE_FUZZY_PID
+#include "fuzzy_pid.h"
+#endif
 
 class Penggerak {
  public:
@@ -27,6 +30,12 @@ class Penggerak {
   float errorTerakhir() const;
   void telemetri(int bacaKiri, int bacaKanan);
 
+  // --- Fuzzy PID (adaptive gains) ---
+#if ENABLE_FUZZY_PID
+  void setFuzzyEnabled(bool on);
+  bool isFuzzyEnabled() const;
+#endif
+
  private:
   int terapkanDeadband(int speed);
   int batasiSlew(int target, int prev);
@@ -42,6 +51,11 @@ class Penggerak {
   // Dynamic Speed State
   unsigned long waktuLurusMulai = 0;
   int kecepatanTurboAktif = 0;
+
+  // Fuzzy adaptive PID (optional)
+#if ENABLE_FUZZY_PID
+  FuzzyPID fuzzyPid;
+#endif
 };
 
 #endif

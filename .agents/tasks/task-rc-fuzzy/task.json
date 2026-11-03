@@ -1,0 +1,7 @@
+{
+  "task_id": "task-rc-fuzzy",
+  "task_description": "Add Remote Control (RC) mode and Fuzzy/Adaptive PID to the LineFollowerFin Arduino sketch",
+  "status": "completed",
+  "feature_order": ["FEAT-000", "FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004"],
+  "blocked_reason": null
+}

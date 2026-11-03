@@ -11,6 +11,8 @@ class Antarmuka;
 class Mapper;
 class LapTimer;
 class BluetoothCtrl;
+class RcCtrl;
+class FuzzyPID;      // Optional: uncomment when using Fuzzy PID
 class PathPlanner;  // Optional: uncomment when using PathPlanner
 
 #endif

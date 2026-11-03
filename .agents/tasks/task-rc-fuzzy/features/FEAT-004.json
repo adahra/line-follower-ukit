@@ -1,0 +1,23 @@
+{
+  "id": "FEAT-004",
+  "type": "chore",
+  "description": "Final integration and verification: ensure all features work together, both ENABLE_RC and ENABLE_FUZZY_PID can be toggled independently, config.h has all new constants grouped logically, and the sketch compiles in all 4 flag combinations. Run a final compile check and document any RAM/Flash impact.",
+  "status": "completed",
+  "steps": [
+    "LineFollowerFin/config.h: verify all new constants are in logical sections (RC section, Fuzzy PID section). Ensure default values are sensible for uKit Explore 2. Add comments in Indonesian.",
+    "LineFollowerFin/LineFollowerFin.ino: ensure conditional compilation guards are correct for both features. Verify object construction order and wiring matches existing patterns (status, sensor, gerak, aman, lapTimer refs).",
+    "LineFollowerFin/antarmuka.cpp: ensure help text (status command) covers all new commands: 'mode rc', 'rc on/off', 'fuzzy on/off', and button shortcuts.",
+    "Compile all 4 combinations:\n  1. ENABLE_RC=false, ENABLE_FUZZY_PID=false (baseline)\n  2. ENABLE_RC=true, ENABLE_FUZZY_PID=false\n  3. ENABLE_RC=false, ENABLE_FUZZY_PID=true\n  4. ENABLE_RC=true, ENABLE_FUZZY_PID=true\nAll must exit 0 with no errors.",
+    "Check Flash and RAM usage for each combination. Report delta from baseline.",
+    "Update context.json if any patterns or constraints discovered during implementation."
+  ],
+  "acceptance_criteria": [
+    "All 4 flag combinations compile successfully.",
+    "Flash/RAM usage reported for each combination.",
+    "No regression in existing functionality (button cycling, serial commands, safety features).",
+    "All new serial commands documented in help text."
+  ],
+  "verification": "Run the 4 compile commands sequentially. Capture 'Sketch uses X bytes (Y%) of program storage space. Global variables use Z bytes (W%) of dynamic memory.' for each. Verify no 'does not name a type' or other errors.",
+  "blocked_reason": null,
+  "findings": "All 4 flag combinations compile successfully. Flash/RAM usage:\n1. Baseline (RC=F, Fuzzy=F): 89,620 bytes (35%) Flash, 6,068 bytes (74%) RAM\n2. RC=true, Fuzzy=false: 91,410 bytes (35%) Flash, 6,177 bytes (75%) RAM — delta: +1,790 Flash, +109 RAM\n3. RC=false, Fuzzy=true: 91,756 bytes (36%) Flash, 6,369 bytes (77%) RAM — delta: +2,136 Flash, +301 RAM\n4. RC=true, Fuzzy=true: 93,546 bytes (36%) Flash, 6,478 bytes (79%) RAM — delta: +3,926 Flash, +410 RAM\nAll well within ATMega2560 limits (253KB Flash, 8KB RAM). Low memory warning appears for configs 2-4 (expected on ATMega2560). Fuzzy PID adds 3 static const float[5][5] rule tables + float math per PID interval. RC adds pulseIn measurement + serial buffer. Both optional and off by default."
+}

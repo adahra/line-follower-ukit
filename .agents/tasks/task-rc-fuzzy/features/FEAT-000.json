@@ -1,0 +1,19 @@
+{
+  "id": "FEAT-000",
+  "type": "fix",
+  "description": "Fix baseline compile blocker: `extern uKitMotor uKitMotor;` (and the same-name pattern for uKitServo/uKitSensor/uKitId) in ukit_wrapper.h and ukit_extern.h shadows the class type, so any later use like `uKitMotor*` fails to resolve. This is a pre-existing bug in the repo that prevents arduino-cli from compiling the sketch at all.",
+  "status": "completed",
+  "steps": [
+    "Rename the extern variable declarators in LineFollowerFin/ukit_wrapper.h so the variable name no longer matches the type name. Use names that the existing code already references via macros (e.g. `uKitMotor` type -> variable `uKitMotorObj`, or keep macro compatibility). The macros in ukit_macros.h (setServoTurn -> uKitServo.setServoTurn(...)) reference the variable names directly, so the rename must keep those macro expansions valid.",
+    "Apply the same rename to LineFollowerFin/ukit_extern.h (it duplicates the extern declarations).",
+    "Update any .cpp file that references the globals by their old variable name (grep for `uKitMotor `, `uKitServo `, `uKitSensor `, `uKitId ` followed by a space or `=` or `.`) to use the new names.",
+    "Verify: `cd LineFollowerFin && arduino-cli compile --fqbn arduino:avr:mega --build-path /tmp/avrbuild LineFollowerFin.ino` succeeds with no type errors."
+  ],
+  "acceptance_criteria": [
+    "Baseline compile of LineFollowerFin.ino passes with no errors related to 'does not name a type'.",
+    "All existing functionality preserved: macros (setServoTurn, readInfraredDistance, setRgbledColor, etc.) still expand to valid member calls."
+  ],
+  "verification": "Run `cd LineFollowerFin && arduino-cli compile --fqbn arduino:avr:mega --build-path /tmp/avrbuild LineFollowerFin.ino` and confirm exit code 0 with no 'does not name a type' errors.",
+  "blocked_reason": null,
+  "findings": "Confirmed via minimal reproduction: `class Foo{}; Foo Foo;` then `Foo* p;` fails in g++ 7.3.0 with -std=gnu++11. The uKit library defines global objects named identically to their types in ucode.h (uKitMotor uKitMotor; etc.), and the wrapper headers re-declare them with the same names, which shadows the class type in every TU that includes the wrapper. Test E (different declarator name) compiles; Test F (same name) fails. Root cause is in ukit_wrapper.h lines 22-25 and the duplicate in ukit_extern.h."
+}

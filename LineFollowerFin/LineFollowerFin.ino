@@ -12,6 +12,9 @@
 #if ENABLE_BLUETOOTH
 #include "bluetooth_ctrl.h"
 #endif
+#if ENABLE_RC
+#include "rc_ctrl.h"
+#endif
 #if ENABLE_PATH_PLANNER
 #include "path_planner.h"  // Optional: enable via config.h + move optional/path_planner/ to sketch folder
 #endif
@@ -30,6 +33,9 @@ PathPlanner pathPlanner;  // Optional: uncomment + include path_planner.h when n
 Antarmuka ui(status, sensor, gerak, aman, lapTimer, mapper);
 #if ENABLE_BLUETOOTH
 BluetoothCtrl bluetooth(status, gerak, sensor, aman, lapTimer);
+#endif
+#if ENABLE_RC
+RcCtrl rc(status, gerak, sensor, aman, lapTimer);
 #endif
 
 void setup() {
@@ -71,6 +77,12 @@ void setup() {
     pathPlanner.begin(PATH_GRID_WIDTH / 2, PATH_GRID_HEIGHT / 2);
     Serial.println(F("Path Planner: Ready"));
   #endif
+
+  // Inisialisasi RC
+  #if ENABLE_RC
+    rc.begin(RC_BAUD, RC_PIN, RC_PWM);
+    Serial.println(F("RC: Ready"));
+  #endif
 }
 
 void loop() {
@@ -96,6 +108,11 @@ void loop() {
     // Bluetooth update
     #if ENABLE_BLUETOOTH
       bluetooth.update();
+    #endif
+
+    // RC update
+    #if ENABLE_RC
+      rc.update();
     #endif
 
     // Path Planner update
@@ -138,6 +155,22 @@ void loop() {
           }
         }
       }
+
+      // --- MODE RC: Remote Control menggantikan semua logika tracer ---
+      #if ENABLE_RC
+        if (status.modeOperasi == MODE_RC) {
+          if (rc.isSignalLost()) {
+            gerak.berhenti();
+            setRgbledColor(255, 0, 0);  // Merah = sinyal hilang
+          } else {
+            int speedKiri, speedKanan;
+            rc.getSpeeds(speedKiri, speedKanan);
+            gerak.jalankan(speedKiri, speedKanan);
+            setRgbledColor(0, 255, 255);  // Cyan = RC aktif
+          }
+          return;
+        }
+      #endif
 
       // --- KONDISI A: DETEKSI PERSEMPATAN / PERTIGAAN ---
       if (bacaKiri >= AMBANG_KIRI && bacaKanan >= AMBANG_KANAN) {
@@ -230,6 +263,9 @@ void loop() {
       } else if (status.modeOperasi == MODE_RACING) {
         // Mode racing: hijau
         setRgbledColor(0, 255, 0);
+      } else if (status.modeOperasi == MODE_RC) {
+        // Mode RC: cyan
+        setRgbledColor(0, 255, 255);
       } else {
         // Mode normal: mati
         setRgbledColor(0, 0, 0);

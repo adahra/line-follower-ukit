@@ -1,0 +1,24 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Integrate RC mode into the loop state machine: add rc.cek() call after ui.cekTombol(), and when status.modeOperasi == MODE_RC, bypass PID intersection/lost-line/recovery logic and drive motors directly using gerak.jalankan(speedKiri, speedKanan) from RC commands. Safety features (battery, tilt, ultrasonic, stuck) must still run.",
+  "status": "completed",
+  "steps": [
+    "LineFollowerFin/LineFollowerFin.ino: in loop(), after ui.cekTombol() and before the `if (status.jalan)` block, add `#if ENABLE_RC rc.update(); #endif`.",
+    "Inside `if (status.jalan)`, when `status.modeOperasi == MODE_RC`: skip intersection/lost-line/recovery/PID logic entirely. Instead, call rc.getThrottleSteering() (or similar) to retrieve current commanded speeds, then call gerak.jalankan(speedKiri, speedKanan) directly. Safety checks (aman.bateraiKritis(), aman.miring(), aman.halangan()) still run at the top of the loop before RC drive logic.",
+    "LineFollowerFin/antarmuka.cpp: extend button 1 short-press cycle to include MODE_RC. Current cycle: Normal -> Learning -> Racing -> Normal. New cycle: Normal -> Learning -> Racing -> RC -> Normal. Update the serial command 'mode' to accept 'rc' as an argument.",
+    "LineFollowerFin/antarmuka.cpp: add serial command 'rc on/off' to toggle RC mode (sets modeOperasi = MODE_RC and starts/stops robot appropriately). Also add 'rc status' to show RC signal values.",
+    "LineFollowerFin/antarmuka.cpp: update help text (status command) to include 'rc' in mode options and the new rc commands.",
+    "Preserve RGB LED signals: when MODE_RC active, use a distinct color (e.g. cyan) to indicate RC mode."
+  ],
+  "acceptance_criteria": [
+    "Button 1 short press cycles through Normal, Learning, Racing, RC, Normal.",
+    "Serial command 'mode rc' sets MODE_RC.",
+    "Serial command 'rc on' / 'rc off' toggles RC mode.",
+    "When MODE_RC active, PID logic is bypassed and gerak.jalankan() receives RC speeds directly.",
+    "Safety features still halt the robot when triggered even in RC mode."
+  ],
+  "verification": "Compile with ENABLE_RC=true. Verify the mode enum and cycling logic by reviewing the code. No automated test exists; verification is by code inspection and manual test on hardware.",
+  "blocked_reason": null,
+  "findings": "The loop() in LineFollowerFin.ino has the structure: safety checks (bateraiKritis, miring) -> ui.cekTombol() -> ui.cekTepuk() -> ui.cekSerial() -> aman.lampuOtomatis() -> bluetooth.update() -> if (status.jalan) { aman.halangan() -> sensor reads -> intersection -> lost-line -> normal PID }. RC integration must insert rc.update() before the if(status.jalan), and inside the jalan branch, when MODE_RC is active, skip intersection/lost-line/PID branches and go straight to motor drive from RC."
+}

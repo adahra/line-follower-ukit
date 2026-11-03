@@ -43,7 +43,27 @@ bool Penggerak::hitung(int bacaKiri, int bacaKanan, bool paksa) {
   I = constrain(I, -BATAS_INTEGRAL, BATAS_INTEGRAL);
   D = error - lastError;
 
+  // --- FUZZY ADAPTIVE PID ---
+  // Jika fuzzy aktif, hitung delta Kp/Kd/Ki dari error & delta_error,
+  // lalu gunakan gain efektif (base + delta) untuk PID.
+#if ENABLE_FUZZY_PID
+  float KpEff = Kp, KdEff = Kd, KiEff = Ki;
+  if (fuzzyPid.isEnabled()) {
+    float dKp = 0.0, dKd = 0.0, dKi = 0.0;
+    fuzzyPid.compute(error, D, dKp, dKd, dKi);  // D = delta error
+    KpEff = Kp + dKp;
+    KdEff = Kd + dKd;
+    KiEff = Ki + dKi;
+    // Clamp: gain efektif tidak boleh negatif
+    if (KpEff < 0.0) KpEff = 0.0;
+    if (KdEff < 0.0) KdEff = 0.0;
+    if (KiEff < 0.0) KiEff = 0.0;
+  }
+  PID_value = (KpEff * P) + (KiEff * I) + (KdEff * D);
+#else
   PID_value = (Kp * P) + (Ki * I) + (Kd * D);
+#endif
+
   lastError = error;
 
   // --- DYNAMIC SPEED PROFILE (Turbo Mode) ---
@@ -250,3 +270,14 @@ void Penggerak::telemetri(int bacaKiri, int bacaKanan) {
   (void)bacaKanan;
 #endif
 }
+
+// --- Fuzzy PID methods ---
+#if ENABLE_FUZZY_PID
+void Penggerak::setFuzzyEnabled(bool on) {
+  fuzzyPid.setEnabled(on);
+}
+
+bool Penggerak::isFuzzyEnabled() const {
+  return fuzzyPid.isEnabled();
+}
+#endif

@@ -1,0 +1,21 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Add MODE_RC to the ModeOperasi enum and create the rc_ctrl.h/.cpp module following the bluetooth_ctrl.h/.cpp pattern. RC receiver is read via a digital pin (PWM/PPM) or Serial if an ESP-based receiver is used.",
+  "status": "completed",
+  "steps": [
+    "LineFollowerFin/status.h: add MODE_RC = 3 to the ModeOperasi enum (after MODE_RACING).",
+    "LineFollowerFin/config.h: add ENABLE_RC (default false), RC_BAUD, RC_PIN, and RC-related parameters (RC_MIN_US, RC_MAX_US, RC_CENTER_US, RC_DEADBAND_US, RC_STEER_GAIN, RC_SCALE_MIN/MAX, RC_PULSE_TIMEOUT_MS, RC_BUTTON_*).",
+    "LineFollowerFin/fwd.h: add `class RcCtrl;` forward declaration.",
+    "Create LineFollowerFin/rc_ctrl.h: class RcCtrl with constructor taking (Status&, Penggerak&, SensorGaris&, Pengaman&, LapTimer&) refs; methods begin(), update(), readPulseWidth_us(), mapToSpeed(int pulseUs, int& outSpeedKiri, int& outSpeedKanan), isEnabled(), setEnabled(bool), setMode(ModeOperasi), getThrottle()/getSteering(), isSignalLost(), reset(). Guard internal logic with #if ENABLE_RC.",
+    "Create LineFollowerFin/rc_ctrl.cpp: implement PPM/PWM pulse measurement on RC_PIN using pulseIn (or input capture), map channel 1 (throttle) and channel 2 (steering) to left/right speeds, handle signal-loss timeout, integrate with safety features (battery/tilt/halangan/macet) by respecting aman checks rather than overriding them.",
+    "LineFollowerFin/LineFollowerFin.ino: declare `RcCtrl rc;` object inside #if ENABLE_RC, construct it in setup() with the same ref wiring pattern as BluetoothCtrl, call rc.begin() and rc.update() inside the appropriate #if guards."
+  ],
+  "acceptance_criteria": [
+    "Sketch compiles with ENABLE_RC=true and ENABLE_RC=false (both configurations build cleanly).",
+    "MODE_RC exists in the enum and is reachable via the button cycling sequence and serial command."
+  ],
+  "verification": "Run `arduino-cli compile --fqbn arduino:avr:mega --build-path /tmp/avrbuild LineFollowerFin.ino` with ENABLE_RC=true, then with ENABLE_RC=false. Both must exit 0.",
+  "blocked_reason": null,
+  "findings": "bluetooth_ctrl.h/.cpp is the established template for optional modules: constructor takes (Status&, Penggerak&, SensorGaris&, Pengaman&, LapTimer&) refs; begin()/update() pattern; guarded by #if ENABLE_X in .ino. rc_ctrl follows the same shape. RC receiver reads via digital pin (PWM/PPM) per the user instruction."
+}

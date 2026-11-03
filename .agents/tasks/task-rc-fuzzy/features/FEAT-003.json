@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Create fuzzy_pid.h/.cpp module implementing a Fuzzy PID controller. Input: error (range ±10) and delta_error (range ±10). Output: delta_Kp (±5), delta_Kd (±2), delta_Ki (±0.5). Membership functions: NB, NS, Z, PS, PB (5 each). 5x5 rule tables for each output. Integrate into penggerak.cpp so PID parameters become adaptive: Kp_eff = Kp_base + delta_Kp, etc. Kp_base remains the EEPROM-persisted value. Add serial command 'fuzzy on/off' and a button shortcut to toggle.",
+  "status": "completed",
+  "steps": [
+    "LineFollowerFin/config.h: add ENABLE_FUZZY_PID (default false), FUZZY_ERROR_MAX (10), FUZZY_DERROR_MAX (10), FUZZY_DKP_MAX (5), FUZZY_DKD_MAX (2), FUZZY_DKI_MAX (0.5). Add fuzzy control flags.",
+    "LineFollowerFin/fwd.h: add `class FuzzyPID;` forward declaration.",
+    "Create LineFollowerFin/fuzzy_pid.h: class FuzzyPID with methods: begin(), compute(float error, float deltaError, float& dKp, float& dKd, float& dKi), setEnabled(bool), isEnabled(), reset(). Membership function helpers: trimf(x, a,b,c), membership arrays. Rule tables as static const arrays (5x5 for each output).",
+    "Create LineFollowerFin/fuzzy_pid.cpp: implement triangular membership functions for NB, NS, Z, PS, PB. Implement Mamdani inference with centroid defuzzification for each output. Rule tables: standard fuzzy PID rules (e.g. if error=NB and dError=NB -> large positive dKp). Keep RAM usage low (use float arrays, not dynamic allocation).",
+    "LineFollowerFin/penggerak.h: add `void setFuzzyEnabled(bool);` `bool isFuzzyEnabled();` and `float getEffectiveKp();` etc. if needed.",
+    "LineFollowerFin/penggerak.cpp: declare `FuzzyPID fuzzyPid;` member (conditionally compiled). In hitung(), if fuzzy enabled, call fuzzyPid.compute(error, error - lastError, dKp, dKd, dKi) before PID calculation. Use effective gains: Kp_eff = Kp + dKp, Kd_eff = Kd + dKd, Ki_eff = Ki + dKi. Clamp effective gains to reasonable bounds. Reset fuzzy state when resetIntegralSetelahRecovery() is called.",
+    "LineFollowerFin/LineFollowerFin.ino: instantiate `FuzzyPID fuzzyPid;` inside #if ENABLE_FUZZY_PID, pass to Penggerak constructor or initialize via method.",
+    "LineFollowerFin/antarmuka.cpp: add serial command 'fuzzy on/off' to toggle fuzzy PID. Add 'fuzzy' without argument to show status. Add button shortcut (e.g., long-press B1+B2 combo when stopped toggles fuzzy mode). Update help text.",
+    "LineFollowerFin/config.cpp: define global `bool fuzzyEnabled = false;` if needed for persistence or shared state."
+  ],
+  "acceptance_criteria": [
+    "Sketch compiles with ENABLE_FUZZY_PID=true and ENABLE_FUZZY_PID=false.",
+    "FuzzyPID::compute() runs within the PID interval (10ms) without blocking.",
+    "Serial command 'fuzzy on' enables adaptive PID, 'fuzzy off' disables it.",
+    "When enabled, Kp/Kd/Ki vary per loop based on error and delta_error; when disabled, static Kp/Kd/Ki from config are used.",
+    "Button shortcut toggles fuzzy mode (specific binding TBD during implementation)."
+  ],
+  "verification": "Compile with ENABLE_FUZZY_PID=true and ENABLE_FUZZY_PID=false. Both must exit 0. Code review confirms fuzzy inference runs per PID interval and effective gains are applied correctly.",
+  "blocked_reason": null,
+  "findings": "Implemented: fuzzy_pid.cpp with triangular membership functions (NB, NS, Z, PS, PB), Mamdani min-AND inference, weighted average defuzzification (Sugeno-style singleton outputs). Rule tables are symmetric for line-follower (error+ and error- produce identical magnitude correction). FuzzyPID is a private member of Penggerak (no separate global needed). Include order fix: config.h must be included before fuzzy_pid.h because the #if ENABLE_FUZZY_PID guard in fuzzy_pid.h depends on the #define from config.h. Button shortcut: B1+B2 hold 1-2 seconds toggles fuzzy (between quick-release=calibration and 2s=auto-tune). Serial command: 'fuzzy on|off|status'. Effective gains clamped to non-negative. FuzzyPID is stateless (no accumulator), so resetIntegralSetelahRecovery needs no fuzzy-specific reset."
+}
