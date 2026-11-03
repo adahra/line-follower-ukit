@@ -59,37 +59,25 @@ void Antarmuka::cekTombol() {
   // Tanpa ini, branch tombol tunggal tetap menambah Kp / ganti mode tiap
   // 300 ms dan terus me-reset cooldownB1 sehingga alur "tekan lagi dalam
   // 2 detik untuk Auto-Tune" hampir mustahil tercapai.
-  // Alur baru: tahan keduanya >= 2 detik = kalibrasi + auto-tune;
+  // Alur: tahan keduanya >= 2 detik = kalibrasi + auto-tune;
   // lepas sebelum 2 detik = kalibrasi sensor saja.
+  // Fuzzy toggle lewat serial command 'fuzzy on/off' (lebih andal).
   if (!status.jalan && buttonState1 != 0 && buttonState2 != 0) {
     if (comboMulai == 0) {
       comboMulai = now;
       comboSelesai = false;
-      comboFuzzyToggle = false;
-      Serial.println(F("Combo B1+B2: tahan 2 detik = Auto-Tune, 1 detik = toggle Fuzzy, lepas cepat = kalibrasi."));
+      Serial.println(F("Combo B1+B2: tahan 2 detik = Auto-Tune, lepas lebih cepat = kalibrasi saja."));
     } else if (!comboSelesai && now - comboMulai >= 2000) {
       comboSelesai = true;
       Serial.println(F(">>> Memulai Kalibrasi + Auto-Tuning PID <<<"));
       tuningSequence();
-    } else if (!comboSelesai && !comboFuzzyToggle && now - comboMulai >= 1000) {
-      // Tahan 1-2 detik: toggle Fuzzy PID
-      comboFuzzyToggle = true;
-#if ENABLE_FUZZY_PID
-      bool fuzzyOn = !gerak.isFuzzyEnabled();
-      gerak.setFuzzyEnabled(fuzzyOn);
-      Serial.print(F("Fuzzy PID: "));
-      Serial.println(fuzzyOn ? F("ON") : F("OFF"));
-#else
-      Serial.println(F("Fuzzy PID tidak aktif (ENABLE_FUZZY_PID=false)."));
-#endif
     }
     return;  // combo aktif: tombol tunggal tidak diproses
   }
 
   // Tombol dilepas sebelum 2 detik: kalibrasi sensor saja (sekali per combo).
-  // Kecuali jika fuzzy toggle sudah jalan (1 detik): lepas = tidak ada aksi tambahan.
   if (comboMulai != 0) {
-    if (!comboSelesai && !comboFuzzyToggle && buttonState1 == 0 && buttonState2 == 0) {
+    if (!comboSelesai && buttonState1 == 0 && buttonState2 == 0) {
       Serial.println(F(">>> Kalibrasi sensor..."));
       sensor.kalibrasi(gerak);
       setRgbledColor(255, 255, 0);  // kuning selesai kalibrasi
@@ -97,7 +85,6 @@ void Antarmuka::cekTombol() {
     }
     comboMulai = 0;
     comboSelesai = false;
-    comboFuzzyToggle = false;
     return;  // frame lepas: jangan langsung proses tombol tunggal
   }
 
@@ -457,7 +444,8 @@ void Antarmuka::parseCommand(char *cmd) {
     Serial.println(F("=== MODE via TOMBOL (saat berhenti) ==="));
     Serial.println(F("B1 pendek: Pindah mode Normal <-> Learning <-> Racing <-> RC"));
     Serial.println(F("B1 lama: Toggle mode Setel Kp/Kd"));
-    Serial.println(F("B1+B2: Kalibrasi (lepas cepat) / Toggle Fuzzy (tahan 1s) / Auto-Tuning (tahan 2s)"));
+    Serial.println(F("B1+B2: Kalibrasi sensor (pendek) / Auto-Tuning (lama)"));
+    Serial.println(F("Fuzzy PID: gunakan serial 'fuzzy on/off' untuk toggle"));
   } else {
     Serial.print(F("Perintah tidak dikenal: "));
     Serial.println(cmd);
