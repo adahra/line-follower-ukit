@@ -9,7 +9,7 @@ float Ki = 0.1;
 float Kd = 1.5;
 
 int kecepatanDasarMaks = 110;
-int kecepatanDasarMin = 55;  // 50->55: di atas deadband 25, tikungan tak mati total
+int kecepatanDasarMin = 40;  // 50->55: di atas deadband 25, tikungan tak mati total
 int kecepatanDasar = 40;
 
 // Default ambang: 8 (tengah rentang valid 5-14). 3 di bawah rentang -> sensor
