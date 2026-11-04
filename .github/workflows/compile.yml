@@ -5,29 +5,67 @@ on: [push, pull_request]
 jobs:
   compile:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup arduino-cli
         uses: arduino/setup-arduino-cli@v1
-        
+
       - name: Install AVR core
         run: arduino-cli core install arduino:avr
-        
-      - name: Install uKit library
+
+      - name: Install uKit Explore library
         run: |
-          mkdir -p ~/Arduino/libraries
-          # Copy uKitExplore2 library jika ada di repo
-          # atau download dari release
-          
+          mkdir -p "$HOME/Arduino/libraries"
+          # Library uKit Explore tidak di-vendor di repo. Sumber resmi:
+          # https://github.com/UBTEDU/uKitExplore-library
+          git clone --depth 1 https://github.com/UBTEDU/uKitExplore-library.git \
+            "$HOME/Arduino/libraries/uKitExplore-library"
+          # ucode.h/uKitSensor.h membutuhkan ArduinoJson 6.x (bukan 7.x).
+          # v6.19.4 = rilis 6.19 terakhir yang tersedia sebagai tag Git.
+          git clone --depth 1 --branch v6.19.4 \
+            https://github.com/bblanchon/ArduinoJson.git \
+            "$HOME/Arduino/libraries/ArduinoJson"
+          arduino-cli lib list
+
       - name: Compile main sketch
         run: |
-          cd LineFollowerFin
-          arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin.ino
-          
+          arduino-cli compile \
+            --fqbn arduino:avr:mega \
+            --libraries "$HOME/Arduino/libraries" \
+            --build-path "$RUNNER_TEMP/build-main" \
+            LineFollowerFin
+
+      - name: Compile optional-feature build
+        run: |
+          # Salin sketch ke folder bernama sama (syarat Arduino), lalu aktifkan
+          # fitur opsional. Ini menangkap error API seperti heading/adaptive.
+          mkdir -p "$RUNNER_TEMP/feature"
+          cp -r LineFollowerFin "$RUNNER_TEMP/feature/LineFollowerFin"
+          cfg="$RUNNER_TEMP/feature/LineFollowerFin/config.h"
+          sed -i \
+            -e 's/^#define ENABLE_RC false/#define ENABLE_RC true/' \
+            -e 's/^#define ENABLE_HEADING_CORRECTION false/#define ENABLE_HEADING_CORRECTION true/' \
+            -e 's/^#define ENABLE_ADAPTIVE_THRESHOLD false/#define ENABLE_ADAPTIVE_THRESHOLD true/' \
+            -e 's/^#define ENABLE_GAIN_SCHEDULING false/#define ENABLE_GAIN_SCHEDULING true/' \
+            -e 's/^#define ENABLE_LAP_TIMER false/#define ENABLE_LAP_TIMER true/' \
+            "$cfg"
+          arduino-cli compile \
+            --fqbn arduino:avr:mega \
+            --libraries "$HOME/Arduino/libraries" \
+            --build-path "$RUNNER_TEMP/build-feature" \
+            "$RUNNER_TEMP/feature/LineFollowerFin"
+
       - name: Compile test sketches
         run: |
-          cd LineFollowerFin
-          arduino-cli compile --fqbn arduino:avr:mega TestLapTimer.ino
-          arduino-cli compile --fqbn arduino:avr:mega TestBluetooth.ino
-          arduino-cli compile --fqbn arduino:avr:mega TestPathPlanner.ino
+          set -e
+          for test in TestLapTimer TestBluetooth TestPathPlanner; do
+            echo "=== $test ==="
+            arduino-cli compile \
+              --fqbn arduino:avr:mega \
+              --libraries "$HOME/Arduino/libraries" \
+              --build-path "$RUNNER_TEMP/build-$test" \
+              "LineFollowerFin/tests/$test"
+          done
