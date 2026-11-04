@@ -130,7 +130,7 @@ arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin/tests/TestPathPlanne
 
 ### Output compile sukses (default semua fitur opsional OFF):
 ```
-Sketch uses 90448 bytes (35%) of program storage space. Maximum is 253952 bytes.
+Sketch uses 90432 bytes (35%) of program storage space. Maximum is 253952 bytes.
 Global variables use 5813 bytes (70%) of dynamic memory, leaving 2379 bytes for local variables. Maximum is 8192 bytes.
 ```
 

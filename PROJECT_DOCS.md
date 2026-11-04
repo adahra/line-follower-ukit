@@ -120,7 +120,7 @@ struct Status {
 - `telemetri(int bacaKiri, int bacaKanan)` — Dump CSV telemetry data.
 
 ### `Pengaman` (pengaman.h)
-- `bateraiKritis()` — Return true if battery voltage ≤ `TEGANGAN_MIN` (5.5V), locking all functions until power cycle.
+- `bateraiKritis()` — Return true if battery voltage ≤ `TEGANGAN_MIN` (5.5V), locking all functions until power cycle. Disabled entirely when `ENABLE_BATTERY_CHECK=false`.
 - `miring()` — Return true if IMU tilt > `TILT_MAKS_DERAJAT` (45°).
 - `halangan()` — Return true if ultrasonic distance ≤ `JARAK_BERHENTI_CM` (5 cm).
 - `macet(int bacaKiri, int bacaKanan)` — Return true if robot is stuck (IR readings stable + accelerometer magnitude stable for `STUCK_DIAM_MS` = 2000ms).
@@ -335,7 +335,7 @@ if (!eepromValid && AUTO_CALIBRATE_ON_BOOT) {
 
 | Feature | Trigger | Action |
 |---------|---------|--------|
-| **Battery Critical** | `tegangan() ≤ TEGANGAN_MIN` (5.5V) | Lock all functions; robot stays stopped until power cycle (restart) |
+| **Battery Critical** | `tegangan() ≤ TEGANGAN_MIN` (5.5V) | Lock all functions; robot stays stopped until power cycle. Bisa dimatikan via `ENABLE_BATTERY_CHECK=false` |
 | **Tilt/Miring** | IMU tilt > 45° | Motors disabled until robot is flat again |
 | **Front Obstacle** | Ultrasonic ≤ 5 cm | **Priority over ALL drive logic** — robot stops immediately |
 | **Stuck Detector** | IR stable + accel magnitude stable for 2s | Robot stops; requires operator intervention |

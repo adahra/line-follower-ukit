@@ -115,6 +115,7 @@ failsafe menghentikan robot setelah `RC_PULSE_TIMEOUT_MS`.
 ## Baterai
 - `readBatteryVoltage()` — 0–8.4V
 - `TEGANGAN_MIN` = 5.5V → latch stop, butuh power cycle
+- `ENABLE_BATTERY_CHECK` = `true` (default) / `false` untuk menonaktifkan latch
 
 ## Serial Commands (baru)
 Buka Serial Monitor (115200 baud), ketik:

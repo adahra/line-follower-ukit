@@ -26,7 +26,11 @@ float Pengaman::tegangan() {
 }
 
 // Sekali terkunci, hanya power cycle (restart) yang membuka. Non-blocking.
+// Dapat dimatikan lewat ENABLE_BATTERY_CHECK=false di config.h.
 bool Pengaman::bateraiKritis() {
+#if !ENABLE_BATTERY_CHECK
+  return false;
+#else
   unsigned long now = millis();
   if (!bateraiLemah && now - cekBateraiTerakhir >= CEK_BATERAI_MS) {
     cekBateraiTerakhir = now;
@@ -49,6 +53,7 @@ bool Pengaman::bateraiKritis() {
   }
 
   return false;
+#endif
 }
 
 void Pengaman::bacaIMU() {

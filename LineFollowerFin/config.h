@@ -88,6 +88,9 @@ extern int kecepatanDasar;      // Variabel dinamis yang akan dikalibrasi oleh P
 // --- BATERAI LEMAH: hentikan semua fungsi bila tegangan <= ambang ---
 // Docs: readBatteryVoltage() -> float 0-8.4 V. Dicek throttle 500 ms;
 // sekali lemah, robot dikunci mati sampai power cycle (restart).
+// Set ENABLE_BATTERY_CHECK=false untuk menonaktifkan latch ini (mis. saat
+// pengujian dengan power supply yang tegangannya di bawah ambang).
+#define ENABLE_BATTERY_CHECK true
 #define TEGANGAN_MIN 5.5
 #define CEK_BATERAI_MS 500
 

@@ -56,7 +56,11 @@ void setup() {
       sensor.cetak();
       Serial.print(F("Baterai: "));
       Serial.print(aman.tegangan());
-      Serial.println(F(" V"));
+      Serial.print(F(" V"));
+#if !ENABLE_BATTERY_CHECK
+      Serial.print(F(" (cek lemah NONAKTIF)"));
+#endif
+      Serial.println();
       Serial.println(F("Setup selesai. Kalibrasi manual: tekan 2 tombol bersamaan."));
     }
   }

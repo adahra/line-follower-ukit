@@ -67,7 +67,7 @@ Mode dapat diatur via antarmuka/serial (lihat `antarmuka`).
 - **Clap toggle**: jalan/berhenti via tepuk tangan (`SOUND_SENSOR_ID`, dengan ambang + histeresis + cooldown).
 - **Tilt halt** (IMU): berhenti saat miring/terangkat (> `TILT_MAKS_DERAJAT`).
 - **Stuck detector**: deteksi macet (IR beku + perubahan akselerasi stabil) dan menghentikan robot.
-- **Battery latch**: bila tegangan <= `TEGANGAN_MIN` (5.5V), robot dikunci mati sampai power cycle.
+- **Battery latch**: bila tegangan <= `TEGANGAN_MIN` (5.5V), robot dikunci mati sampai power cycle. Dapat dimatikan dengan `ENABLE_BATTERY_CHECK=false` di `config.h`.
 - **Lost-line recovery**: putar cari garis ke arah `lastError`, timeout **2 detik** lalu berhenti (LED merah).
 - **Intersection handling**: lewati aman lalu putar 90° kiri/kanan atau lurus berdasarkan pembacaan segar.
 
