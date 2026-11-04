@@ -28,7 +28,7 @@ setServoTurn(3, 0, speedKanan); // Kanan belakang
 
 **Konvensi error**: `error = (kiri - kanan) / 2.0` → positif = belok kanan, negatif = belok kiri
 
-**Ambang per sensor** (EEPROM addr 20/22, default 8):
+**Ambang per sensor** (EEPROM addr 20/22, default 6):
 - `AMBANG_KIRI`  — sensor ID 2
 - `AMBANG_KANAN` — sensor ID 1
 
@@ -64,6 +64,18 @@ setServoTurn(3, 0, speedKanan); // Kanan belakang
 | 2 (lama) | Save EEPROM + Start (kalau berhenti) |
 | 1+2 bersamaan (berhenti) | Kalibrasi manual sensor (putar 3 detik) |
 
+## Remote Control (opsional, `ENABLE_RC=true`)
+| Config | Pin | Keterangan |
+|--------|-----|------------|
+| `RC_PIN` | 2 | Channel throttle (PWM receiver 50 Hz) |
+| `RC_STEER_PIN` | 3 | Channel steering (PWM receiver 50 Hz) |
+| `RC_CENTER_US` | — | 1500 µs = netral; throttle tengah = berhenti |
+| `RC_DEADBAND_US` | — | 50 µs di sekitar center dianggap netral |
+
+Throttle negatif = mundur, positif = maju. Steering saja saat throttle netral
+menghasilkan pivot turn. Kedua channel harus terhubung; jika salah satu hilang,
+failsafe menghentikan robot setelah `RC_PULSE_TIMEOUT_MS`.
+
 ## RGB LED (Status Indikator)
 | Warna | Kondisi |
 |-------|---------|
@@ -76,15 +88,23 @@ setServoTurn(3, 0, speedKanan); // Kanan belakang
 ## EEPROM Layout
 | Addr | Tipe | Variabel | Catatan |
 |------|------|----------|---------|
+| 3    | byte | Guard `77` | Mencegah `Initialization()` uKit menghapus 0–20 |
 | 0    | byte | Magic `123` | Valid marker |
 | 4    | float | `Kp` | |
-| 8    | float | `Ki` | **Baru** (sebelumnya tdk disimpan) |
+| 8    | float | `Ki` | |
 | 12   | float | `Kd` | |
 | 16   | int | `kecepatanDasarMaks` | |
 | 20   | int | `AMBANG_KIRI` | |
 | 22   | int | `AMBANG_KANAN` | |
+| 24–266 | — | Peta waypoint | magic `77` + count + 30 × 8 byte |
+| 280  | float | `HEADING_GAIN` | |
+| 284  | float | `HEADING_TARGET` | |
+| 288  | int | `AMBANG_KIRI_BASE` | adaptive threshold |
+| 290  | int | `AMBANG_KANAN_BASE` | adaptive threshold |
+| 292  | float | `HEADING_BIAS` | |
+| 296/297 | byte | Magic heading/adaptive | `88` / `66` |
 
-> `kecepatanDasarMin` & `Ki` (sebelumnya) **tidak** disimpan — pakai default kode.
+> `kecepatanDasarMin` **tidak** disimpan — pakai default kode.
 
 ## IMU Onboard
 - `IMU::init()` di `setup()`

@@ -55,8 +55,9 @@ Since there are no automated test scripts, verification is performed by:
 
 ### EEPROM Persistence
 The following are stored in EEPROM (Magic value `123` at address 0):
-- `Kp` (addr 4), `Kd` (addr 8), `kecepatanDasarMaks` (addr 16), `AMBANG_KIRI` (addr 20), `AMBANG_KANAN` (addr 22).
-- *Note: `Ki` and `kecepatanDasarMin` are NOT persisted.*
+- `Kp` (addr 4), `Ki` (addr 8), `Kd` (addr 12), `kecepatanDasarMaks` (addr 16), `AMBANG_KIRI` (addr 20), `AMBANG_KANAN` (addr 22).
+- Waypoint map (addr 24–266), heading/adaptive parameters (addr 280–297).
+- *Note: `kecepatanDasarMin` is NOT persisted.*
 
 ## Key Constraints
 - **Blocking Calls**: 90° turn helpers use `while` loops that block until the line is found. Do not refactor these into non-blocking code without ensuring the robot maintains its wait-state.

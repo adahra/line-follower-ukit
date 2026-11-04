@@ -182,7 +182,7 @@ Output:
 Obstacle marked at (3,3)
 ```
 
-Setelah menambah obstacle, jalankan `path find` untuk memperbarui path. Obstacle juga dapat terdeteksi otomatis dari sensor ultrasonic selama robot berjalan (bila `ENABLE_PATH_PLANNER = true` dan `loop()` memanggil `pathPlanner.updateMap()`).
+Setelah menambah obstacle, jalankan `path find` untuk memperbarui path. Deteksi obstacle otomatis dari sensor ultrasonic **tidak lagi berjalan di `loop()`**: Path Planner dipakai sebagai alat peta/A* manual, bukan navigasi otonom. Lihat bagian 7.
 
 ---
 
@@ -273,22 +273,15 @@ Path planner di-init saat boot di `LineFollowerFin.ino`:
 
 ---
 
-## 7. Update Otomatis via `loop()`
+## 7. Update Peta: Manual, Bukan Otomatis
 
-Selama robot berjalan, `loop()` memanggil `pathPlanner.updateMap()` tiap iterasi:
+Sejak perbaikan P1, `loop()` **tidak** memanggil `pathPlanner.updateMap()`. Alasan:
 
-```cpp
-#if ENABLE_PATH_PLANNER
-  pathPlanner.updateMap(sensor, pathPlanner.getRobotGridX(), pathPlanner.getRobotGridY(), 0);
-#endif
-```
+1. Posisi grid robot selalu (4,4) karena tidak ada odometri/encoder; memanggil updateMap hanya menandai cell yang sama berulang kali.
+2. Heading yang dikirim dulu selalu `0` (Utara), bukan orientasi IMU.
+3. Setiap panggilan membaca sensor IR dan ultrasonik lagi, sehingga filter sensor ter-update dua kali per loop.
 
-`updateMap()` melakukan:
-1. Tandai cell posisi robot sebagai `CELL_VISITED`.
-2. Jika kedua sensor IR mendeteksi garis (`>= AMBANG`), tandai cell depan sebagai `CELL_LINE`.
-3. Jika sensor ultrasonic mendeteksi objek ≤ `JARAK_BERHENTI_CM` (5 cm), tandai cell depan sebagai `CELL_OBSTACLE` — throttled per `CEK_HALANGAN_MS` (100 ms).
-
-Heading yang dikirim saat ini selalu `0` (Utara); orientasi robot belum diintegrasikan dari IMU.
+Path Planner sekarang murni alat bantu lewat perintah serial (`path map`, `path goal`, `path find`, `path obstacle`, `path next`). Ia tidak menggerakkan motor. Untuk navigasi otonom, dibutuhkan odometri/encoder dan integrasi `getNextWaypoint()` ke penggerak.
 
 ---
 
@@ -390,4 +383,4 @@ File `LineFollowerFin/tests/TestPathPlanner/TestPathPlanner.ino` adalah sketch m
 | `path_planner.h` | 13–15 | `GRID_WIDTH`, `GRID_HEIGHT`, `CELL_SIZE_CM` |
 | `config.h` | ~163–168 | `ENABLE_PATH_PLANNER`, `PATH_GRID_WIDTH/HEIGHT` |
 | `LineFollowerFin.ino` | ~64–67 | `pathPlanner.begin()` di `setup()` |
-| `LineFollowerFin.ino` | ~112–114 | `pathPlanner.updateMap()` di `loop()` |
+| `LineFollowerFin.ino` | loop | **tidak** memanggil `updateMap()` (mode peta manual) |

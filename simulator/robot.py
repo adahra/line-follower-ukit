@@ -246,10 +246,10 @@ class Robot:
             self.speed_kiri = 0
             self.speed_kanan = 0
             self.sub_state = "NORMAL"
-            # Ambang = (maks+min)/2 per sensor, dikunci ke rentang valid 5..14
+            # Ambang = (maks+min)/2 per sensor, dikunci ke rentang valid 3..18
             # (mirip sensor_garis.cpp::kalibrasi).
-            cfg.AMBANG_KIRI = int(max(5, min(14, (self.maks_kiri + self.min_kiri) / 2.0)))
-            cfg.AMBANG_KANAN = int(max(5, min(14, (self.maks_kanan + self.min_kanan) / 2.0)))
+            cfg.AMBANG_KIRI = int(max(3, min(18, (self.maks_kiri + self.min_kiri) / 2.0)))
+            cfg.AMBANG_KANAN = int(max(3, min(18, (self.maks_kanan + self.min_kanan) / 2.0)))
             self.state_label = "DIHENTIKAN"
             return
 

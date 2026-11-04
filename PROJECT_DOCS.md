@@ -33,7 +33,7 @@ The robot follows a black line on a white surface using IR sensors, with PID con
 | **Target Board** | uKit Explore 2 |
 | **External Libraries** (must be installed in Arduino IDE) | `uKitExplore2.h`, `ClickButton.h`, `uKitMotor.h`, `uKitServo.h`, `uKitSensor.h`, `uKitId.h`, `onBoardHW.h`, `TransforRobot.h`, `VisionDiscrim.h`, `KalmanMPU6050.h` |
 | **Built-in Libraries** | `EEPROM.h`, `Arduino.h` |
-| **Build System** | Manual Arduino compile (no CI/lint/test) |
+| **Build System** | Arduino compile + GitHub Actions CI (`.github/workflows/compile.yml`) |
 
 ---
 
@@ -87,7 +87,7 @@ The project uses a modular class-based architecture with **one `.h`/`.cpp` pair 
 ### Key Design Notes
 - **All classes use reference semantics** — objects are declared in `.ino` and passed by reference to constructors/ methods.
 - **Forward declarations in `fwd.h`** — mandatory because the `eepromPutHemat` template breaks Arduino's auto-prototype generator. Explicit forward declarations must exist before `setup()`.
-- **No auto-calibration at boot** — manual calibration via pressing both buttons together while stopped (spins 3s, auto-computes per-sensor thresholds `AMBANG_KIRI`/`AMBANG_KANAN`, each clamped to 5–14).
+- **No auto-calibration at boot** — manual calibration via pressing both buttons together while stopped (spins 3s, auto-computes per-sensor thresholds `AMBANG_KIRI`/`AMBANG_KANAN`, each clamped to 3–18).
 - **All comments/serial prints in Indonesian** — preserve this language consistency when adding/editing code.
 
 ---
@@ -107,7 +107,7 @@ struct Status {
 ### `SensorGaris` (sensor_garis.h)
 - `bacaKiri()` — Read left sensor (ID 2), already filtered
 - `bacaKanan()` — Read right sensor (ID 1), already filtered
-- `kalibrasi(Penggerak &gerak)` — Manual calibration: spin 3s, compute per-sensor thresholds, clamped to 5–14
+- `kalibrasi(Penggerak &gerak)` — Manual calibration: spin 3s, compute per-sensor thresholds, clamped to 3–18
 - `simpan()` — Save Kp/Kd/speed/ambang to EEPROM (using `eepromPutHemat`)
 - `muat()` — Load from EEPROM (validated by magic number `123` at addr 0)
 
@@ -143,28 +143,28 @@ All tunable values are in one place. **Tune here** — do not scatter constants 
 
 ### PID Parameters
 - `extern float Kp` — Proportional gain
-- `extern float Ki` — Integral gain (NOT persisted to EEPROM)
+- `extern float Ki` — Integral gain
 - `extern float Kd` — Derivative gain
 - `extern int kecepatanDasarMaks` — Max speed baseline (clamped 60–150 via button)
 - `extern int kecepatanDasarMin` — Min speed (NOT persisted to EEPROM)
 - `extern int kecepatanDasar` — Dynamic speed, adapted by PID
 
 ### PID Constraints
-- `const float FAKTOR_REM_ADAPTIF = 0.6` — Aggressiveness of speed reduction when veering
+- `const float FAKTOR_REM_ADAPTIF = 0.35` — Aggressiveness of speed reduction when veering
 - `const float BATAS_INTEGRAL = 50` — Anti-windup clamp for I term (±50)
 - `const int SPEED_TOMBOL_MIN = 60` — Min speed via button
 - `const int SPEED_TOMBOL_MAKS = 150` — Max speed (also derated servo limit)
 
 ### Dynamic Speed Profile (Turbo Mode)
-- `const int KECEPATAN_TURBO = 150` — Max speed on straightaways
-- `const float LURUS_THRESHOLD = 2.0` — If `abs(error) < 2.0`, considered straight
+- `const int KECEPATAN_TURBO = 120` — Max speed on straightaways
+- `const float LURUS_THRESHOLD = 3.0` — If `abs(error) < 3.0`, considered straight
 - `const unsigned long LURUS_TIME_REQUIRED = 500` — Must be straight for 500ms before Turbo
-- `const int TURBO_RAMP_SPEED = 2` — Speed ramp per update to avoid slipping
+- `const int TURBO_RAMP_SPEED = 1` — Speed ramp per update to avoid slipping
 
 ### Servo Limits
 - `const int SERVO_MIN_EFEKTIF = 25` — Speeds 1–24 forced to 25 or 0 (deadband compensation)
 - `const int SERVO_MAKS_DIPAKAI = 150` — Derated from 255; do not increase without track testing
-- `const int SLEW_MAKS_PER_LOOP = 10` — Max speed change per loop anti-slip
+- `const int SLEW_MAKS_PER_LOOP = 14` — Max speed change per loop anti-slip
 
 ### Sensor IDs (confirm against wiring)
 - `const int LIGHT_SENSOR_ID = 1`
@@ -179,14 +179,22 @@ All tunable values are in one place. **Tune here** — do not scatter constants 
 ### EEPROM Addresses
 | Address | Value |
 |---------|-------|
+| 3 | Guard `77` (mencegah `Initialization()` uKit menghapus 0–20) |
 | 0 | Magic number `123` (validates EEPROM data) |
 | 4 | `Kp` (float, 4 bytes) |
-| 8 | `Ki` (float, 4 bytes — but NOT persisted) |
+| 8 | `Ki` (float, 4 bytes) |
 | 12 | `Kd` (float, 4 bytes) |
 | 16 | `kecepatanDasarMaks` (int, 2 bytes) |
-| 18 | `AMBANG_KIRI` (int, 2 bytes) |
-| 20 | (unused/reserved) |
-| 22 | `AMBANG_KANAN` (int, 2 bytes — newer format) |
+| 20 | `AMBANG_KIRI` (int, 2 bytes) |
+| 22 | `AMBANG_KANAN` (int, 2 bytes) |
+| 24–266 | Peta waypoint (magic `77` + count + 30 × 8 byte) |
+| 280 | `HEADING_GAIN` (float) |
+| 284 | `HEADING_TARGET` (float) |
+| 288 | `AMBANG_KIRI_BASE` (int) |
+| 290 | `AMBANG_KANAN_BASE` (int) |
+| 292 | `HEADING_BIAS` (float) |
+| 296 | Magic data heading `88` |
+| 297 | Magic data adaptive `66` |
 
 ### Boot Options
 - `const bool AUTO_CALIBRATE_ON_BOOT = false` — If true, auto-calibrate on invalid EEPROM at boot
@@ -227,7 +235,7 @@ The robot has 3 primary modes, plus sub-modes:
    - RGB: Merah/Magenta
 
 3. **Normal PID tracing** (one or both sensors near threshold):
-   - Adaptive speed: `kecepatanDasar = maks - abs(PID) × 0.6`, clamped to `[min, maks]`
+   - Adaptive speed: `kecepatanDasar = maks - abs(PID) × 0.35`, clamped to `[min, maks]`
    - I term clamped to ±50
    - LED based on mode (see below)
 
@@ -281,14 +289,16 @@ Configuration is persisted to EEPROM at boot and on explicit save:
 
 ### What IS Persisted
 - `Kp` (float, addr 4)
+- `Ki` (float, addr 8)
 - `Kd` (float, addr 12)
 - `kecepatanDasarMaks` (int, addr 16)
-- `AMBANG_KIRI` (int, addr 18 — was single threshold; now separate left/right)
-- `AMBANG_KANAN` (int, addr 22 — new format, used if EEPROM magic exists)
+- `AMBANG_KIRI` (int, addr 20)
+- `AMBANG_KANAN` (int, addr 22)
+- Peta waypoint (addr 24–266)
+- Parameter heading/adaptive (addr 280–297)
 - Magic number `123` at addr 0 (validates that EEPROM data is valid)
 
 ### What is NOT Persisted
-- `Ki` — always uses default/code value
 - `kecepatanDasarMin` — always uses default/code value
 
 ### Write Strategy: `eepromPutHemat` Template
@@ -358,7 +368,7 @@ if (!eepromValid && AUTO_CALIBRATE_ON_BOOT) {
 - **Sensor IDs (`LIGHT_SENSOR_ID`, `ULTRASONIC_ID`)** are guesses — confirm against actual wiring
 - **90° turns may not be perfectly accurate** — depends on surface, friction, sensor thresholds
 - **EEPROM write skipping** means if you change a value to the same value, it won't be written (useful, but can be confusing during development)
-- **`Ki` and `kecepatanDasarMin` are NOT persisted** — they always revert to code defaults on restart
+- **`kecepatanDasarMin` is NOT persisted** — it always reverts to the code default on restart
 - **Auto-calibration at boot** only happens if `AUTO_CALIBRATE_ON_BOOT = true` AND EEPROM magic is invalid
 - **Clap toggle is finicky** — ambient noise can trigger false positives; tune `TEPUK_AMBANG` and `TEPUK_LEPAS` for your environment
 
@@ -387,13 +397,13 @@ cd /home/tovi/Dokumen/line-follower-ukit/LineFollowerFin
 # Verify (✓) or Sketch → Verify/Compile
 
 # Or via command line if arduino-cli is available:
-arduino-cli compile -b arduino:avr:uno LineFollowerFin/  # adjust board as needed
+arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin
 ```
 
-### No Automated Tests
-- There is no automated test or check script
-- Manual verification required: upload to board, observe behavior
-- Use serial monitor (`Serial Monitor` at 9600 baud) for debugging output
+### Automated Compile Check
+- CI GitHub Actions (`.github/workflows/compile.yml`) mengompilasi sketch utama + tiga test sketch.
+- Tidak ada unit test runner; perilaku hardware tetap diverifikasi manual dengan upload ke board.
+- Gunakan Serial Monitor **115200 baud** untuk output debug.
 
 ### Typical Workflow
 1. Upload sketch to board

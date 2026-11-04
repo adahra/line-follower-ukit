@@ -103,8 +103,9 @@ bool Pengaman::halangan() {
   return false;
 }
 
-// Robot macet: IR beku + accel stabil saat diperintah jalan.
-// Dinyatakan macet: berhenti total, operator restart via tombol/tepuk.
+// Robot macet: IR beku + accel stabil + robot memang butuh koreksi.
+// Syarat terakhir penting: di lintasan lurus error ~0 dan bacaan IR memang
+// stabil, jadi tanpa syarat ini robot berhenti sendiri setelah 2 detik.
 bool Pengaman::macet(int bacaKiri, int bacaKanan) {
   bacaIMU();
   unsigned long now = millis();
@@ -113,7 +114,9 @@ bool Pengaman::macet(int bacaKiri, int bacaKanan) {
   bool accelDiam =
       (accelRef < 0) ||
       (fabs(imuAccelMag - accelRef) / (accelRef + 0.001) < STUCK_TOLERANSI_ACCEL);
-  if (irBeku && accelDiam) {
+  bool perluKoreksi = fabs(gerak.errorTerakhir()) >= STUCK_ERROR_MIN;
+
+  if (irBeku && accelDiam && perluKoreksi) {
     if (irBekuSejak == 0) {
       irBekuSejak = now;
     } else if (now - irBekuSejak > STUCK_DIAM_MS) {

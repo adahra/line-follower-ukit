@@ -213,7 +213,7 @@ void BluetoothCtrl::handleBTCommand(const char *cmd) {
   
   char *space = strchr(cmdCopy, ' ');
   char *key = cmdCopy;
-  char *valStr = "";
+  const char *valStr = "";
   if (space) {
     *space = '\0';
     valStr = space + 1;

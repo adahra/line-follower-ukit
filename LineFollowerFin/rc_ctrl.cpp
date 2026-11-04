@@ -12,17 +12,21 @@
 RcCtrl::RcCtrl(Status &st, Penggerak &g, SensorGaris &sen, Pengaman &am, LapTimer &lt)
     : status(st), gerak(g), sensor(sen), aman(am), lapTimer(lt) {}
 
-void RcCtrl::begin(unsigned long baud, int pin, RCSource src) {
+void RcCtrl::begin(unsigned long baud, int pin, RCSource src, int steerPin) {
   rcBaud = baud;
   rcPin = pin;
+  rcSteerPin = steerPin;
   rcSource = src;
 
   if (rcSource == RC_PWM) {
     pinMode(rcPin, INPUT);
+    pinMode(rcSteerPin, INPUT);
     lastPulseTime = millis();
     signalLost = true;
-    Serial.println(F("RC: PWM mode, pin "));
+    Serial.print(F("RC: PWM mode, throttle pin "));
     Serial.print(rcPin);
+    Serial.print(F(", steering pin "));
+    Serial.print(rcSteerPin);
     Serial.println(F(" siap"));
   } else if (rcSource == RC_SERIAL) {
     Serial1.begin(rcBaud);
@@ -38,7 +42,12 @@ void RcCtrl::begin(unsigned long baud, int pin, RCSource src) {
 
 void RcCtrl::update() {
   if (rcSource == RC_PWM) {
-    readPwmChannel();
+    // Baca pulse HANYA saat RC benar-benar dipakai. pulseIn() bisa
+    // memblokir sampai timeout, jadi jangan dipanggil saat robot
+    // menjalankan mode line follower biasa.
+    if (status.modeOperasi == MODE_RC && status.jalan) {
+      readPwmChannel();
+    }
   } else if (rcSource == RC_SERIAL) {
     unsigned long now = millis();
     if (now - lastSerialCheck >= serialCheckInterval) {
@@ -73,63 +82,68 @@ void RcCtrl::update() {
 }
 
 unsigned long RcCtrl::readPulseWidth_us(int pin) {
-  // pulseIn dengan timeout 2ms (period RC 20ms = 50Hz, pulse max 2ms)
-  return pulseIn(pin, HIGH, 2000);
+  // Receiver 50 Hz: pulse muncul tiap 20 ms. Timeout 25 ms agar satu
+  // periode penuh tertangkap, tapi tidak menunggu selamanya.
+  return pulseIn(pin, HIGH, 25000);
 }
 
 void RcCtrl::readPwmChannel() {
   unsigned long pulseThrottle = readPulseWidth_us(rcPin);
-  if (pulseThrottle > 0) {
-    lastThrottleUs = pulseThrottle;
+  unsigned long pulseSteering = readPulseWidth_us(rcSteerPin);
+
+  bool throttleValid = (pulseThrottle >= RC_MIN_US && pulseThrottle <= RC_MAX_US);
+  bool steeringValid = (pulseSteering >= RC_MIN_US && pulseSteering <= RC_MAX_US);
+
+  if (throttleValid) lastThrottleUs = pulseThrottle;
+  if (steeringValid) lastSteeringUs = pulseSteering;
+
+  // Sinyal dianggap hidup hanya jika KEDUA channel valid. Satu channel
+  // hilang = failsafe, jangan memakai nilai lama tanpa batas.
+  if (throttleValid && steeringValid) {
     lastPulseTime = millis();
     if (signalLost) {
       signalLost = false;
       Serial.println(F("RC: Sinyal kembali"));
     }
   }
-
-  // Baca channel steering: pulseIn pada pin yang sama dengan phase berbeda
-  // untuk PPM sederhana: pulse berikutnya adalah steering
-  unsigned long pulseSteering = readPulseWidth_us(rcPin);
-  if (pulseSteering > 0) {
-    lastSteeringUs = pulseSteering;
-    lastPulseTime = millis();
-    if (signalLost) {
-      signalLost = false;
-      Serial.println(F("RC: Sinyal kembali"));
-    }
-  }
-}
-
-void RcCtrl::mapToSpeed(int pulseUs, int &outSpeedKiri, int &outSpeedKanan) const {
-  // Map pulse 1000-2000us ke -100..100
-  int pct = map(pulseUs, RC_MIN_US, RC_MAX_US, -100, 100);
-  pct = constrain(pct, -100, 100);
-  outSpeedKiri = pct;
-  outSpeedKanan = pct;
 }
 
 void RcCtrl::mapToSpeeds() {
-  // Throttle: channel 1
-  throttlePct = map(lastThrottleUs, RC_MIN_US, RC_MAX_US, RC_SCALE_MIN, RC_SCALE_MAX);
-  throttlePct = constrain(throttlePct, 0, 100);
-
-  // Steering: channel 2
-  int steerRaw = map(lastSteeringUs, RC_MIN_US, RC_MAX_US, -100, 100);
-  steerRaw = constrain(steerRaw, -100, 100);
-  if (abs(steerRaw) < RC_DEADBAND_US / 10) {
-    steerRaw = 0;
+  // Throttle: -100 (pulse min) .. 0 (center) .. +100 (pulse max).
+  int throttleUs = (int)lastThrottleUs;
+  int throttleDelta = throttleUs - RC_CENTER_US;
+  if (abs(throttleDelta) <= RC_DEADBAND_US) {
+    throttlePct = 0;
+  } else if (throttleDelta > 0) {
+    throttlePct = map(throttleDelta, 0, RC_MAX_US - RC_CENTER_US, 0, 100);
+  } else {
+    throttlePct = map(throttleDelta, RC_MIN_US - RC_CENTER_US, 0, -100, 0);
   }
-  steeringPct = steerRaw * RC_STEER_GAIN;
-  steeringPct = constrain(steeringPct, -100, 100);
+  throttlePct = constrain(throttlePct, -100, 100);
+
+  // Steering: -100 (kiri) .. 0 (center) .. +100 (kanan).
+  int steeringUs = (int)lastSteeringUs;
+  int steeringDelta = steeringUs - RC_CENTER_US;
+  int steerPct;
+  if (abs(steeringDelta) <= RC_DEADBAND_US) {
+    steerPct = 0;
+  } else if (steeringDelta > 0) {
+    steerPct = map(steeringDelta, 0, RC_MAX_US - RC_CENTER_US, 0, 100);
+  } else {
+    steerPct = map(steeringDelta, RC_MIN_US - RC_CENTER_US, 0, -100, 0);
+  }
+  steeringPct = constrain(steerPct * RC_STEER_GAIN, -100, 100);
 }
 
 void RcCtrl::getSpeeds(int &outSpeedKiri, int &outSpeedKanan) const {
-  int baseSpeed = map(throttlePct, 0, 100, 0, kecepatanDasarMaks);
-  int steerOffset = map(steeringPct, -100, 100, -kecepatanDasarMaks / 2, kecepatanDasarMaks / 2);
+  // Throttle menentukan kecepatan dasar (negatif = mundur), steering
+  // menggeser kiri/kanan. Saat throttle 0, steering saja menghasilkan
+  // pivot turn (satu roda maju, satu mundur).
+  int baseSpeed = (throttlePct * kecepatanDasarMaks) / 100;
+  int steerOffset = (steeringPct * (kecepatanDasarMaks / 2)) / 100;
 
-  outSpeedKiri = constrain(baseSpeed + steerOffset, 0, kecepatanDasarMaks);
-  outSpeedKanan = constrain(baseSpeed - steerOffset, 0, kecepatanDasarMaks);
+  outSpeedKiri = constrain(baseSpeed + steerOffset, -kecepatanDasarMaks, kecepatanDasarMaks);
+  outSpeedKanan = constrain(baseSpeed - steerOffset, -kecepatanDasarMaks, kecepatanDasarMaks);
 }
 
 bool RcCtrl::isEnabled() const {

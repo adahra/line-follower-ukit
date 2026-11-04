@@ -7,7 +7,7 @@ Robot line follower berbasis PID untuk board uKit Explore 2. Proyek ini modular:
 - **Arduino IDE** dengan library `uKitExplore2` terinstal (tidak disertakan di repo ini).
 - **Arduino CLI** (lihat [BUILD.md](BUILD.md) untuk compile/upload via CLI).
 - Library bawaan `EEPROM.h`.
-- Untuk verifikasi: compile `LineFollowerFin/LineFollowerFin.ino` di Arduino IDE. Tidak ada automated test/lint/CI.
+- Untuk verifikasi: compile `LineFollowerFin/LineFollowerFin.ino` di Arduino IDE. CI GitHub Actions mengompilasi sketch utama + tiga test sketch (lihat [`.github/workflows/compile.yml`](.github/workflows/compile.yml)).
 
 ## Overview
 
@@ -47,7 +47,7 @@ Mode dapat diatur via antarmuka/serial (lihat `antarmuka`).
 
 ### Kalibrasi Manual
 - Tekan **kedua tombol bersamaan** saat robot berhenti untuk memulai kalibrasi sensor (berputar ~3 detik, LED kuning).
-- Tiap sensor dihitung ambangnya sendiri dari rata-rata max/min, lalu **dijepit ke 5–14** dan disimpan ke EEPROM.
+- Tiap sensor dihitung ambangnya sendiri dari rata-rata max/min, lalu **dijepit ke 3–18** dan disimpan ke EEPROM.
 - Tidak ada auto-kalibrasi saat boot secara default (`AUTO_CALIBRATE_ON_BOOT = false`).
 
 ### Tuning Tombol Onboard
@@ -57,8 +57,8 @@ Mode dapat diatur via antarmuka/serial (lihat `antarmuka`).
 
 ### Persistence (EEPROM)
 - Penanda valid: `123` di alamat `ADDR_EEPROM_CHECK` (0).
-- Tersimpan: `Kp` (4), `Kd` (12), `kecepatanDasarMaks` (16), `AMBANG_KIRI` (20), `AMBANG_KANAN` (22). 
-- **Tidak disimpan**: `Ki` dan `kecepatanDasarMin` (selalu pakai nilai default di `config.h`).
+- Tersimpan: `Kp` (4), `Ki` (8), `Kd` (12), `kecepatanDasarMaks` (16), `AMBANG_KIRI` (20), `AMBANG_KANAN` (22), peta waypoint (24–266), parameter heading/adaptive (280–297).
+- **Tidak disimpan**: `kecepatanDasarMin` (selalu pakai nilai default di `config.h`).
 - Penulisan EEPROM dihindari bila nilai tidak berubah (`eepromPutHemat` template di header; butuh forward declaration eksplisit).
 
 ### Safety & Fitur Pendukung
@@ -75,7 +75,8 @@ Mode dapat diatur via antarmuka/serial (lihat `antarmuka`).
 Semua default **false**:
 - **Lap timer** (`ENABLE_LAP_TIMER`): deteksi garis start/finish, hitung waktu lap (`LAP_SF_THRESHOLD`, `LAP_MIN_LAP_MS`).
 - **Bluetooth/BLE** (`ENABLE_BLUETOOTH`): kontrol & telemetri via Bluetooth (`BT_BAUD`, `BT_MODULE_TYPE`, `BT_TELEMETRY_MS`).
-- **Path planner** (`ENABLE_PATH_PLANNER`): perencanaan jalur A* berbasis grid, integrasi dengan deteksi halangan ultrasonic. File `path_planner.*` sudah berada di root sketch folder, di-include hanya bila diaktifkan. `GRID_CELL_SIZE_CM`, `PATH_GRID_WIDTH`, `PATH_GRID_HEIGHT` dapat disesuaikan (perlu diperhatikan RAM ATMega2560). Lihat [docs/PATH_PLANNER.md](docs/PATH_PLANNER.md) untuk dokumentasi lengkap algoritma A* dan arsitektur grid.
+- **Path planner** (`ENABLE_PATH_PLANNER`): **alat peta/A\* manual** lewat perintah serial (`path ...`), bukan navigasi otonom. Posisi grid robot tidak diketahui tanpa odometri/encoder, dan mengaktifkannya memakai ~94% RAM ATMega2560. File `path_planner.*` ada di root sketch folder dan hanya di-include bila diaktifkan. Lihat [docs/PATH_PLANNER.md](docs/PATH_PLANNER.md) untuk detail algoritma A*; batasan integrasi dijelaskan di [`config.h`](LineFollowerFin/config.h#L211-L218).
+- **RC** (`ENABLE_RC`): remote control dua channel (throttle `RC_PIN`, steering `RC_STEER_PIN`), center = berhenti, throttle negatif = mundur. Hanya membaca `pulseIn` saat `MODE_RC` aktif agar tidak memblokir line follower.
 - **Fuzzy PID** (`ENABLE_FUZZY_PID`): kontrol PID adaptif berbasis logika fuzzy untuk performa tracking yang lebih halus. Lihat [docs/FUZZY_PID.md](docs/FUZZY_PID.md) untuk dokumentasi lengkap algoritma fuzzy adaptive PID.
 
 Catatan: `TELEMETRI` serial CSV bisa diaktifkan (`ENABLE_TELEMETRI`) untuk tuning; `IMU` digunakan untuk tilt/stuck detection.
@@ -86,27 +87,37 @@ Catatan: `TELEMETRI` serial CSV bisa diaktifkan (`ENABLE_TELEMETRI`) untuk tunin
 - **Motor servo**: 4+2 = sisi kiri (dir `1`), 1+3 = sisi kanan (dir `0`).
 - **Kecepatan**: diderate **0–150** (maks efektif via tombol/konfigurasi dibatasi 150). Servo punya deadband; nilai < 25 bisa dipaksa atau tidak efektif.
 - **Sensor ID**: `LIGHT_SENSOR_ID`, `ULTRASONIC_ID`, `SOUND_SENSOR_ID` masih bisa perlu disesuaikan dengan wiring.
-- **Ambang kalibrasi**: hasil kalibrasi manual dijepit ke **5–14** per sensor.
+- **Ambang kalibrasi**: hasil kalibrasi manual dijepit ke **3–18** per sensor.
 
 ## EEPROM Layout
 
 | Alamat | Isi | Keterangan |
 | --- | --- | --- |
+| 3 | `77` | Guard uKit: `Initialization()` menghapus 0–20 bila byte ini bukan 77 |
 | 0 | `123` | Magic/check validitas EEPROM |
 | 4 | `Kp` (float) | PID proportional |
+| 8 | `Ki` (float) | PID integral |
 | 12 | `Kd` (float) | PID derivative |
 | 16 | `kecepatanDasarMaks` (int) | Batas kecepatan maksimal |
 | 20 | `AMBANG_KIRI` (int) | Ambang sensor kiri (hasil kalibrasi/per-tuning) |
 | 22 | `AMBANG_KANAN` (int) | Ambang sensor kanan |
+| 24–266 | Peta waypoint | Magic `77` + count + 30 × `Waypoint` (8 byte) |
+| 280 | `HEADING_GAIN` (float) | Gain koreksi heading |
+| 284 | `HEADING_TARGET` (float) | Target heading tersimpan |
+| 288 | `AMBANG_KIRI_BASE` (int) | Ambang kiri dasar (adaptive threshold) |
+| 290 | `AMBANG_KANAN_BASE` (int) | Ambang kanan dasar (adaptive threshold) |
+| 292 | `HEADING_BIAS` (float) | Bias gyro hasil kalibrasi |
+| 296 | `88` | Magic data heading |
+| 297 | `66` | Magic data adaptive threshold |
 
-`Ki` dan `kecepatanDasarMin` **tidak disimpan** (selalu default dari kode).
+`kecepatanDasarMin` **tidak disimpan** (selalu default dari kode).
 
 ## Build / Verify
 
 1. Buka `LineFollowerFin/LineFollowerFin.ino` di Arduino IDE.
 2. Pastikan library `uKitExplore2` terinstal.
 3. Pilih board uKit Explore 2 yang sesuai.
-4. Compile/Upload. Tidak ada skrip test otomatis.
+4. Compile/Upload. Untuk test sketch: `arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin/tests/TestLapTimer` (dan `TestBluetooth`, `TestPathPlanner`).
 5. Untuk CLI: lihat [BUILD.md](BUILD.md).
 
 ## Gotchas

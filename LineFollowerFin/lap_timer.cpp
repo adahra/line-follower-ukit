@@ -21,7 +21,7 @@ void LapTimer::reset() {
   currentLapSpeedSum = 0;
 
   lapCount = 0;
-  for (int i = 0; i < MAX_LAPS; i++) {
+  for (int i = 0; i < LAP_STORAGE; i++) {
     laps[i] = {0, 0, 0, 0, 0};
   }
 }
@@ -32,10 +32,7 @@ bool LapTimer::isAtStartFinish(int bacaKiri, int bacaKanan) const {
   return (bacaKiri >= sfThreshold && bacaKanan >= sfThreshold);
 }
 
-bool LapTimer::update(SensorGaris &sensor, int kecepatanDasar, float error) {
-  int bacaKiri = sensor.bacaKiri();
-  int bacaKanan = sensor.bacaKanan();
-
+bool LapTimer::update(int bacaKiri, int bacaKanan, int kecepatanDasar, float error) {
   bool nowAtSF = isAtStartFinish(bacaKiri, bacaKanan);
 
   // Akumulasi statistik lap saat ini
@@ -75,7 +72,7 @@ void LapTimer::finishLap(float avgError, int avgSpeed) {
   unsigned long now = millis();
   unsigned long lapTime = now - lapStartMs;
 
-  if (lapCount < MAX_LAPS) {
+  if (lapCount < LAP_STORAGE) {
     laps[lapCount] = {
       lapTime,
       now,

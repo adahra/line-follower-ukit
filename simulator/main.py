@@ -136,9 +136,9 @@ class SimulatorApp(tk.Tk):
                         lambda v: setattr(cfg, "kecepatanDasarMaks", int(v)))
         self.add_slider(fr, "Speed Min", 25, 110, cfg.kecepatanDasarMin, "{:.0f}",
                         lambda v: setattr(cfg, "kecepatanDasarMin", int(v)))
-        self.add_slider(fr, "Ambang Kiri", 5, 14, cfg.AMBANG_KIRI, "{:.0f}",
+        self.add_slider(fr, "Ambang Kiri", 3, 18, cfg.AMBANG_KIRI, "{:.0f}",
                         lambda v: setattr(cfg, "AMBANG_KIRI", int(v)))
-        self.add_slider(fr, "Ambang Kanan", 5, 14, cfg.AMBANG_KANAN, "{:.0f}",
+        self.add_slider(fr, "Ambang Kanan", 3, 18, cfg.AMBANG_KANAN, "{:.0f}",
                         lambda v: setattr(cfg, "AMBANG_KANAN", int(v)))
 
     def add_slider(self, parent, label, frm, to, val, fmt, cmd):

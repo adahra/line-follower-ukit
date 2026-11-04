@@ -31,10 +31,26 @@ class SensorGaris {
   void muat();                       // EEPROM -> variabel (dijepit valid)
   void cetak();                      // dump Serial saat boot
 
+  // --- Adaptive Threshold ---
+#if ENABLE_ADAPTIVE_THRESHOLD
+  int ambangDinamis(int id) const;
+  void setAdaptiveThreshold(bool on);
+  bool isAdaptiveThresholdEnabled() const;
+  void updateAmbangDinamis(int bacaKiri, int bacaKanan, int kecepatanDasar);
+  void resetAdaptive();
+  void simpanAdaptive();
+  void muatAdaptive();
+#endif
+
  private:
   int bacaHalus(int id);
   float filtKiri = -1;  // <0 = belum diinisialisasi
   float filtKanan = -1;
+#if ENABLE_ADAPTIVE_THRESHOLD
+  bool adaptiveThresholdEnabled = false;
+  int adaptAmbangKiri = 0;
+  int adaptAmbangKanan = 0;
+#endif
 };
 
 #endif

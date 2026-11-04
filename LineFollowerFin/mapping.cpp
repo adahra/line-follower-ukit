@@ -94,6 +94,11 @@ void Mapper::debugPrint() {
 // Peta waypoint persisten ke EEPROM: magic(1) + count(2) + array Waypoint.
 // Waypoint punya padding (8 byte/entri), total ~243 byte dari 4 KB EEPROM.
 void Mapper::simpan() {
+  // Jaga agar array waypoint tidak menimpa parameter heading/adaptive
+  // (alamat 280+). Gagal compile bila layout EEPROM berubah tanpa sengaja.
+  static_assert(ADDR_MAP + 3 + MAX_WAYPOINTS * sizeof(Waypoint) <= ADDR_HEADING_GAIN,
+                "Peta waypoint EEPROM bertabrakan dengan parameter heading/adaptive");
+
   EEPROM.update(ADDR_MAP, 77);  // penanda peta valid
   EEPROM.put(ADDR_MAP + 1, count);
   EEPROM.put(ADDR_MAP + 3, waypoints);

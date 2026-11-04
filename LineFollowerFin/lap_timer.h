@@ -4,9 +4,11 @@
 
 #include <Arduino.h>
 #include "config.h"
-#include "sensor_garis.h"
 
 #define MAX_LAPS 15
+// Hemat RAM saat lap timer dimatikan: array record tidak perlu 15 slot.
+// Saat ENABLE_LAP_TIMER=false, update() memang tidak dipanggil dari loop.
+#define LAP_STORAGE (ENABLE_LAP_TIMER ? MAX_LAPS : 1)
 
 struct LapRecord {
   unsigned long lapTime;    // ms
@@ -24,9 +26,10 @@ class LapTimer {
   void begin();
   void reset();
 
-  // Dipanggil setiap loop saat robot jalan
+  // Dipanggil setiap loop saat robot jalan. Nilai sensor sudah dibaca
+  // pemanggil agar lap timer tidak membaca hardware/filter dua kali.
   // Return true jika lap baru terdeteksi
-  bool update(SensorGaris &sensor, int kecepatanDasar, float error);
+  bool update(int bacaKiri, int bacaKanan, int kecepatanDasar, float error);
 
   // Akses data
   int getLapCount() const;
@@ -56,7 +59,7 @@ class LapTimer {
   long currentLapSpeedSum = 0;
 
   // Records
-  LapRecord laps[MAX_LAPS];
+  LapRecord laps[LAP_STORAGE];
   int lapCount = 0;
 
   // Config

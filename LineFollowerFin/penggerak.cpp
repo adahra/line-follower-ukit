@@ -1,6 +1,8 @@
 #include "penggerak.h"
 #include "ukit_extern.h"
 #include "ukit_macros.h"
+#include <EEPROM.h>
+#include <string.h>
 
 void Penggerak::reset() {
   error = 0;
@@ -18,6 +20,10 @@ void Penggerak::reset() {
   pidTerakhir = 0;
   telemHeader = false;  // cetak header CSV lagi di run berikutnya
   telemTerakhir = 0;
+#if ENABLE_HEADING_CORRECTION
+  // Mulai/berhenti = baseline arah baru. Bias gyro tetap dipertahankan.
+  headingTracker.reset();
+#endif
 }
 
 void Penggerak::resetIntegralSetelahRecovery(float errorBaru) {
@@ -59,12 +65,41 @@ bool Penggerak::hitung(int bacaKiri, int bacaKanan, bool paksa) {
     if (KdEff < 0.0) KdEff = 0.0;
     if (KiEff < 0.0) KiEff = 0.0;
   }
-  PID_value = (KpEff * P) + (KiEff * I) + (KdEff * D);
 #else
-  PID_value = (Kp * P) + (Ki * I) + (Kd * D);
+  float KpEff = Kp, KdEff = Kd, KiEff = Ki;
 #endif
 
+  // --- GAIN SCHEDULING ---
+  // Gain berbeda per kecepatan: rendah (tikungan) vs tinggi (lurus).
+  // Low speed: Kp naik (responsif), Kd turun (tidak perlu damping keras).
+  // High speed: Kp turun (anti overshoot), Kd naik (stabil).
+#if ENABLE_GAIN_SCHEDULING
+  if (gainSchedulingEnabled) {
+    KpEff *= getGainScheduleKp();
+    KdEff *= getGainScheduleKd();
+    KiEff *= getGainScheduleKi();
+  }
+#endif
+
+  PID_value = (KpEff * P) + (KiEff * I) + (KdEff * D);
+
   lastError = error;
+
+  // --- IMU HEADING CORRECTION ---
+  // Tambahkan steering offset dari heading error ke PID_value.
+  // Koreksi ini berlaku sebagai "perekam arah": mencegah robot drift
+  // di lintasan lurus panjang tanpa garis kuat di kedua sensor.
+  // Hanya dihitung saat PID interval tiba (dt konstan, konsisten).
+#if ENABLE_HEADING_CORRECTION
+  if (headingTracker.isEnabled()) {
+    // updateHeading() dipanggil dari loop() tiap iterasi (termasuk saat
+    // berhenti/kalibrasi). Di sini cukup terapkan koreksinya saja.
+    float headingErr = headingTracker.getHeadingError();
+    float headingCorrection = headingErr * headingGain;
+    headingCorrection = constrain(headingCorrection, -HEADING_MAX_OFFSET, HEADING_MAX_OFFSET);
+    PID_value += headingCorrection;
+  }
+#endif
 
   // --- DYNAMIC SPEED PROFILE (Turbo Mode) ---
   // Jika error kecil (jalan lurus) dalam waktu lama, naikkan kecepatan dasar.
@@ -128,6 +163,31 @@ void Penggerak::jalankan(int speedKiri, int speedKanan) {
   setServoTurn(3, 0, speedKanan);
 }
 
+void Penggerak::jalankanArah(int speedKiri, int speedKanan) {
+  int kiri = constrain(abs(speedKiri), 0, SERVO_MAKS_DIPAKAI);
+  int kanan = constrain(abs(speedKanan), 0, SERVO_MAKS_DIPAKAI);
+  kiri = terapkanDeadband(kiri);
+  kanan = terapkanDeadband(kanan);
+
+  if (kiri == 0) {
+    setServoStop(4);
+    setServoStop(2);
+  } else {
+    int dirKiri = (speedKiri > 0) ? 1 : 0;
+    setServoTurn(4, dirKiri, kiri);
+    setServoTurn(2, dirKiri, kiri);
+  }
+
+  if (kanan == 0) {
+    setServoStop(1);
+    setServoStop(3);
+  } else {
+    int dirKanan = (speedKanan > 0) ? 0 : 1;
+    setServoTurn(1, dirKanan, kanan);
+    setServoTurn(3, dirKanan, kanan);
+  }
+}
+
 void Penggerak::berhenti() {
   setServoStop(4);
   setServoStop(2);
@@ -160,8 +220,8 @@ void Penggerak::belokKiri90(int ambang) {
   setServoTurn(3, 0, kecepatanDasarMin);
   delay(300);
   unsigned long t0 = millis();
-  while (readInfraredDistance(2) < ambang) {
-    if (millis() - t0 > BELOK_TIMEOUT_MS) {
+  while ((int)readInfraredDistance(2) < ambang) {
+    if (millis() - t0 > (unsigned long)BELOK_TIMEOUT_MS) {
       break;  // garis tak ketemu: jangan macet, kembali ke loop utama
     }
 
@@ -176,8 +236,8 @@ void Penggerak::belokKanan90(int ambang) {
   setServoTurn(3, 1, kecepatanDasarMin);
   delay(300);
   unsigned long t0 = millis();
-  while (readInfraredDistance(1) < ambang) {
-    if (millis() - t0 > BELOK_TIMEOUT_MS) {
+  while ((int)readInfraredDistance(1) < ambang) {
+    if (millis() - t0 > (unsigned long)BELOK_TIMEOUT_MS) {
       break;  // garis tak ketemu: jangan macet, kembali ke loop utama
     }
 
@@ -279,5 +339,117 @@ void Penggerak::setFuzzyEnabled(bool on) {
 
 bool Penggerak::isFuzzyEnabled() const {
   return fuzzyPid.isEnabled();
+}
+#endif
+
+// --- Gain Scheduling methods ---
+#if ENABLE_GAIN_SCHEDULING
+void Penggerak::setGainScheduling(bool on) {
+  gainSchedulingEnabled = on;
+}
+
+bool Penggerak::isGainSchedulingEnabled() const {
+  return gainSchedulingEnabled;
+}
+
+float Penggerak::getGainScheduleKp() const {
+  if (kecepatanDasar < GS_SPEED_LOW_MAX) return GS_KP_LOW;
+  if (kecepatanDasar < GS_SPEED_MID_MAX) return GS_KP_MID;
+  return GS_KP_HIGH;
+}
+
+float Penggerak::getGainScheduleKd() const {
+  if (kecepatanDasar < GS_SPEED_LOW_MAX) return GS_KD_LOW;
+  if (kecepatanDasar < GS_SPEED_MID_MAX) return GS_KD_MID;
+  return GS_KD_HIGH;
+}
+
+float Penggerak::getGainScheduleKi() const {
+  if (kecepatanDasar < GS_SPEED_LOW_MAX) return GS_KI_LOW;
+  if (kecepatanDasar < GS_SPEED_MID_MAX) return GS_KI_MID;
+  return GS_KI_HIGH;
+}
+#endif
+
+// --- IMU Heading Correction methods ---
+#if ENABLE_HEADING_CORRECTION
+void Penggerak::setHeadingCorrection(bool on) {
+  if (on) {
+    // begin() mereset integrasi/heading, tapi mempertahankan bias & target.
+    // Dulu urutannya setEnabled(true) lalu begin() yang mengeset enabled=false,
+    // sehingga fitur langsung mati begitu diaktifkan.
+    if (!headingTracker.isEnabled()) {
+      headingTracker.begin();
+    }
+    headingTracker.setEnabled(true);
+  } else {
+    headingTracker.setEnabled(false);
+  }
+}
+
+bool Penggerak::isHeadingCorrectionEnabled() const {
+  return headingTracker.isEnabled();
+}
+
+void Penggerak::updateHeading() {
+  headingTracker.update();
+}
+
+void Penggerak::setHeadingTarget(float t) {
+  headingTracker.setTarget(t);
+}
+
+float Penggerak::getHeading() const {
+  return headingTracker.getHeading();
+}
+
+float Penggerak::getTargetHeading() const {
+  return headingTracker.getTargetHeading();
+}
+
+float Penggerak::getHeadingError() const {
+  return headingTracker.getHeadingError();
+}
+
+void Penggerak::resetHeading() {
+  headingTracker.reset();
+}
+
+void Penggerak::calibrateHeadingBias() {
+  headingTracker.calibrateBias();
+}
+
+bool Penggerak::isHeadingCalibrating() const {
+  return headingTracker.isCalibrating();
+}
+
+void Penggerak::simpanHeading() {
+  EEPROM.put(ADDR_HEADING_GAIN, headingGain);
+  EEPROM.put(ADDR_HEADING_TARGET, headingTracker.getTargetHeading());
+  EEPROM.put(ADDR_HEADING_BIAS, headingTracker.getBias());
+  // Magic ditulis terakhir: data setengah jadi tidak dianggap valid.
+  EEPROM.update(ADDR_HEADING_MAGIC, 88);
+}
+
+void Penggerak::muatHeading() {
+  if (EEPROM.read(ADDR_HEADING_MAGIC) != 88) {
+    return;  // belum pernah disimpan: pakai default config
+  }
+
+  float savedGain, savedTarget, savedBias;
+  EEPROM.get(ADDR_HEADING_GAIN, savedGain);
+  EEPROM.get(ADDR_HEADING_TARGET, savedTarget);
+  EEPROM.get(ADDR_HEADING_BIAS, savedBias);
+
+  // Validasi: EEPROM kosong terbaca NaN/0xFF, jangan sampai dipakai.
+  if (savedGain >= 0.0 && savedGain <= 2.0) {
+    headingGain = savedGain;
+  }
+  if (savedTarget >= -180.0 && savedTarget <= 180.0) {
+    headingTracker.setTarget(savedTarget);
+  }
+  if (savedBias >= -20.0 && savedBias <= 20.0) {
+    headingTracker.setBias(savedBias);
+  }
 }
 #endif

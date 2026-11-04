@@ -411,7 +411,7 @@ Setelah goal tercapai, jalur direkonstruksi dengan menuruni pointer `parent` dar
 
 ## 10. Update Map dari Sensor
 
-Fungsi `updateMap()` adalah jembatan antara sensor fisik dan grid peta. Dipanggil tiap loop saat `ENABLE_PATH_PLANNER` aktif:
+Fungsi `updateMap()` adalah jembatan antara sensor fisik dan grid peta. Sejak P1, fungsi ini **tidak dipanggil otomatis dari `loop()`**: Path Planner dipakai sebagai alat peta/A* manual lewat perintah serial (`path ...`), bukan pengendali gerak. Memanggilnya tiap loop juga membuat sensor IR dan ultrasonik dibaca dua kali tanpa manfaat pengendalian.
 
 ```cpp
 // path_planner.cpp:56-109
@@ -613,13 +613,11 @@ Setup (`LineFollowerFin.ino:75-79`):
 
 `begin()` memanggil `reset()` lalu menetapkan posisi start di tengah grid dan menandai area sekitarnya sebagai `CELL_EMPTY` dengan center sebagai `CELL_START`.
 
-Pemanggilan di loop (`LineFollowerFin.ino:118-121`):
+Pemanggilan otomatis di loop **sudah dihapus** (lihat `LineFollowerFin.ino`, blok Path Planner di `loop()`). Pemanggilan lama yang bermasalah:
 
 ```cpp
-// Path Planner update
-#if ENABLE_PATH_PLANNER
-  pathPlanner.updateMap(sensor, pathPlanner.getRobotGridX(), pathPlanner.getRobotGridY(), 0);
-#endif
+// DIHAPUS: posisi/heading hardcoded + membaca sensor dua kali
+// pathPlanner.updateMap(sensor, pathPlanner.getRobotGridX(), pathPlanner.getRobotGridY(), 0);
 ```
 
 ### Masalah Integrasi yang Diketahui

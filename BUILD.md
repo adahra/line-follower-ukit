@@ -115,21 +115,23 @@ arduino-cli compile \
 ```
 
 ### Compile test sketches
+Test sketch berada di subfolder `tests/`; nama folder harus sama dengan nama `.ino`.
+
 ```bash
 # Test Lap Timer
-arduino-cli compile --fqbn arduino:avr:mega TestLapTimer.ino
+arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin/tests/TestLapTimer
 
 # Test Bluetooth
-arduino-cli compile --fqbn arduino:avr:mega TestBluetooth.ino
+arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin/tests/TestBluetooth
 
 # Test Path Planner
-arduino-cli compile --fqbn arduino:avr:mega TestPathPlanner.ino
+arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin/tests/TestPathPlanner
 ```
 
-### Output compile sukses:
+### Output compile sukses (default semua fitur opsional OFF):
 ```
-Sketch uses 45678 bytes (17%) of program storage space. Maximum is 253952 bytes.
-Global variables use 3456 bytes (42%) of dynamic memory, leaving 4736 bytes for local variables. Maximum is 8192 bytes.
+Sketch uses 90448 bytes (35%) of program storage space. Maximum is 253952 bytes.
+Global variables use 5813 bytes (70%) of dynamic memory, leaving 2379 bytes for local variables. Maximum is 8192 bytes.
 ```
 
 ---
@@ -277,42 +279,39 @@ arduino-cli monitor -p /dev/ttyUSB0 -c baudrate=115200
 
 ## 🤖 CI/CD (GitHub Actions) - Otomatis Compile
 
-Buat file `.github/workflows/compile.yml`:
+Workflow yang dipakai repo ada di [`.github/workflows/compile.yml`](.github/workflows/compile.yml). Inti langkahnya:
+
 ```yaml
-name: Compile Check
-
-on: [push, pull_request]
-
-jobs:
-  compile:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup arduino-cli
-        uses: arduino/setup-arduino-cli@v1
-        
-      - name: Install AVR core
-        run: arduino-cli core install arduino:avr
-        
-      - name: Install uKit library
-        run: |
-          mkdir -p ~/Arduino/libraries
-          # Copy uKitExplore2 library jika ada di repo
-          # atau download dari release
-          
-      - name: Compile main sketch
-        run: |
-          cd LineFollowerFin
-          arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin.ino
-          
-      - name: Compile test sketches
-        run: |
-          cd LineFollowerFin
-          arduino-cli compile --fqbn arduino:avr:mega TestLapTimer.ino
-          arduino-cli compile --fqbn arduino:avr:mega TestBluetooth.ino
-          arduino-cli compile --fqbn arduino:avr:mega TestPathPlanner.ino
+- uses: actions/checkout@v4
+- uses: arduino/setup-arduino-cli@v1
+- run: arduino-cli core install arduino:avr
+- name: Install uKit Explore library
+  run: |
+    mkdir -p "$HOME/Arduino/libraries"
+    git clone --depth 1 https://github.com/UBTEDU/uKitExplore-library.git \
+      "$HOME/Arduino/libraries/uKitExplore-library"
+    git clone --depth 1 --branch v6.19.4 \
+      https://github.com/bblanchon/ArduinoJson.git \
+      "$HOME/Arduino/libraries/ArduinoJson"
+- name: Compile main sketch
+  run: |
+    arduino-cli compile --fqbn arduino:avr:mega \
+      --libraries "$HOME/Arduino/libraries" LineFollowerFin
+- name: Compile test sketches
+  run: |
+    for test in TestLapTimer TestBluetooth TestPathPlanner; do
+      arduino-cli compile --fqbn arduino:avr:mega \
+        --libraries "$HOME/Arduino/libraries" "LineFollowerFin/tests/$test"
+    done
 ```
+
+Workflow juga mengompilasi salinan sketch dengan fitur opsional aktif
+(`ENABLE_RC`, `ENABLE_HEADING_CORRECTION`, `ENABLE_ADAPTIVE_THRESHOLD`,
+`ENABLE_GAIN_SCHEDULING`, `ENABLE_LAP_TIMER`) untuk menangkap error API yang
+tidak terlihat pada build default.
+
+Catatan: library uKit tidak di-vendor. Sumber resminya
+[UBTEDU/uKitExplore-library](https://github.com/UBTEDU/uKitExplore-library).
 
 ---
 
@@ -335,13 +334,14 @@ jobs:
 line-follower-ukit/
 ├── LineFollowerFin/
 │   ├── LineFollowerFin.ino      # Sketch utama
-│   ├── TestLapTimer.ino         # Test sketch 1
-│   ├── TestBluetooth.ino        # Test sketch 2
-│   ├── TestPathPlanner.ino      # Test sketch 3
 │   ├── *.h / *.cpp              # Source code modular
 │   ├── sketch.yaml              # (opsional) config project
-│   └── lib/                     # (opsional) library lokal
-│       └── uKitExplore2/
+│   ├── lib/                     # (opsional) library lokal
+│   │   └── uKitExplore2/
+│   └── tests/
+│       ├── TestLapTimer/TestLapTimer.ino
+│       ├── TestBluetooth/TestBluetooth.ino
+│       └── TestPathPlanner/TestPathPlanner.ino
 └── BUILD.md                     # File ini
 ```
 

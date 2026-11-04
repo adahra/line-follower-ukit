@@ -93,7 +93,7 @@ Saat `fuzzy off`, `compute()` langsung return 0 — gain efektif sama dengan bas
 
 - **Status tidak disimpan ke EEPROM.** Flag `enabled` hanya ada di RAM. Setiap power cycle / reboot, fuzzy kembali OFF. Jalankan `fuzzy on` lagi setiap boot.
 - **Tidak ada tombol fisik untuk fuzzy.** Kode `cekTombol()` tidak memiliki handler fuzzy — sengaja, karena toggle tombol untuk fuzzy dianggap kurang andal (lihat komentar `antarmuka.cpp:70`: *"Fuzzy toggle lewat serial command 'fuzzy on/off' (lebih andal)."*). Serial adalah satu-satunya cara runtime.
-- Yang persisten ke EEPROM hanya **base gain** (`Kp`, `Kd`, `kecepatanDasarMaks`, ambang) lewat perintah `save`. Delta fuzzy (`dKp`/`dKd`/`dKi`) tidak pernah disimpan.
+- Yang persisten ke EEPROM hanya **base gain** (`Kp`, `Ki`, `Kd`, `kecepatanDasarMaks`, ambang, parameter heading/adaptive) lewat perintah `save`. Delta fuzzy (`dKp`/`dKd`/`dKi`) tidak pernah disimpan.
 
 ---
 

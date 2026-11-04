@@ -40,7 +40,7 @@ Tidak perlu library Arduino/uKitExplore2.
 - **Start / Stop**: jalankan atau hentikan robot.
 - **Reset**: reset posisi, PID, filter sensor, dan state.
 - **Kalibrasi**: putar 3 detik lalu hitung `AMBANG_KIRI`/`AMBANG_KANAN`
-  dari min/max bacaan, dikunci ke 5–14.
+  dari min/max bacaan, dikunci ke 3–18.
 - **Track**: muat gambar PNG/JPG, bersihkan, simpan, atau klik-drag di canvas
   untuk menggambar garis hitam manual. Garis default tersedia.
 - **Tuning live**: slider Kp, Ki, Kd, Speed Maks, Speed Min, Ambang Kiri/Kanan

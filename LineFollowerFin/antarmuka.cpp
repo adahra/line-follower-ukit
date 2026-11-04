@@ -111,9 +111,17 @@ void Antarmuka::cekTombol() {
           Serial.println(F("Mode: RACING (Gunakan Peta)"));
           setRgbledColor(0, 255, 0); // Hijau = racing
         } else if (status.modeOperasi == MODE_RACING) {
+#if ENABLE_RC
           status.modeOperasi = MODE_RC;
           Serial.println(F("Mode: RC (Remote Control)"));
           setRgbledColor(0, 255, 255); // Cyan = RC
+#else
+          // Jangan pernah masuk MODE_RC bila fitur RC tidak dikompilasi:
+          // loop tidak akan menggerakkan motor dan robot tampak mati.
+          status.modeOperasi = MODE_NORMAL;
+          Serial.println(F("Mode: NORMAL (RC dimatikan di config.h)"));
+          setRgbledColor(0, 0, 0); // Hitam = normal
+#endif
         } else if (status.modeOperasi == MODE_RC) {
           status.modeOperasi = MODE_NORMAL;
           Serial.println(F("Mode: NORMAL"));
@@ -210,19 +218,27 @@ void Antarmuka::cekTepuk() {
 }
 
 void Antarmuka::cekSerial() {
-  if (!Serial.available()) {
-    return;
-  }
+  // Parser non-blocking: jangan pakai Serial.readBytesUntil() yang bisa
+  // menunggu timeout ~1 detik saat baris parsial datang (robot jadi buta).
   static char buf[64];
-  int len = Serial.readBytesUntil('\n', buf, sizeof(buf) - 1);
-  if (len > 0) {
-    buf[len] = '\0';
-    // trim trailing whitespace
-    while (len > 0 && (buf[len - 1] == '\r' || buf[len - 1] == '\n' || buf[len - 1] == ' ')) {
-      buf[--len] = '\0';
-    }
-    if (len > 0) {
-      parseCommand(buf);
+  static int len = 0;
+
+  while (Serial.available() > 0) {
+    char c = (char)Serial.read();
+    if (c == '\n' || c == '\r') {
+      if (len > 0) {
+        buf[len] = '\0';
+        // trim trailing whitespace
+        while (len > 0 && (buf[len - 1] == ' ' || buf[len - 1] == '\t')) {
+          buf[--len] = '\0';
+        }
+        if (len > 0) {
+          parseCommand(buf);
+        }
+        len = 0;
+      }
+    } else if (len < (int)sizeof(buf) - 1) {
+      buf[len++] = c;
     }
   }
 }
@@ -234,7 +250,7 @@ void Antarmuka::parseCommand(char *cmd) {
   }
   char *space = strchr(cmd, ' ');
   char *key = cmd;
-  char *valStr = "";
+  const char *valStr = "";
   if (space) {
     *space = '\0';
     valStr = space + 1;
@@ -314,7 +330,7 @@ void Antarmuka::parseCommand(char *cmd) {
       // Format: lapconfig <threshold> <minLapMs>
       // Untuk simplicity, parse manual
       int threshold = atoi(valStr);
-      char* space = strchr(valStr, ' ');
+      const char* space = strchr(valStr, ' ');
       if (space) {
         int minLap = atoi(space + 1);
         lapTimer.setThresholds(threshold, minLap);
@@ -347,13 +363,18 @@ void Antarmuka::parseCommand(char *cmd) {
       status.modeOperasi = MODE_RACING;
       Serial.println(F("Mode: RACING (Gunakan Peta)"));
     } else if (strcmp(valStr, "rc") == 0) {
+#if ENABLE_RC
       status.modeOperasi = MODE_RC;
       Serial.println(F("Mode: RC (Remote Control)"));
+#else
+      Serial.println(F("ERROR: RC dimatikan (ENABLE_RC=false di config.h)."));
+#endif
     } else {
       status.modeOperasi = MODE_NORMAL;
       Serial.println(F("Mode: NORMAL"));
     }
   } else if (strcmp(key, "rc") == 0) {
+#if ENABLE_RC
     if (strcmp(valStr, "on") == 0) {
       status.modeOperasi = MODE_RC;
       Serial.println(F("RC mode: ON (MODE_RC)"));
@@ -361,17 +382,16 @@ void Antarmuka::parseCommand(char *cmd) {
       status.modeOperasi = MODE_NORMAL;
       Serial.println(F("RC mode: OFF (kembali ke MODE_NORMAL)"));
     } else if (strcmp(valStr, "status") == 0) {
-#if ENABLE_RC
       Serial.print(F("RC Throttle: ")); Serial.print(rc.getThrottle());
       Serial.print(F("% | Steering: ")); Serial.print(rc.getSteering());
       Serial.print(F("% | Signal: "));
       Serial.println(rc.isSignalLost() ? F("HILANG") : F("OK"));
-#else
-      Serial.println(F("RC tidak aktif (ENABLE_RC=false)."));
-#endif
     } else {
       Serial.println(F("Penggunaan: rc on | rc off | rc status"));
     }
+#else
+    Serial.println(F("RC tidak aktif (ENABLE_RC=false)."));
+#endif
   } else if (strcmp(key, "fuzzy") == 0) {
 #if ENABLE_FUZZY_PID
     if (strcmp(valStr, "on") == 0) {
@@ -388,6 +408,92 @@ void Antarmuka::parseCommand(char *cmd) {
     }
 #else
     Serial.println(F("Fuzzy PID tidak aktif (ENABLE_FUZZY_PID=false)."));
+#endif
+  } else if (strcmp(key, "gs") == 0) {
+    // Gain Scheduling
+#if ENABLE_GAIN_SCHEDULING
+    if (strcmp(valStr, "on") == 0) {
+      gerak.setGainScheduling(true);
+      Serial.println(F("Gain Scheduling: ON"));
+    } else if (strcmp(valStr, "off") == 0) {
+      gerak.setGainScheduling(false);
+      Serial.println(F("Gain Scheduling: OFF"));
+    } else {
+      Serial.print(F("Gain Scheduling: "));
+      Serial.println(gerak.isGainSchedulingEnabled() ? F("ON") : F("OFF"));
+      Serial.print(F("Kp sched: ")); Serial.print(gerak.getGainScheduleKp(), 2);
+      Serial.print(F(" | Kd sched: ")); Serial.print(gerak.getGainScheduleKd(), 2);
+      Serial.print(F(" | Ki sched: ")); Serial.println(gerak.getGainScheduleKi(), 2);
+      Serial.println(F("Penggunaan: gs on | gs off | gs"));
+    }
+#else
+    Serial.println(F("Gain Scheduling tidak aktif (ENABLE_GAIN_SCHEDULING=false)."));
+#endif
+  } else if (strcmp(key, "heading") == 0) {
+    // IMU Heading Correction
+#if ENABLE_HEADING_CORRECTION
+    if (strcmp(valStr, "on") == 0) {
+      gerak.setHeadingCorrection(true);
+      Serial.println(F("Heading correction: ON"));
+    } else if (strcmp(valStr, "off") == 0) {
+      gerak.setHeadingCorrection(false);
+      Serial.println(F("Heading correction: OFF"));
+    } else if (strcmp(valStr, "reset") == 0) {
+      gerak.resetHeading();
+      Serial.println(F("Heading direset ke 0 (arah sekarang = lurus)."));
+    } else if (strcmp(valStr, "cal") == 0) {
+      if (!status.jalan) {
+        Serial.println(F("Kalibrasi bias gyro... diamkan robot 1.5 detik."));
+        gerak.calibrateHeadingBias();
+      } else {
+        Serial.println(F("ERROR: Hentikan robot dulu untuk kalibrasi heading."));
+      }
+    } else if (strcmp(valStr, "save") == 0) {
+      gerak.simpanHeading();
+      Serial.println(F("Heading correction disimpan ke EEPROM."));
+    } else {
+      Serial.print(F("Heading: ")); Serial.print(gerak.getHeading(), 1);
+      Serial.print(F("° | Target: ")); Serial.print(gerak.getTargetHeading(), 1);
+      Serial.print(F("° | Error: ")); Serial.print(gerak.getHeadingError(), 1);
+      Serial.print(F("° | Correction: "));
+      Serial.println(gerak.isHeadingCorrectionEnabled() ? F("ON") : F("OFF"));
+      Serial.println(F("Penggunaan: heading on|off|reset|cal|save"));
+    }
+#else
+    Serial.println(F("Heading correction tidak aktif (ENABLE_HEADING_CORRECTION=false)."));
+#endif
+  } else if (strcmp(key, "htarget") == 0) {
+#if ENABLE_HEADING_CORRECTION
+    if (hasVal) gerak.setHeadingTarget(val);
+    Serial.print(F("Heading target = "));
+    Serial.println(gerak.getTargetHeading());
+#else
+    Serial.println(F("Heading correction tidak aktif."));
+#endif
+  } else if (strcmp(key, "adapt") == 0) {
+    // Adaptive Threshold
+#if ENABLE_ADAPTIVE_THRESHOLD
+    if (strcmp(valStr, "on") == 0) {
+      sensor.setAdaptiveThreshold(true);
+      Serial.println(F("Adaptive Threshold: ON"));
+    } else if (strcmp(valStr, "off") == 0) {
+      sensor.setAdaptiveThreshold(false);
+      Serial.println(F("Adaptive Threshold: OFF"));
+    } else if (strcmp(valStr, "reset") == 0) {
+      sensor.resetAdaptive();
+      Serial.println(F("Adaptive threshold direset ke base."));
+    } else if (strcmp(valStr, "save") == 0) {
+      sensor.simpanAdaptive();
+      Serial.println(F("Adaptive threshold base disimpan ke EEPROM."));
+    } else {
+      Serial.print(F("Adaptive Threshold: "));
+      Serial.println(sensor.isAdaptiveThresholdEnabled() ? F("ON") : F("OFF"));
+      Serial.print(F("Ambang kiri dinamis: ")); Serial.print(sensor.ambangDinamis(2));
+      Serial.print(F(" | kanan: ")); Serial.println(sensor.ambangDinamis(1));
+      Serial.println(F("Penggunaan: adapt on|off|reset|save"));
+    }
+#else
+    Serial.println(F("Adaptive Threshold tidak aktif (ENABLE_ADAPTIVE_THRESHOLD=false)."));
 #endif
   } else if (strcmp(key, "mapclear") == 0) {
     if (status.jalan) {
@@ -426,8 +532,12 @@ void Antarmuka::parseCommand(char *cmd) {
     Serial.println(F("mode <val>      : set mode (learn/race/rc/normal)"));
     Serial.println(F("rc on|off|status: aktifkan/nonaktifkan/cek status RC"));
     Serial.println(F("fuzzy on|off   : aktifkan/nonaktifkan/cek Fuzzy adaptive PID"));
+    Serial.println(F("gs on|off     : aktifkan/nonaktifkan/cek Gain Scheduling"));
+    Serial.println(F("heading on|off|reset|cal|save : aktifkan/cek/reset/kalibrasi/save heading correction"));
+    Serial.println(F("htarget <val> : set target heading (derajat)"));
+    Serial.println(F("adapt on|off|reset|save : aktifkan/cek/reset/save Adaptive Threshold"));
     Serial.println(F("calibrate       : jalankan kalibrasi sensor (harus berhenti)"));
-    Serial.println(F("tune            : kalibrasi + Auto-Tuning PID sekaligus"));
+    Serial.println(F("tune            : Auto-Tune PID via relay feedback (Ziegler-Nichols)"));
     Serial.println(F("lap [summary|csv|reset] : lap timer summary/CSV/reset"));
     Serial.println(F("lapconfig <th> [minMs] : set threshold start/finish & min lap time"));
 #if ENABLE_PATH_PLANNER
@@ -494,149 +604,106 @@ void Antarmuka::tampilkanStatusJalannya() {
   Serial.println(F(" --- AKHIR STATUS ---"));
 }
 
-// --- SEQUENCE: Kalibrasi + Auto-Tuning PID ---
-// Alur: Kalibrasi sensor -> Test respons PID -> Fine-tuning -> Simpan ke EEPROM
+// --- SEQUENCE: Kalibrasi + Auto-Tuning PID (Relay Feedback / Ziegler-Nichols) ---
+// Alur: Kalibrasi sensor -> Relay feedback -> Hitung ZN -> Simpan ke EEPROM
 void Antarmuka::tuningSequence() {
-  unsigned long sequenceStart = millis();
-  const unsigned long SEQ_TIMEOUT = 30000; // 30 detik total timeout
-  
-  Serial.println(F("--- MEMULAI SEQUENCE KALIBRASI + AUTO-TUNING ---"));
-  
+  Serial.println(F("--- MEMULAI AUTO-TUNE PID (Relay Feedback) ---"));
+
   // Step 1: Kalibrasi sensor
-  setRgbledColor(255, 165, 0); // oranye = tahap kalibrasi
+  setRgbledColor(255, 165, 0); // oranye
   Serial.println(F("Step 1: Kalibrasi sensor..."));
   sensor.kalibrasi(gerak);
   Serial.println(F("Kalibrasi selesai."));
-  
-  // Step 2: Auto-Tuning PID sederhana (grid search)
-  setRgbledColor(255, 0, 255); // magenta = tahap auto-tuning
-  Serial.println(F("Step 2: Auto-Tuning PID (grid search)..."));
-  
-  // Parameter grid untuk dicoba
-  float kpValues[] = {15.0, 20.0, 25.0, 30.0};
-  float kdValues[] = {0.5, 1.0, 1.5, 2.0};
-  
-  float bestKp = Kp;
-  float bestKd = Kd;
-  float bestScore = 9999.0; // Score lebih rendah = lebih baik
-  
-  // Simpan parameter lama
-  float originalKp = Kp;
-  float originalKd = Kd;
-  
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      // Cek timeout
-      if (millis() - sequenceStart > SEQ_TIMEOUT) {
-        Serial.println(F("Timeout sequence!"));
-        break;
-      }
-      
-      float testKp = kpValues[i];
-      float testKd = kdValues[j];
-      
-      // Terapkan parameter uji
-      Kp = testKp;
-      Kd = testKd;
-      Ki = 0.01; // Ki tetap kecil
-      
-      // Jalankan robot sebentar untuk test respons
-      // Mulai test dari state PID/motor bersih agar skor antar kombinasi
-      // sebanding dan turbo/slew run sebelumnya tidak ikut.
-      gerak.reset();
 
-      status.jalan = true;
-      unsigned long testStart = millis();
-      const unsigned long TEST_DURATION = 5000; // 5 detik test
-      unsigned long garisHilangMulai = 0;
-      
-      float totalError = 0;
-      int errorSamples = 0;
-      bool oscillating = false;
-      float prevError = 0;
-      bool punyaSample = false;
-      
-      while (millis() - testStart < TEST_DURATION) {
-        if (!status.jalan) break;
-        
-        // Safety tetap berjalan selama robot digerakkan auto-tune:
-        // halangan/tilt/baterai lemah menghentikan test ini seketika.
-        if (aman.bateraiKritis() || aman.miring() || aman.halangan()) {
-          break;
-        }
-        
-        // Baca sensor dan SICALAKAN PID sungguhan lewat gerak.hitung()
-        // (sebelumnya robot tidak pernah digerakkan -> skor tidak bermakna).
-        int bacaKiri = sensor.bacaKiri();
-        int bacaKanan = sensor.bacaKanan();
-        float error = (bacaKiri - bacaKanan) / 2.0;
-        
-        // Garis hilang terlalu lama: hentikan test, kombinasi ini buruk.
-        if (bacaKiri < AMBANG_KIRI && bacaKanan < AMBANG_KANAN) {
-          if (garisHilangMulai == 0) garisHilangMulai = millis();
-          if (millis() - garisHilangMulai > RECOVERY_TIMEOUT_MS) break;
-        } else {
-          garisHilangMulai = 0;
-        }
-        
-        gerak.hitung(bacaKiri, bacaKanan, true);
-        
-        totalError += abs(error);
-        errorSamples++;
-        
-        // Deteksi oscillasi: bandingkan SEBELUM update prevError
-        // (sebelumnya dibandingkan dengan diri sendiri -> selalu false).
-        if (punyaSample && ((error > 0 && prevError < 0) || (error < 0 && prevError > 0))) {
-          oscillating = true;
-        }
-        prevError = error;
-        punyaSample = true;
-        
-        delay(10); // Approximate PID interval
-      }
-      
-      status.jalan = false;
-      gerak.saatBerhenti();  // motor berhenti + memori slew dibuang
-      
-      // Hitung skor: error rata-rata + penalty oscillasi
-      float avgError = errorSamples > 0 ? totalError / errorSamples : 9999;
-      float score = avgError;
-      if (oscillating) score += 5.0; // Penalty besar buat oscillasi
-      
-      Serial.print(F("  Test Kp=")); Serial.print(testKp);
-      Serial.print(F(", Kd=")); Serial.print(testKd);
-      Serial.print(F(": avgError=")); Serial.print(avgError, 1);
-      Serial.print(F(", oscill=")); Serial.print(oscillating ? "YA" : "TIDAK");
-      Serial.println(F(", skor=")); Serial.print(score, 1);
-      
-      if (score < bestScore) {
-        bestScore = score;
-        bestKp = testKp;
-        bestKd = testKd;
+  // Step 2: Relay feedback — amati osilasi
+  setRgbledColor(255, 0, 255); // magenta
+  Serial.println(F("Step 2: Relay feedback (amati osilasi)..."));
+
+  // Simpan parameter lama
+  float saveKp = Kp, saveKd = Kd, saveKi = Ki;
+  Ki = 0.0;  // nonaktifkan I untuk relay test
+  Kp = 0.0;
+  Kd = 0.0;
+
+  gerak.reset();
+  status.jalan = true;
+  unsigned long t0 = millis();
+  bool lastSign = false;
+  bool havePrevCrossing = false;
+  unsigned long prevCrossingTime = 0;
+  int cycleCount = 0;
+  float maxAmplitude = 0;
+  unsigned long firstCrossingTime = 0;
+
+  while (millis() - t0 < AT_TIMEOUT_MS && cycleCount < AT_MAX_CYCLES) {
+    if (aman.bateraiKritis() || aman.miring() || aman.halangan()) break;
+
+    int bacaKiri = sensor.bacaKiri();
+    int bacaKanan = sensor.bacaKanan();
+    float error = (bacaKiri - bacaKanan) / 2.0;
+
+    // Relay: output = +AMPLITUDE atau -AMPLITUDE berdasarkan tanda error
+    float relayOut = (error > AT_RELAY_HYSTERESIS) ? -AT_RELAY_AMPLITUDE
+                  : (error < -AT_RELAY_HYSTERESIS) ? AT_RELAY_AMPLITUDE : 0;
+    gerak.jalankan((int)(kecepatanDasarMin - relayOut),
+                   (int)(kecepatanDasarMin + relayOut));
+
+    // Deteksi crossing (error berubah tanda)
+    bool nowSign = (error > 0);
+    if (cycleCount > 0 && nowSign != lastSign) {
+      unsigned long now = millis();
+      if (!havePrevCrossing) {
+        prevCrossingTime = now;
+        firstCrossingTime = now;
+        havePrevCrossing = true;
+      } else if (now - prevCrossingTime >= AT_MIN_PERIOD_MS) {
+        cycleCount++;
+        prevCrossingTime = now;
       }
     }
+    lastSign = nowSign;
+    if (fabs(error) > maxAmplitude) maxAmplitude = fabs(error);
+
+    delay(10);
   }
-  
-  // Step 3: Terapkan parameter terbaik
-  Serial.println(F("Step 3: Parameter terbaik..."));
-  Kp = bestKp;
-  Kd = bestKd;
-  Serial.print(F("Kp terbaik: ")); Serial.println(Kp);
-  Serial.print(F("Kd terbaik: ")); Serial.println(Kd);
-  
-  // Step 4: Simpan ke EEPROM
-  setRgbledColor(0, 255, 0); // hijau = selesai
+
+  status.jalan = false;
   gerak.saatBerhenti();
-  sensor.simpan(); // Simpan Kp, Kd, ambang, speed ke EEPROM
-  mapper.simpan();  // peta waypoint ikut tersimpan
-  
-  Serial.println(F("--- SEQUENCE SELESAI ---"));
-  Serial.print(F("Parameter disimpan: Kp=")); Serial.print(Kp);
-  Serial.print(F(", Kd=")); Serial.print(Kd);
-  Serial.println(F(", ambang & speed ikut kalibrasi"));
-  Serial.println(F("LED hijau = siap digunakan"));
-  
-  // Kembali ke mode normal
+
+  // Step 3: Hitung Ziegler-Nichols
+  unsigned long Tu = 0;
+  if (cycleCount >= 2 && havePrevCrossing) {
+    Tu = (millis() - firstCrossingTime) / cycleCount;
+  }
+  float Ku = (maxAmplitude > 0) ? (4.0 * AT_RELAY_AMPLITUDE) / (3.14159 * maxAmplitude) : 0;
+
+  Serial.print(F("Osilasi: ")); Serial.print(cycleCount);
+  Serial.print(F(" siklus, Tu=")); Serial.print(Tu);
+  Serial.print(F(" ms, Ku=")); Serial.println(Ku, 2);
+
+  if (Ku > 0 && Tu > 0) {
+    // Ziegler-Nichols PID: Kp = 0.6*Ku, Ti = Tu/2, Td = Tu/8.
+    // PID di kode ini diskrit: I += error dan D = error-lastError, jadi
+    // Ki_code = Kp*dt/Ti dan Kd_code = Kp*Td/dt (dt = PID_INTERVAL_MS).
+    // Rumus per-detik langsung (implementasi lama) salah skala 100x:
+    // Ki terlalu besar dan Kd terlalu kecil.
+    float TuDetik = Tu / 1000.0;
+    float dt = PID_INTERVAL_MS / 1000.0;
+    Kp = constrain(0.6 * Ku, 0.1, 50.0);
+    Ki = constrain((Kp * dt) / (TuDetik / 2.0), 0.0, 5.0);
+    Kd = constrain((Kp * (TuDetik / 8.0)) / dt, 0.0, 20.0);
+    Serial.print(F("ZN PID: Kp=")); Serial.print(Kp);
+    Serial.print(F(", Ki=")); Serial.print(Ki);
+    Serial.print(F(", Kd=")); Serial.println(Kd);
+  } else {
+    Kp = saveKp; Kd = saveKd; Ki = saveKi;
+    Serial.println(F("Auto-tune gagal, pakai parameter lama."));
+  }
+
+  // Step 4: Simpan
+  setRgbledColor(0, 255, 0); // hijau
+  sensor.simpan();
+  Serial.println(F("--- AUTO-TUNE SELESAI ---"));
   status.modeOperasi = MODE_NORMAL;
   status.jalan = false;
   setRgbledColor(0, 0, 0);

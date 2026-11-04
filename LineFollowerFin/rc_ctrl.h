@@ -20,17 +20,15 @@ class RcCtrl {
  public:
   RcCtrl(Status &st, Penggerak &g, SensorGaris &sen, Pengaman &am, LapTimer &lt);
 
-  // Inisialisasi
-  void begin(unsigned long baud = 115200, int pin = 2, RCSource src = RC_PWM);
+  // Inisialisasi. pin = throttle, steerPin = steering (dua channel terpisah).
+  void begin(unsigned long baud = 115200, int pin = 2, RCSource src = RC_PWM,
+             int steerPin = RC_STEER_PIN);
 
   // Dipanggil setiap loop
   void update();
 
-  // Baca lebar pulse (us) dari channel throttle/steering
+  // Baca lebar pulse (us) dari satu channel
   unsigned long readPulseWidth_us(int pin);
-
-  // Map pulse ke speed kiri/kanan
-  void mapToSpeed(int pulseUs, int &outSpeedKiri, int &outSpeedKanan) const;
 
   // Enable/disable RC control
   bool isEnabled() const;
@@ -39,7 +37,7 @@ class RcCtrl {
   // Set mode operasi ke MODE_RC saat RC aktif
   void setMode(ModeOperasi mode);
 
-  // Akses nilai throttle/steering (0-100 throttle, -100..100 steering)
+  // Akses nilai throttle/steering: -100..100 (0 = netral)
   int getThrottle() const;
   int getSteering() const;
 
@@ -61,6 +59,7 @@ class RcCtrl {
 
   RCSource rcSource = RC_NONE;
   int rcPin = 2;
+  int rcSteerPin = RC_STEER_PIN;
   unsigned long rcBaud = 115200;
 
   // Pulse measurement state
@@ -70,8 +69,8 @@ class RcCtrl {
   bool signalLost = true;
 
   // Cached command values
-  int throttlePct = 0;        // 0-100
-  int steeringPct = 0;        // -100..100
+  int throttlePct = 0;        // -100..100 (0 = netral)
+  int steeringPct = 0;        // -100..100 (0 = netral)
 
   // Serial buffer (jika RC_SERIAL)
   static const int RC_CMD_BUFFER_SIZE = 64;
