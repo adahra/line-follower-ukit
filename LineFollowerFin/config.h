@@ -17,7 +17,7 @@ extern int kecepatanDasar;      // Variabel dinamis yang akan dikalibrasi oleh P
 // Arena loop dengan S ganda: pengereman adaptif dinaikkan agar robot tidak
 // masuk tikungan terlalu cepat. 0.35 -> 0.5 (turunkan lagi ke 0.4 bila
 // kecepatan terasa berombak di lurus).
-#define FAKTOR_REM_ADAPTIF 0.5
+#define FAKTOR_REM_ADAPTIF 0.3
 #define BATAS_INTEGRAL 50       // anti windup: I dijepit ±nilai ini
 #define SPEED_TOMBOL_MIN 60     // batas bawah kecepatan maks via tombol
 #define SPEED_TOMBOL_MAKS 150   // batas atas (sama dengan derate servo)
@@ -26,7 +26,7 @@ extern int kecepatanDasar;      // Variabel dinamis yang akan dikalibrasi oleh P
 // PENTING: KECEPATAN_TURBO adalah BONUS, bukan target absolut.
 // base = kecepatanDasarMaks + bonus turbo - pengereman PID.
 // 20 -> dengan maks 85 target lurus sekitar 105 (bukan 150).
-#define KECEPATAN_TURBO 20
+#define KECEPATAN_TURBO 0
 // 3.0 -> 2.0: arena S, turbo hanya aktif saat error benar-benar kecil.
 #define LURUS_THRESHOLD 2.0
 #define LURUS_TIME_REQUIRED 500  // Waktu (ms) harus lurus sebelum masuk mode Turbo
@@ -276,7 +276,7 @@ extern int AMBANG_KANAN;
 // --- ADAPTIVE THRESHOLD ---
 // Ambang sensor dinamis: naik seiring kecepatan (noise meningkat di
 // kecepatan tinggi, sensor IR baca liar lebih sering).
-#define ENABLE_ADAPTIVE_THRESHOLD true
+#define ENABLE_ADAPTIVE_THRESHOLD false
 #define ADAPT_SPEED_FACTOR 0.25     // pengaruh kecepatan terhadap ambang
 #define ADAPT_THRESH_MIN 3
 #define ADAPT_THRESH_MAX 18
