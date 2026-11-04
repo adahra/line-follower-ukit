@@ -62,7 +62,7 @@ setServoTurn(3, 0, speedKanan); // Kanan belakang
 | 1 (lama) | Toggle mode Kp/Kd (berhenti), Stop (jalan) |
 | 2 (pendek) | Speed maks ±10 (clamp 60–150) |
 | 2 (lama) | Save EEPROM + Start (kalau berhenti) |
-| 1+2 bersamaan (berhenti) | Kalibrasi manual sensor (putar 3 detik) |
+| 1+2 bersamaan (berhenti) | Kalibrasi manual sensor (putar hingga 360°, berbasis IMU) |
 
 ## Remote Control (opsional, `ENABLE_RC=true`)
 | Config | Pin | Keterangan |
@@ -128,7 +128,7 @@ speedmin 50   # set speed min
 ambang 10     # set ambang kiri & kanan
 ambangk 9     # set ambang kiri saja
 ambangn 11    # set ambang kanan saja
-calibrate     # kalibrasi sensor (harus berhenti)
+calibrate [auto|manual]  # kalibrasi sensor (auto = robot berputar, manual = diputar tangan)
 save          # simpan ke EEPROM
 load          # muat dari EEPROM & cetak
 start         # mulai jalan

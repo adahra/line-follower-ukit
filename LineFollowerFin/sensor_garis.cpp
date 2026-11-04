@@ -2,6 +2,7 @@
 #include "penggerak.h"
 #include "ukit_extern.h"
 #include "ukit_macros.h"
+#include "KalmanMPU6050.h"  // IMU untuk kalibrasi putaran 360°
 
 void SensorGaris::resetFilter() {
   filtKiri = -1;
@@ -29,17 +30,82 @@ int SensorGaris::bacaKanan() {
   return bacaHalus(1);
 }
 
-void SensorGaris::kalibrasi(Penggerak &gerak) {
-  Serial.println(F("--- MEMULAI KALIBRASI SENSOR ---"));
+void SensorGaris::kalibrasi(Penggerak &gerak, bool manual) {
+  Serial.println(manual ? F("--- MEMULAI KALIBRASI MANUAL ---")
+                        : F("--- MEMULAI KALIBRASI SENSOR ---"));
   int maksKiri = 0, minKiri = 20;
   int maksKanan = 0, minKanan = 20;
 
+  if (manual) {
+    Serial.println(F("Mode MANUAL: motor diam, putar robot 360 derajat dengan tangan."));
+  }
   setRgbledColor(255, 255, 0);
-  delay(500);
-  gerak.putarKalibrasi();
+  delay(200);  // beri waktu robot tenang sebelum sampling bias gyro
 
-  unsigned long waktuMulai = millis();
-  while (millis() - waktuMulai < 3000) {
+#if CALIB_USE_IMU
+  // Bias gyro harus diukur saat robot benar-benar diam. Tanpa ini,
+  // integrasi sudut bisa berhenti terlalu cepat atau terlambat.
+  float gyroBias = 0.0;
+  int biasSamples = 0;
+  unsigned long biasStart = millis();
+  while (millis() - biasStart < CALIB_GYRO_BIAS_MS) {
+    IMU::read();
+    gyroBias += IMU::getRawGyroZ();
+    biasSamples++;
+    delay(5);
+  }
+  if (biasSamples > 0) {
+    gyroBias /= (float)biasSamples;
+  }
+  if (manual) {
+    Serial.println(F("Bias gyro siap. Sekarang putar robot 360 derajat dengan tangan."));
+  } else {
+    Serial.println(F("Kalibrasi: bias gyro siap, target putaran 360 derajat"));
+  }
+#endif
+
+  if (manual) {
+    gerak.berhenti();  // mode manual: roda tidak boleh ikut menggerakkan robot
+  } else {
+    gerak.putarKalibrasi();
+  }
+
+  unsigned long spinStart = millis();
+#if CALIB_USE_IMU
+  unsigned long lastUpdate = spinStart;
+  float angle = 0.0;
+  unsigned long batasWaktu = manual ? CALIB_MANUAL_TIMEOUT_MS : CALIB_SPIN_TIMEOUT_MS;
+#else
+  unsigned long batasWaktu = manual ? CALIB_MANUAL_TIMEOUT_MS : CALIB_FALLBACK_MS;
+#endif
+  bool selesai = false;
+
+  while (!selesai) {
+#if CALIB_USE_IMU
+    IMU::read();
+    unsigned long now = millis();
+    float dt = (now - lastUpdate) / 1000.0;
+    lastUpdate = now;
+    if (dt > 0.0) {
+      angle += (IMU::getRawGyroZ() - gyroBias) * dt;
+    }
+
+    if (fabs(angle) >= CALIB_TARGET_DERAJAT) {
+      selesai = true;
+    } else if (now - spinStart >= batasWaktu) {
+      selesai = true;
+    }
+#else
+    if (millis() - spinStart >= batasWaktu) {
+      selesai = true;
+    }
+#endif
+
+    if (selesai) {
+      break;
+    }
+
+    // Sampling mentah (bukan filter) agar min/max mencakup hitam dan putih.
     int sensorKanan = readInfraredDistance(1);
     int sensorKiri = readInfraredDistance(2);
     if (sensorKanan > maksKanan && sensorKanan <= 20) {
@@ -58,10 +124,35 @@ void SensorGaris::kalibrasi(Penggerak &gerak) {
       minKiri = sensorKiri;
     }
 
-    delay(10);
+    delay(CALIB_SAMPLE_MS);
   }
 
   gerak.berhenti();
+
+#if CALIB_USE_IMU
+  Serial.print(F("Kalibrasi: sudut terdeteksi "));
+  Serial.print(angle, 1);
+  Serial.println(F(" derajat"));
+
+  if (fabs(angle) < CALIB_MIN_ROTASI_DERAJAT) {
+    Serial.println(F("Kalibrasi GAGAL: putaran tidak mencapai minimum."));
+    Serial.println(F("Ambang lama dipertahankan; ulangi kalibrasi."));
+    setRgbledColor(255, 0, 0);
+    delay(1000);
+    setRgbledColor(0, 0, 0);
+    return;
+  }
+#endif
+
+  // Pastikan kedua sensor benar-benar melihat kontras hitam/putih.
+  if (maksKiri <= minKiri || maksKanan <= minKanan) {
+    Serial.println(F("Kalibrasi GAGAL: kontras sensor tidak cukup."));
+    Serial.println(F("Ambang lama dipertahankan; cek posisi/lighting."));
+    setRgbledColor(255, 0, 0);
+    delay(1000);
+    setRgbledColor(0, 0, 0);
+    return;
+  }
 
   AMBANG_KANAN = constrain((maksKanan + minKanan) / 2, 3, 18);
   AMBANG_KIRI = constrain((maksKiri + minKiri) / 2, 3, 18);

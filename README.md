@@ -46,7 +46,8 @@ Struktur file utama di `LineFollowerFin/`:
 Mode dapat diatur via antarmuka/serial (lihat `antarmuka`).
 
 ### Kalibrasi Manual
-- Tekan **kedua tombol bersamaan** saat robot berhenti untuk memulai kalibrasi sensor (berputar ~3 detik, LED kuning).
+- Tekan **kedua tombol bersamaan** saat robot berhenti untuk memulai kalibrasi sensor (berputar hingga **360°** berbasis gyro IMU, LED kuning). Timeout 8 detik; jika putaran <300° kalibrasi dibatalkan dan ambang lama dipertahankan. Set `CALIB_USE_IMU=false` untuk kembali ke timer 3 detik.
+- Lewat serial: `calibrate` atau `calibrate auto` untuk robot berputar sendiri; `calibrate manual` untuk motor diam dan robot diputar 360° dengan tangan (timeout 15 detik).
 - Tiap sensor dihitung ambangnya sendiri dari rata-rata max/min, lalu **dijepit ke 3–18** dan disimpan ke EEPROM.
 - Tidak ada auto-kalibrasi saat boot secara default (`AUTO_CALIBRATE_ON_BOOT = false`).
 

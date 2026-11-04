@@ -27,7 +27,7 @@ Order/priority (from code): protocol() if not running; check battery critical �
 
 ## Tuning & EEPROM
 - Tuning via buttons (no serial needed): Btn1 short adjusts Kp/Kd depending on `modeSetelKd` (toggle long-press while stopped), long-press while running stops. Btn2 short adjusts max speed ±10 (60–150), long-press saves EEPROM + starts. RGB shows states.
-- Persisted: guard `77` at 3 (agar uKit `Initialization()` tidak menghapus 0–20), magic `123` at 0, `Kp`(4), `Ki`(8), `Kd`(12), `kecepatanDasarMaks`(16), `AMBANG_KIRI`(20), `AMBANG_KANAN`(22), peta waypoint 24–266, heading/adaptive 280–297. Not persisted: `kecepatanDasarMin`. Writes via `eepromPutHemat` (only if changed). Manual calibration: both buttons together while stopped → spin ~3s, compute per-sensor thresholds clamped to 3–18.
+- Persisted: guard `77` at 3 (agar uKit `Initialization()` tidak menghapus 0–20), magic `123` at 0, `Kp`(4), `Ki`(8), `Kd`(12), `kecepatanDasarMaks`(16), `AMBANG_KIRI`(20), `AMBANG_KANAN`(22), peta waypoint 24–266, heading/adaptive 280–297. Not persisted: `kecepatanDasarMin`. Writes via `eepromPutHemat` (only if changed). Manual calibration: both buttons together while stopped → putar hingga 360° berbasis gyro IMU (fallback timer jika `CALIB_USE_IMU=false`), compute per-sensor thresholds clamped to 3–18; batal jika putaran <300° atau kontras tidak cukup.
 - `setup()`: `EEPROM.update(3, 77)` → `Initialization()` → `IMU::init()`; if not in protocol run state load EEPROM + mapper, auto-calibrate only if invalid and `AUTO_CALIBRATE_ON_BOOT` true.
 
 ## Gotchas (must preserve)

@@ -85,7 +85,7 @@ The project uses a modular class-based architecture with **one `.h`/`.cpp` pair 
 ### Key Design Notes
 - **All classes use reference semantics** — objects are declared in `.ino` and passed by reference to constructors/ methods.
 - **Forward declarations in `fwd.h`** — mandatory because the `eepromPutHemat` template breaks Arduino's auto-prototype generator. Explicit forward declarations must exist before `setup()`.
-- **No auto-calibration at boot** — manual calibration via pressing both buttons together while stopped (spins 3s, auto-computes per-sensor thresholds `AMBANG_KIRI`/`AMBANG_KANAN`, each clamped to 3–18).
+- **No auto-calibration at boot** — manual calibration via pressing both buttons together while stopped (spins until **360°** using IMU gyro, auto-computes per-sensor thresholds `AMBANG_KIRI`/`AMBANG_KANAN`, each clamped to 3–18).
 - **All comments/serial prints in Indonesian** — preserve this language consistency when adding/editing code.
 
 ---
@@ -105,7 +105,7 @@ struct Status {
 ### `SensorGaris` (sensor_garis.h)
 - `bacaKiri()` — Read left sensor (ID 2), already filtered
 - `bacaKanan()` — Read right sensor (ID 1), already filtered
-- `kalibrasi(Penggerak &gerak)` — Manual calibration: spin 3s, compute per-sensor thresholds, clamped to 3–18
+- `kalibrasi(Penggerak &gerak)` — Manual calibration: spin until 360° (IMU gyro; fallback timer if `CALIB_USE_IMU=false`), compute per-sensor thresholds, clamped to 3–18
 - `simpan()` — Save Kp/Kd/speed/ambang to EEPROM (using `eepromPutHemat`)
 - `muat()` — Load from EEPROM (validated by magic number `123` at addr 0)
 
@@ -127,7 +127,7 @@ struct Status {
 ### `Antarmuka` (antarmuka.h)
 - `cekTombol()` — Non-blocking button checking with 300ms cooldown.
 - `cekTepuk()` — Clap toggle: 1x tap = jalan/stop toggle.
-- `cekSerial()` — Serial command parser for Kp/Ki/Kd/speed/ambang/calibrate/save/help.
+- `cekSerial()` — Serial command parser for Kp/Ki/Kd/speed/ambang/`calibrate [auto|manual]`/save/help.
 
 ### `Mapper` (mapping.h)
 - `recordEvent(EventType type, ActionType action)` — Record waypoint during learning mode.
@@ -373,7 +373,7 @@ if (!eepromValid && AUTO_CALIBRATE_ON_BOOT) {
 
 ### Development Tips
 - Use Button 1 + Button 2 long-press to save EEPROM and start running after any config change
-- Serial monitor still available for debugging: `cekSerial()` parses commands: `Kp`, `Kd`, `speed`, `ambang`, `calibrate`, `save`, `help`
+- Serial monitor still available for debugging: `cekSerial()` parses commands: `Kp`, `Kd`, `speed`, `ambang`, `calibrate [auto|manual]`, `save`, `help`
 - Telemetry can be enabled via `ENABLE_TELEMETRI = true` in `config.h` (CSV: `t,err,pid,dasar,kiri,kanan,senK,senN`)
 - RGB LED signals are your best friend for debugging without serial
 
@@ -407,7 +407,7 @@ arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin
 ### Typical Workflow
 1. Upload sketch to board
 2. Observe RGB LED and listen for serial output
-3. If first run or EEPROM invalid: press **both buttons together** while stopped → robot spins 3s (calibration), then saves thresholds to EEPROM
+3. If first run or EEPROM invalid: press **both buttons together** while stopped → robot spins until 360° (IMU calibration), then saves thresholds to EEPROM
 4. Press **Button 2 long-press** to save EEPROM and start running
 5. Use **Button 1** to adjust Kp/Kd, **Button 2** to adjust speed
 6. Observe behavior: line following, intersection handling, lost-line recovery, auto headlight

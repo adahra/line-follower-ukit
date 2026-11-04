@@ -49,6 +49,20 @@ extern int kecepatanDasar;      // Variabel dinamis yang akan dikalibrasi oleh P
 // 0.65 = 2-3 siklus untuk 90%: respons lebih menggigit tanpa kehilangan redam noise.
 #define ALPHA_SENSOR 0.65
 
+// --- KALIBRASI SENSOR BERBASIS IMU ---
+// Putaran kalibrasi dihentikan berdasarkan sudut gyro Z, bukan timer tetap.
+// Target 360°, timeout 6 detik, dan minimal 300° agar hasil min/max valid.
+// Set CALIB_USE_IMU=false untuk kembali ke putaran timer 3 detik.
+#define CALIB_USE_IMU true
+#define CALIB_TARGET_DERAJAT 360.0
+#define CALIB_MIN_ROTASI_DERAJAT 300.0
+#define CALIB_SPIN_TIMEOUT_MS 8000   // longgar: spin 90 baru ±4 detik
+#define CALIB_MANUAL_TIMEOUT_MS 15000 // mode manual: waktu memutar dengan tangan
+#define CALIB_SPIN_SPEED 90          // speed servo saat kalibrasi (50 terlalu lemah)
+#define CALIB_GYRO_BIAS_MS 300
+#define CALIB_SAMPLE_MS 5
+#define CALIB_FALLBACK_MS 3000
+
 // --- PID interval tetap: D = error-lastError hanya valid bila dt konstan.
 // Tanpa ini, delay tombol (300-1000ms) membuat D melonjak acak.
 #define PID_INTERVAL_MS 10

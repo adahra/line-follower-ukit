@@ -26,7 +26,9 @@ class SensorGaris {
   void resetFilter();  // adaptasi ulang ke garis baru
   int bacaKiri();      // ID 2, sudah difilter
   int bacaKanan();     // ID 1, sudah difilter
-  void kalibrasi(Penggerak &gerak);  // putar 3 dtk, hitung ambang per sensor
+  // mode manual=true: motor diam, robot diputar dengan tangan.
+  // mode manual=false: robot berputar sendiri hingga 360° (IMU).
+  void kalibrasi(Penggerak &gerak, bool manual = false);
   void simpan();                     // Kp/Kd/speed/ambang -> EEPROM
   void muat();                       // EEPROM -> variabel (dijepit valid)
   void cetak();                      // dump Serial saat boot

@@ -254,6 +254,9 @@ void Antarmuka::parseCommand(char *cmd) {
   if (space) {
     *space = '\0';
     valStr = space + 1;
+    while (*valStr == ' ') {
+      valStr++;
+    }
   }
   float val = atof(valStr);
   bool hasVal = (valStr[0] != '\0');
@@ -300,11 +303,18 @@ void Antarmuka::parseCommand(char *cmd) {
     Serial.print(F("Ambang kanan = "));
     Serial.println(AMBANG_KANAN);
   } else if (strcmp(key, "calibrate") == 0) {
-    if (!status.jalan) {
-      Serial.println(F("Kalibrasi dimulai via serial..."));
-      sensor.kalibrasi(gerak);
-    } else {
+    if (status.jalan) {
       Serial.println(F("ERROR: Robot jalan, hentikan dulu."));
+    } else if (valStr[0] == '\0' || strcmp(valStr, "auto") == 0) {
+      Serial.println(F("Kalibrasi AUTO dimulai via serial (robot berputar sendiri)..."));
+      sensor.kalibrasi(gerak, false);
+    } else if (strcmp(valStr, "manual") == 0) {
+      Serial.println(F("Kalibrasi MANUAL dimulai: putar robot 360 derajat dengan tangan."));
+      sensor.kalibrasi(gerak, true);
+    } else {
+      Serial.println(F("Penggunaan: calibrate [auto|manual]"));
+      Serial.println(F("  auto   = robot berputar sendiri (default)"));
+      Serial.println(F("  manual = motor diam, robot diputar dengan tangan"));
     }
   } else if (strcmp(key, "tune") == 0) {
     if (!status.jalan) {
@@ -536,7 +546,7 @@ void Antarmuka::parseCommand(char *cmd) {
     Serial.println(F("heading on|off|reset|cal|save : aktifkan/cek/reset/kalibrasi/save heading correction"));
     Serial.println(F("htarget <val> : set target heading (derajat)"));
     Serial.println(F("adapt on|off|reset|save : aktifkan/cek/reset/save Adaptive Threshold"));
-    Serial.println(F("calibrate       : jalankan kalibrasi sensor (harus berhenti)"));
+    Serial.println(F("calibrate [auto|manual] : kalibrasi sensor; auto = robot berputar, manual = diputar tangan"));
     Serial.println(F("tune            : Auto-Tune PID via relay feedback (Ziegler-Nichols)"));
     Serial.println(F("lap [summary|csv|reset] : lap timer summary/CSV/reset"));
     Serial.println(F("lapconfig <th> [minMs] : set threshold start/finish & min lap time"));

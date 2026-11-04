@@ -246,10 +246,12 @@ void Penggerak::belokKanan90(int ambang) {
 }
 
 void Penggerak::putarKalibrasi() {
-  setServoTurn(4, 0, 50);
-  setServoTurn(2, 0, 50);
-  setServoTurn(1, 0, 50);
-  setServoTurn(3, 0, 50);
+  // Speed 50 sering terlalu lemah untuk satu putaran penuh (terutama di
+  // permukaan beralas karet); 90 memberi torsi cukup tanpa saturasi gyro.
+  setServoTurn(4, 0, CALIB_SPIN_SPEED);
+  setServoTurn(2, 0, CALIB_SPIN_SPEED);
+  setServoTurn(1, 0, CALIB_SPIN_SPEED);
+  setServoTurn(3, 0, CALIB_SPIN_SPEED);
 }
 
 void Penggerak::putarCariGaris(float lastErr) {
