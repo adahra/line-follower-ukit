@@ -39,7 +39,7 @@ class PID:
         return True
 
     def kecepatan_dasar(self):
-        """kecepatanDasar = maks - abs(PID)*0.35, dipenjit [min, maks]."""
+        """kecepatanDasar = maks - abs(PID)*0.5, dipenjit [min, maks]."""
         return max(
             cfg.kecepatanDasarMin,
             min(cfg.kecepatanDasarMaks,

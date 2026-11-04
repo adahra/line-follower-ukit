@@ -4,7 +4,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-// --- PENGATURAN PID (default awal; Kp/Kd/speed/ambang dioverride EEPROM) ---
+// --- PENGATURAN PID (default awal; Kp/Ki/Kd/speed/ambang dioverride EEPROM) ---
 extern float Kp;
 extern float Ki;
 extern float Kd;
@@ -14,31 +14,31 @@ extern int kecepatanDasarMin;   // Batas kecepatan terendah saat menikung tajam
 extern int kecepatanDasar;      // Variabel dinamis yang akan dikalibrasi oleh PID
 
 // --- KONSTANTA TUNE (dulu magic number tersebar di badan kode) ---
-// 0.4 -> 0.35: pengereman adaptif ikut-ikutan PID oscillasi,
-// bikin speed berombak di lurus (zigzag). Turunkan agar speed stabil.
-
-#define FAKTOR_REM_ADAPTIF 0.35
+// Arena loop dengan S ganda: pengereman adaptif dinaikkan agar robot tidak
+// masuk tikungan terlalu cepat. 0.35 -> 0.5 (turunkan lagi ke 0.4 bila
+// kecepatan terasa berombak di lurus).
+#define FAKTOR_REM_ADAPTIF 0.5
 #define BATAS_INTEGRAL 50       // anti windup: I dijepit ±nilai ini
 #define SPEED_TOMBOL_MIN 60     // batas bawah kecepatan maks via tombol
 #define SPEED_TOMBOL_MAKS 150   // batas atas (sama dengan derate servo)
 
 // --- DYNAMIC SPEED PROFILE (Turbo Mode) ---
-// 150 -> 120: turunkan ceiling turbo di lurus (150 bikin overshoot).
-#define KECEPATAN_TURBO 120
-// 1.5 -> 3.0: turbo HANYA aktif di lurus benar (error > 3 = tikungan).
-// 1.5 terlalu longgar -> turbo aktif di tengah zigzag -> semakin labil.
-#define LURUS_THRESHOLD 3.0
+// PENTING: KECEPATAN_TURBO adalah BONUS, bukan target absolut.
+// base = kecepatanDasarMaks + bonus turbo - pengereman PID.
+// 20 -> dengan maks 85 target lurus sekitar 105 (bukan 150).
+#define KECEPATAN_TURBO 20
+// 3.0 -> 2.0: arena S, turbo hanya aktif saat error benar-benar kecil.
+#define LURUS_THRESHOLD 2.0
 #define LURUS_TIME_REQUIRED 500  // Waktu (ms) harus lurus sebelum masuk mode Turbo
-#define TURBO_RAMP_SPEED 1       // 3->1: turbo naik perlahan (cepat bikin slip/overshoot di lurus)
+#define TURBO_RAMP_SPEED 1       // turbo naik perlahan agar tidak slip
 
 // --- BATAS KHUSUS SERVO 360 (open-loop, lihat docs setServoTurn) ---
 // Docs resmi: speed 0-255. 150 adalah derate yang disengaja agar robot stabil.
 // Servo punya deadband: speed kecil hanya berdengung, roda tidak bergerak.
 #define SERVO_MIN_EFEKTIF 25     // speed 1-24 dipaksa ke 25 atau 0
 #define SERVO_MAKS_DIPAKAI 150   // derate dari 255, jangan naikkan tanpa uji lintasan
-// 10 -> 14: slew membatasi perubahan speed per loop -> motor lamban
-// di lurus, bikin zigzag lambat. Naikkan sedikit agar PID bisa mengikuti.
-#define SLEW_MAKS_PER_LOOP 14
+// 14 -> 12: transisi speed lebih halus saat masuk/keluar S.
+#define SLEW_MAKS_PER_LOOP 12
 #define BELOK_TIMEOUT_MS 1500    // anti macet di while belok 90°
 #define RECOVERY_TIMEOUT_MS 2000 // batas putar cari garis, lalu berhenti
 

@@ -148,21 +148,22 @@ All tunable values are in one place. **Tune here** — do not scatter constants 
 - `extern int kecepatanDasar` — Dynamic speed, adapted by PID
 
 ### PID Constraints
-- `const float FAKTOR_REM_ADAPTIF = 0.35` — Aggressiveness of speed reduction when veering
+- Default awal (arena S ganda): `Kp=7.0`, `Ki=0.05`, `Kd=2.2`, `kecepatanDasarMaks=85`, `kecepatanDasarMin=40`.
+- `const float FAKTOR_REM_ADAPTIF = 0.5` — Aggressiveness of speed reduction when veering
 - `const float BATAS_INTEGRAL = 50` — Anti-windup clamp for I term (±50)
 - `const int SPEED_TOMBOL_MIN = 60` — Min speed via button
 - `const int SPEED_TOMBOL_MAKS = 150` — Max speed (also derated servo limit)
 
 ### Dynamic Speed Profile (Turbo Mode)
-- `const int KECEPATAN_TURBO = 120` — Max speed on straightaways
-- `const float LURUS_THRESHOLD = 3.0` — If `abs(error) < 3.0`, considered straight
+- `const int KECEPATAN_TURBO = 20` — Bonus kecepatan turbo (aditif, bukan target absolut)
+- `const float LURUS_THRESHOLD = 2.0` — If `abs(error) < 2.0`, considered straight
 - `const unsigned long LURUS_TIME_REQUIRED = 500` — Must be straight for 500ms before Turbo
 - `const int TURBO_RAMP_SPEED = 1` — Speed ramp per update to avoid slipping
 
 ### Servo Limits
 - `const int SERVO_MIN_EFEKTIF = 25` — Speeds 1–24 forced to 25 or 0 (deadband compensation)
 - `const int SERVO_MAKS_DIPAKAI = 150` — Derated from 255; do not increase without track testing
-- `const int SLEW_MAKS_PER_LOOP = 14` — Max speed change per loop anti-slip
+- `const int SLEW_MAKS_PER_LOOP = 12` — Max speed change per loop anti-slip
 
 ### Sensor IDs (confirm against wiring)
 - `const int LIGHT_SENSOR_ID = 1`
@@ -233,7 +234,7 @@ The robot has 3 primary modes, plus sub-modes:
    - RGB: Merah/Magenta
 
 3. **Normal PID tracing** (one or both sensors near threshold):
-   - Adaptive speed: `kecepatanDasar = maks - abs(PID) × 0.35`, clamped to `[min, maks]`
+   - Adaptive speed: `kecepatanDasar = maks + turbo - abs(PID) × 0.5`, clamped to `[min, SERVO_MAKS_DIPAKAI]`
    - I term clamped to ±50
    - LED based on mode (see below)
 

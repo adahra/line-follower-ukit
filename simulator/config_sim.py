@@ -3,15 +3,15 @@
 # di robot.py. Nilai yang di-simulasi diambil langsung dari konfig robot asli.
 
 # --- PID (default awal, mirip config.cpp) ---
-Kp = 5.0
-Ki = 0.1
-Kd = 1.5
+Kp = 7.0
+Ki = 0.05
+Kd = 2.2
 
-kecepatanDasarMaks = 110   # batas kecepatan tertinggi (servo derate 0-150)
-kecepatanDasarMin = 55     # batas kecepatan terendah (di atas deadband 25)
-kecepatanDasar = 90
+kecepatanDasarMaks = 85    # batas kecepatan tertinggi (servo derate 0-150)
+kecepatanDasarMin = 40     # batas kecepatan terendah (di atas deadband 25)
+kecepatanDasar = 85
 
-FAKTOR_REM_ADAPTIF = 0.35  # dasar = maks - abs(PID) * 0.35
+FAKTOR_REM_ADAPTIF = 0.5   # dasar = maks - abs(PID) * 0.5
 BATAS_INTEGRAL = 50        # I dipenjit ±50 (anti windup)
 
 # --- Batas servo 360 (open-loop) ---
@@ -19,13 +19,13 @@ SERVO_MIN_EFEKTIF = 25     # deadband: speed 1-24 dipaksa ke 25
 SERVO_MAKS_DIPAKAI = 150   # derate dari 255
 
 # --- Slew + interval ---
-SLEW_MAKS_PER_LOOP = 14    # maksimum perubahan speed per loop
+SLEW_MAKS_PER_LOOP = 12    # maksimum perubahan speed per loop
 PID_INTERVAL_MS = 10       # interval PID konstan (ms)
 LOOP_MS = 10               # periode simulasi per tick (ms)
 
 # --- Ambang sensor garis (default; dioverride kalibrasi) ---
-AMBANG_KIRI = 8
-AMBANG_KANAN = 8
+AMBANG_KIRI = 6
+AMBANG_KANAN = 6
 
 # --- Recovery garis hilang ---
 RECOVERY_TIMEOUT_MS = 2000   # putar cari garis maks 2 detik, lalu berhenti
@@ -37,4 +37,4 @@ SENSOR_LEBAR = 26            # px, jarak antara sensor kiri-kanan
 TRACK_WIDTH_PX = 40          # px, jarak roda kiri-kanan (diferensial)
 SIM_SKALA = 0.7              # px per unit speed per detik
 SENSOR_SKALA = 20.0          # nilai maksimum sensor (mirip rentang kalibrasi 0-20)
-ALPHA_SENSOR = 0.4           # filter eksponensial bacaan sensor
+ALPHA_SENSOR = 0.65          # filter eksponensial bacaan sensor

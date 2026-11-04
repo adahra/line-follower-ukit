@@ -5,7 +5,7 @@ Jalankan: python3 simulator/main.py
 
 Mirip perilaku LineFollowerFin.ino:
 - State machine: persimpangan -> garis hilang (recovery 2000 ms) -> PID normal.
-- PID: error=(kiri-kanan)/2, I clamp ±50, dasar=maks-|PID|*0.35, deadband 25, slew ±14/loop.
+- PID: error=(kiri-kanan)/2, I clamp ±50, dasar=maks-|PID|*0.5, deadband 25, slew ±12/loop.
 - Konvensi: sensor kiri ID 2, kanan ID 1; motor kiri servo 4+2 (dir 1), kanan servo 1+3 (dir 0).
 """
 import math

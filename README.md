@@ -33,7 +33,7 @@ Struktur file utama di `LineFollowerFin/`:
 ## Fitur Utama
 
 ### Kontrol & Pergerakan
-- **PID**: Error = `(kiri - kanan)/2`. `I` dijepit ±50. Kecepatan dasar adaptif: `kecepatanDasar = kecepatanDasarMaks - |PID| * 0.35` (faktor adaptif), dijepit ke `[kecepatanDasarMin, kecepatanDasarMaks]`.
+- **PID**: Error = `(kiri - kanan)/2`. `I` dijepit ±50. Kecepatan dasar adaptif: `kecepatanDasar = kecepatanDasarMaks + bonus turbo - |PID| * 0.5` (faktor adaptif), dijepit ke `[kecepatanDasarMin, SERVO_MAKS_DIPAKAI]`.
 - **Turbo/Dynamic Speed**: Tersedia profil turbo (`KECEPATAN_TURBO`, `LURUS_THRESHOLD`, `LURUS_TIME_REQUIRED`) untuk kondisi lurus.
 - **Servo motor mapping**: Servo 4+2 = sisi kiri (arah `1`), servo 1+3 = sisi kanan (arah `0`). Kecepatan diderate ke **0–150** (deadband 25, slew limit ±14/loop secara default).
 - **State machine**: Persimpangan (kedua sensor ≥ ambang), lost-line recovery (kedua sensor < ambang, putar ke arah `lastError`), atau tracer PID normal.
