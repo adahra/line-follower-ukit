@@ -104,7 +104,7 @@ extern int kecepatanDasar;      // Variabel dinamis yang akan dikalibrasi oleh P
 // sekali lemah, robot dikunci mati sampai power cycle (restart).
 // Set ENABLE_BATTERY_CHECK=false untuk menonaktifkan latch ini (mis. saat
 // pengujian dengan power supply yang tegangannya di bawah ambang).
-#define ENABLE_BATTERY_CHECK true
+#define ENABLE_BATTERY_CHECK false
 #define TEGANGAN_MIN 5.5
 #define CEK_BATERAI_MS 500
 
@@ -124,7 +124,7 @@ extern int kecepatanDasar;      // Variabel dinamis yang akan dikalibrasi oleh P
 // DAN robot memang sedang butuh koreksi (|error| >= STUCK_ERROR_MIN).
 // Syarat terakhir mencegah false positive di lintasan lurus: di lurus
 // error ~0, jadi robot yang berjalan lurus tidak dianggap macet.
-#define STUCK_DIAM_MS 2000
+#define STUCK_DIAM_MS 3000
 #define STUCK_TOLERANSI_IR 1
 #define STUCK_TOLERANSI_ACCEL 0.15  // 15% perubahan magnitude
 #define STUCK_ERROR_MIN 2.0         // |error| minimal agar deteksi macet aktif
@@ -300,7 +300,6 @@ extern int AMBANG_KANAN;
 #define RC_SCALE_MAX 100              // throttle skala maksimum (%)
 #define RC_BUTTON_A_PIN 5             // opsi: pin channel tombol A (belum dipakai)
 #define RC_BUTTON_B_PIN 6             // opsi: pin channel tombol B (belum dipakai)
-
 #include "serial_silent.h"
 
 #endif
