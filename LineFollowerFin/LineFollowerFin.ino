@@ -122,6 +122,9 @@ void loop() {
   if (!status.jalan || status.modeOperasi != MODE_RACING) {
     aksiPrediksi = ACT_NONE;
   }
+  if (!status.jalan) {
+    status.subState = SUBSTATE_TRACKING;
+  }
   if (protocolRunState == false) {
     // Prioritas tertinggi: baterai lemah menghentikan SEMUA fungsi.
     if (aman.bateraiKritis()) {
@@ -232,59 +235,88 @@ void loop() {
         }
 #endif
 
-      // --- KONDISI A: DETEKSI PERSEMPATAN / PERTIGAAN ---
+      // --- SUBSTATE 1: CREEP MELEWATI PERSIMPANGAN (150ms) ---
+      if (status.subState == SUBSTATE_INTER_CREEP) {
+        gerak.maju(kecepatanDasarMin);
+        if (millis() - status.subStateMulai >= 150) {
+          int bacaKiriSegar = sensor.bacaKiri();
+          int bacaKananSegar = sensor.bacaKanan();
+          int selisih = bacaKiriSegar - bacaKananSegar;
+          ActionType act = ACT_STRAIGHT;
+          bool pakaiPrediksi = (status.modeOperasi == MODE_RACING) &&
+                               prediksiValid &&
+                               (abs(selisih) < RACE_PREDICTION_MARGIN);
+          if (pakaiPrediksi) {
+            act = aksiPrediksi;
+            aksiPrediksi = ACT_NONE;
+          } else if (selisih > 0) {
+            act = ACT_RIGHT;
+          } else if (selisih < 0) {
+            act = ACT_LEFT;
+          } else {
+            act = ACT_STRAIGHT;
+          }
+
+          if (act == ACT_STRAIGHT) {
+            status.subState = SUBSTATE_TRACKING;
+            setRgbledColor(0, 0, 0);
+            #if ENABLE_HEADING_CORRECTION
+              gerak.resetHeading();
+            #endif
+            if (status.modeOperasi == MODE_LEARNING) {
+              mapper.recordEvent(EVENT_INTERSECTION, act);
+            }
+          } else if (act == ACT_LEFT) {
+            status.subState = SUBSTATE_TURNING;
+            status.subStateMulai = millis();
+            status.subStateAksi = ACT_LEFT;
+            status.targetAmbangBelok = AMBANG_KIRI;
+            gerak.putarKiri(kecepatanDasarMin);
+          } else if (act == ACT_RIGHT) {
+            status.subState = SUBSTATE_TURNING;
+            status.subStateMulai = millis();
+            status.subStateAksi = ACT_RIGHT;
+            status.targetAmbangBelok = AMBANG_KANAN;
+            gerak.putarKanan(kecepatanDasarMin);
+          }
+        }
+        return;
+      }
+
+      // --- SUBSTATE 2: BELOK 90 DERAJAT NON-BLOCKING ---
+      if (status.subState == SUBSTATE_TURNING) {
+        unsigned long turnElapsed = millis() - status.subStateMulai;
+        bool lineFound = false;
+        if (turnElapsed >= 250) {
+          if (status.subStateAksi == ACT_LEFT) {
+            lineFound = ((int)readInfraredDistance(2) >= status.targetAmbangBelok);
+          } else if (status.subStateAksi == ACT_RIGHT) {
+            lineFound = ((int)readInfraredDistance(1) >= status.targetAmbangBelok);
+          }
+        }
+        bool turnTimeout = (turnElapsed > (unsigned long)BELOK_TIMEOUT_MS);
+        if (lineFound || turnTimeout) {
+          #if ENABLE_HEADING_CORRECTION
+            gerak.resetHeading();
+          #endif
+          if (status.modeOperasi == MODE_LEARNING) {
+            mapper.recordEvent(EVENT_INTERSECTION, status.subStateAksi);
+            Serial.print(F("Event tercatat: "));
+            Serial.println(status.subStateAksi);
+          }
+          setRgbledColor(0, 0, 0);
+          status.subState = SUBSTATE_TRACKING;
+        }
+        return;
+      }
+
+      // --- KONDISI A: DETEKSI PERSEMPATAN / PERTIGAAN (SUBSTATE_TRACKING) ---
       if (bacaKiri >= ambangKiriEfektif && bacaKanan >= ambangKananEfektif) {
         setRgbledColor(255, 255, 255);
-        gerak.majuManual(kecepatanDasarMin,
-                         150);  // Lewati perempatan dengan kecepatan aman
-
-        // Baca ulang setelah maju: keputusan belok harus pakai data segar
-        // yang sudah difilter (bacaan mentah liar = risiko belok salah arah).
-        bacaKiri = sensor.bacaKiri();
-        bacaKanan = sensor.bacaKanan();
-
-        ActionType act = ACT_STRAIGHT;
-        int selisih = bacaKiri - bacaKanan;
-        bool pakaiPrediksi = (status.modeOperasi == MODE_RACING) &&
-                             prediksiValid &&
-                             (abs(selisih) < RACE_PREDICTION_MARGIN);
-
-        if (pakaiPrediksi) {
-          // Sensor ambigu: pakai aksi hasil Learning. Ini yang membuat mode
-          // RACING benar-benar berpengaruh, bukan sekadar lampu LED.
-          act = aksiPrediksi;
-          if (act == ACT_RIGHT) {
-            gerak.belokKanan90(AMBANG_KANAN);
-          } else if (act == ACT_LEFT) {
-            gerak.belokKiri90(AMBANG_KIRI);
-          } else {
-            gerak.majuTerus();
-          }
-          aksiPrediksi = ACT_NONE;  // sekali pakai per persimpangan
-        } else if (selisih > 0) {
-          act = ACT_RIGHT;
-          gerak.belokKanan90(AMBANG_KANAN);
-        } else if (selisih < 0) {
-          act = ACT_LEFT;
-          gerak.belokKiri90(AMBANG_KIRI);
-        } else {
-          gerak.majuTerus();
-        }
-
-        // Belok 90° bersifat open-loop: jadikan arah setelah belok sebagai
-        // baseline heading baru agar koreksi tidak melawan arah lintasan.
-        #if ENABLE_HEADING_CORRECTION
-          gerak.resetHeading();
-        #endif
-
-        // Rekam event jika dalam mode learning
-        if (status.modeOperasi == MODE_LEARNING) {
-          mapper.recordEvent(EVENT_INTERSECTION, act);
-          Serial.print(F("Event tercatat: "));
-          Serial.println(act);
-        }
-
-        setRgbledColor(0, 0, 0);
+        status.subState = SUBSTATE_INTER_CREEP;
+        status.subStateMulai = millis();
+        gerak.maju(kecepatanDasarMin);
+        return;
       }
 
       // --- KONDISI B: LOST LINE RECOVERY (dengan timeout) ---
