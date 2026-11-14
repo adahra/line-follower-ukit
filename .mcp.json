@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "blocks-editor": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "/home/tovi/.vscode-oss/extensions/linucs.blocks-editor-0.4.1-universal/dist/mcp-server.js"
+      ],
+      "env": {
+        "BLOCKS_WORKSPACE_ROOT": "/home/tovi/Dokumen/line-follower-ukit"
+      }
+    }
+  }
+}
