@@ -94,11 +94,21 @@ The project uses a modular class-based architecture with **one `.h`/`.cpp` pair 
 
 ### `Status` (status.h)
 ```cpp
+enum SubState {
+  SUBSTATE_TRACKING = 0,
+  SUBSTATE_INTER_CREEP = 1,
+  SUBSTATE_TURNING = 2
+};
+
 struct Status {
   bool jalan = false;          // Robot running flag
   bool modeSetelKd = false;   // Kd tuning mode active
   unsigned long recoveryMulai = 0;  // 0 = not in recovery mode
-  ModeOperasi modeOperasi = MODE_NORMAL;  // MODE_NORMAL, MODE_LEARNING, MODE_RACING
+  ModeOperasi modeOperasi = MODE_NORMAL;  // MODE_NORMAL, MODE_LEARNING, MODE_RACING, MODE_RC
+  SubState subState = SUBSTATE_TRACKING; // Non-blocking turn state
+  unsigned long subStateMulai = 0;       // State start timestamp
+  ActionType subStateAksi = ACT_NONE;    // Current turning action
+  int targetAmbangBelok = 0;             // Target sensor threshold for turn completion
 };
 ```
 
@@ -113,7 +123,8 @@ struct Status {
 - `hitung(int bacaKiri, int bacaKanan, bool paksa = false)` — Compute PID + apply to motors. Returns `false` if PID interval not yet elapsed.
 - `resetIntegralSetelahRecovery(float errorBaru)` — Clear integral term when coming back from lost-line recovery.
 - `putarCariGaris(float lastErr)` — Spin in place toward `lastError` side during lost-line recovery.
-- `belokKiri90(int ambang)` / `belokKanan90(int ambang)` — 90° turn helpers (blocking `while` loops waiting for line).
+- `maju(int speed)` / `putarKiri(int speed)` / `putarKanan(int speed)` — Non-blocking motor movement primitives (no `delay()`).
+- `belokKiri90(int ambang)` / `belokKanan90(int ambang)` — Legacy 90° turn helpers (blocking `while` loops waiting for line).
 - `errorTerakhir()` — Return last error value.
 - `telemetri(int bacaKiri, int bacaKanan)` — Dump CSV telemetry data.
 

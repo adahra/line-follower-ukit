@@ -21,7 +21,7 @@
 Order/priority (from code): protocol() if not running; check battery critical → return; check tilt → return; `ui.cekTombol()`, `ui.cekTepuk()`, `ui.cekSerial()` (if enabled), `aman.lampuOtomatis()`, heading update (if enabled); update optional modules (BT/RC; PathPlanner hanya via serial, bukan loop); if `status.jalan`:
 1. Ultrasonic stop ≤5 cm has highest priority → return.
 2. RACING prediction via `Mapper` if enabled (LED + aksi di persimpangan ambigu). RC mode takes over completely if enabled.
-3. Intersection (both ≥ threshold): white LED, `majuManual(min,150)`, re-read sensors, decide straight/left/right by comparison, call `belokKiri90`/`belokKanan90` or `majuTerus()`, record to `Mapper` if LEARNING.
+3. Intersection (both ≥ threshold): white LED, transisi ke state machine non-blocking (`SUBSTATE_INTER_CREEP` maju 150ms, evaluasi arah lurus/kiri/kanan atau prediksi RACING, lanjut ke `SUBSTATE_TURNING` hingga garis terdeteksi setelah blind time 250ms atau timeout `BELOK_TIMEOUT_MS`, rekam ke `Mapper` jika LEARNING).
 4. Lost-line (both < threshold): start recovery timer if first time; if > `RECOVERY_TIMEOUT_MS` (2000ms) stop + red LED; else spin toward `lastError` via `putarCariGaris()`.
 5. Normal: check stuck (`aman.macet`), reset integral on recovery exit (`resetIntegralSetelahRecovery`), `gerak.hitung()` uses fixed interval `PID_INTERVAL_MS` (10ms); if not ready call `terapkanTerakhir()` and return; update lap timer if enabled.
 
@@ -32,7 +32,7 @@ Order/priority (from code): protocol() if not running; check battery critical �
 
 ## Gotchas (must preserve)
 - `eepromPutHemat` template in header + explicit forward decls before `setup()` required.
-- 90° turn helpers (`belokKiri90`/`belokKanan90`) block in `while` waiting for line.
+- Logika belok persimpangan dieksekusi secara non-blocking via sub-state machine (`SUBSTATE_INTER_CREEP` dan `SUBSTATE_TURNING`) di `loop()`. Helper lama `belokKiri90`/`belokKanan90` tetap ada untuk backward compatibility.
 - I term clamped ±50; integral reset after recovery. Adaptive speed uses factor in code/config.
 - Ultrasonic priority over all drive logic when running.
 - Lost-line timeout 2000ms then stop (red). Stuck detector can stop robot.
