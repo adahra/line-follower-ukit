@@ -213,6 +213,27 @@ void Penggerak::majuTerus() {
   majuManual(kecepatanDasarMin, 100);
 }
 
+void Penggerak::maju(int speed) {
+  setServoTurn(4, 1, speed);
+  setServoTurn(2, 1, speed);
+  setServoTurn(1, 0, speed);
+  setServoTurn(3, 0, speed);
+}
+
+void Penggerak::putarKiri(int speed) {
+  setServoTurn(4, 0, speed);
+  setServoTurn(2, 0, speed);
+  setServoTurn(1, 0, speed);
+  setServoTurn(3, 0, speed);
+}
+
+void Penggerak::putarKanan(int speed) {
+  setServoTurn(4, 1, speed);
+  setServoTurn(2, 1, speed);
+  setServoTurn(1, 1, speed);
+  setServoTurn(3, 1, speed);
+}
+
 void Penggerak::belokKiri90(int ambang) {
   setServoTurn(4, 0, kecepatanDasarMin);
   setServoTurn(2, 0, kecepatanDasarMin);
