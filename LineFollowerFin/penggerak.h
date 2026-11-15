@@ -27,13 +27,9 @@ class Penggerak {
   void jalankanArah(int speedKiri, int speedKanan);
   void berhenti();
   void saatBerhenti();  // berhenti + buang memori slew
-  void majuManual(int speed, int durasi);
-  void majuTerus();
   void maju(int speed);
   void putarKiri(int speed);
   void putarKanan(int speed);
-  void belokKiri90(int ambang);
-  void belokKanan90(int ambang);
   void putarKalibrasi();
   void putarCariGaris(float lastErr);
   float errorTerakhir() const;

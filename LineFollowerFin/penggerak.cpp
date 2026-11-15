@@ -201,17 +201,6 @@ void Penggerak::saatBerhenti() {
   prevKanan = 0;
 }
 
-void Penggerak::majuManual(int speed, int durasi) {
-  setServoTurn(4, 1, speed);
-  setServoTurn(2, 1, speed);
-  setServoTurn(1, 0, speed);
-  setServoTurn(3, 0, speed);
-  delay(durasi);
-}
-
-void Penggerak::majuTerus() {
-  majuManual(kecepatanDasarMin, 100);
-}
 
 void Penggerak::maju(int speed) {
   setServoTurn(4, 1, speed);
@@ -232,38 +221,6 @@ void Penggerak::putarKanan(int speed) {
   setServoTurn(2, 1, speed);
   setServoTurn(1, 1, speed);
   setServoTurn(3, 1, speed);
-}
-
-void Penggerak::belokKiri90(int ambang) {
-  setServoTurn(4, 0, kecepatanDasarMin);
-  setServoTurn(2, 0, kecepatanDasarMin);
-  setServoTurn(1, 0, kecepatanDasarMin);
-  setServoTurn(3, 0, kecepatanDasarMin);
-  delay(300);
-  unsigned long t0 = millis();
-  while ((int)readInfraredDistance(2) < ambang) {
-    if (millis() - t0 > (unsigned long)BELOK_TIMEOUT_MS) {
-      break;  // garis tak ketemu: jangan macet, kembali ke loop utama
-    }
-
-    delay(1);
-  }
-}
-
-void Penggerak::belokKanan90(int ambang) {
-  setServoTurn(4, 1, kecepatanDasarMin);
-  setServoTurn(2, 1, kecepatanDasarMin);
-  setServoTurn(1, 1, kecepatanDasarMin);
-  setServoTurn(3, 1, kecepatanDasarMin);
-  delay(300);
-  unsigned long t0 = millis();
-  while ((int)readInfraredDistance(1) < ambang) {
-    if (millis() - t0 > (unsigned long)BELOK_TIMEOUT_MS) {
-      break;  // garis tak ketemu: jangan macet, kembali ke loop utama
-    }
-
-    delay(1);
-  }
 }
 
 void Penggerak::putarKalibrasi() {
