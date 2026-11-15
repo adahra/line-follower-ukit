@@ -259,6 +259,8 @@ void loop() {
 
           if (act == ACT_STRAIGHT) {
             status.subState = SUBSTATE_TRACKING;
+            status.subStateAksi = ACT_NONE;
+            status.subStateMulai = 0;
             setRgbledColor(0, 0, 0);
             #if ENABLE_HEADING_CORRECTION
               gerak.resetHeading();
@@ -314,6 +316,8 @@ void loop() {
           }
           setRgbledColor(0, 0, 0);
           status.subState = SUBSTATE_TRACKING;
+          status.subStateAksi = ACT_NONE;
+          status.subStateMulai = 0;
         }
         return;
       }
