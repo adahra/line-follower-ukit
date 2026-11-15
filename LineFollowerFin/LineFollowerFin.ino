@@ -301,8 +301,10 @@ void loop() {
           #endif
           if (status.modeOperasi == MODE_LEARNING) {
             mapper.recordEvent(EVENT_INTERSECTION, status.subStateAksi);
+#if ENABLE_SERIAL_OUTPUT
             Serial.print(F("Event tercatat: "));
             Serial.println(status.subStateAksi);
+#endif
           }
           setRgbledColor(0, 0, 0);
           status.subState = SUBSTATE_TRACKING;
