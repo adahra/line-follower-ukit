@@ -318,15 +318,22 @@ void loop() {
         return;
       }
 
-      // --- KONDISI A: DETEKSI PERSEMPATAN / PERTIGAAN (SUBSTATE_TRACKING) ---
+      // Histeresis: butuh 2 loop berturut-turut agar noise tidak trigger flicker.
+      static uint8_t interCount = 0;
       if (bacaKiri >= ambangKiriEfektif && bacaKanan >= ambangKananEfektif) {
+        if (interCount < 2) interCount++;
+      } else {
+        interCount = 0;
+      }
+
+      if (interCount >= 2) {
         setRgbledColor(255, 255, 255);
         status.subState = SUBSTATE_INTER_CREEP;
         status.subStateMulai = millis();
         gerak.maju(kecepatanDasarMin);
+        interCount = 0;
         return;
       }
-
       // --- KONDISI B: LOST LINE RECOVERY (dengan timeout) ---
       else if (bacaKiri < ambangKiriEfektif && bacaKanan < ambangKananEfektif) {
         if (status.recoveryMulai == 0) {
