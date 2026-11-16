@@ -30,8 +30,12 @@ class Antarmuka {
 
   unsigned long cooldownB1 = 0;
   unsigned long cooldownB2 = 0;
-  unsigned long comboMulai = 0;   // awal tahan B1+B2 bersamaan
-  bool comboSelesai = false;      // true = auto-tune sudah jalan, lepas tak perlu kalibrasi
+  // Atomic flag combo B1+B2 (volatile: diubah di cekTombol, dibaca di cekSerial/parseCommand)
+  volatile bool comboActive = false;      // combo sedang berjalan
+  unsigned long comboMulai = 0;            // ms saat combo dimulai
+  bool comboSelesai = false;               // true = auto-tune sudah jalan
+  unsigned long tombol1LongPress = 0;      // ms saat B1 ditekan lama (modeSetelKd toggle)
+  unsigned long tombol2LongPress = 0;      // ms saat B2 ditekan lama (mulai jalan)
   unsigned long cekSuaraTerakhir = 0;
   unsigned long tepukTerakhir = 0;
   bool tepukSiap = true;

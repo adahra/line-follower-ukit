@@ -9,20 +9,18 @@
 #include <string.h>
 #include <ctype.h>
 
-#if ENABLE_RC
-#include "rc_ctrl.h"
-// rc adalah global yang dideklarasikan di LineFollowerFin.ino (di dalam #if ENABLE_RC).
-extern RcCtrl rc;
-#endif
-
-#if ENABLE_PATH_PLANNER
-#include "path_planner.h"
-// pathPlanner adalah global yang dideklarasikan di LineFollowerFin.ino (di dalam #if ENABLE_PATH_PLANNER).
-extern PathPlanner pathPlanner;
-#endif
-
 Antarmuka::Antarmuka(Status &st, SensorGaris &sen, Penggerak &g, Pengaman &am, LapTimer &lt, Mapper &mp)
-    : status(st), sensor(sen), gerak(g), aman(am), lapTimer(lt), mapper(mp) {}
+  : status(st), sensor(sen), gerak(g), aman(am), lapTimer(lt), mapper(mp)
+{
+  // Inisialisasi flag state
+  comboActive = false;
+  comboMulai = 0;
+  comboSelesai = false;
+  tombol1LongPress = 0;
+  tombol2LongPress = 0;
+  cekSuaraTerakhir = 0;
+  tepukSiap = true;
+}
 
 void Antarmuka::resetSemua() {
   gerak.reset();
@@ -72,9 +70,11 @@ void Antarmuka::cekTombol() {
     if (comboMulai == 0) {
       comboMulai = now;
       comboSelesai = false;
+      comboActive = true;
       Serial.println(F("Combo B1+B2: tahan 2 detik = Auto-Tune, lepas lebih cepat = kalibrasi saja."));
     } else if (!comboSelesai && now - comboMulai >= 2000) {
       comboSelesai = true;
+      comboActive = false;
       Serial.println(F(">>> Memulai Kalibrasi + Auto-Tuning PID <<<"));
       tuningSequence();
     }
@@ -91,6 +91,7 @@ void Antarmuka::cekTombol() {
     }
     comboMulai = 0;
     comboSelesai = false;
+    comboActive = false;
     return;  // frame lepas: jangan langsung proses tombol tunggal
   }
 

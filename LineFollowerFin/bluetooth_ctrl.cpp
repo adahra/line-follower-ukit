@@ -6,6 +6,7 @@
 #include "lap_timer.h"
 #include "ukit_macros.h"
 #include <stdarg.h>
+#include <string.h>
 
 BluetoothCtrl::BluetoothCtrl(Status &st, Penggerak &g, SensorGaris &sen, Pengaman &am, LapTimer &lt)
     : status(st), gerak(g), sensor(sen), aman(am), lapTimer(lt) {}
@@ -32,14 +33,23 @@ void BluetoothCtrl::begin(unsigned long baud, BTModuleType type) {
   if (btSerial) {
     btSerial->begin(baud);
     delay(100);
-    
     // Untuk HM-10: test AT command
     if (moduleType == BT_HM10) {
       btSerial->println(F("AT"));
       delay(100);
       if (btSerial->available()) {
-        String resp = btSerial->readStringUntil('\n');
-        if (resp.indexOf("OK") >= 0) {
+        char resp[64];
+        int rlen = 0;
+        unsigned long t0 = millis();
+        while (millis() - t0 < 100 && rlen < (int)sizeof(resp) - 1) {
+          if (btSerial->available()) {
+            char c = (char)btSerial->read();
+            if (c == '\n' || c == '\r') break;
+            resp[rlen++] = c;
+          }
+        }
+        resp[rlen] = '\0';
+        if (strstr(resp, "OK") != nullptr) {
           connected = true;
           Serial.println(F("BT: HM-10 connected"));
         }
