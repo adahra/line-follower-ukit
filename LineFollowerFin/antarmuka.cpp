@@ -25,8 +25,6 @@ Antarmuka::Antarmuka(Status &st, SensorGaris &sen, Penggerak &g, Pengaman &am, L
   comboActive = false;
   comboMulai = 0;
   comboSelesai = false;
-  tombol1LongPress = 0;
-  tombol2LongPress = 0;
   cekSuaraTerakhir = 0;
   tepukSiap = true;
 }

@@ -34,8 +34,6 @@ class Antarmuka {
   volatile bool comboActive = false;      // combo sedang berjalan
   unsigned long comboMulai = 0;            // ms saat combo dimulai
   bool comboSelesai = false;               // true = auto-tune sudah jalan
-  unsigned long tombol1LongPress = 0;      // ms saat B1 ditekan lama (modeSetelKd toggle)
-  unsigned long tombol2LongPress = 0;      // ms saat B2 ditekan lama (mulai jalan)
   unsigned long cekSuaraTerakhir = 0;
   unsigned long tepukTerakhir = 0;
   bool tepukSiap = true;

@@ -270,6 +270,7 @@ void loop() {
             }
           } else if (act == ACT_LEFT) {
             status.subState = SUBSTATE_TURNING;
+            status.subStateMulai = millis();
 #if ENABLE_ADAPTIVE_THRESHOLD
             status.targetAmbangBelok = sensor.isAdaptiveThresholdEnabled()
                                        ? sensor.ambangDinamis(2) : AMBANG_KIRI;
@@ -279,6 +280,7 @@ void loop() {
             gerak.putarKiri(kecepatanDasarMin);
           } else if (act == ACT_RIGHT) {
             status.subState = SUBSTATE_TURNING;
+            status.subStateMulai = millis();
 #if ENABLE_ADAPTIVE_THRESHOLD
             status.targetAmbangBelok = sensor.isAdaptiveThresholdEnabled()
                                        ? sensor.ambangDinamis(1) : AMBANG_KANAN;
