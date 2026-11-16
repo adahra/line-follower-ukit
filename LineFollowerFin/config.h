@@ -138,7 +138,7 @@ extern int AMBANG_KANAN;
 // --- IMU HEADING CORRECTION ---
 // Koreksi arah berbasis gyro Z: koreksi PID bila robot drift/tersesak
 // dari arah lurus. Hanya aktif di mode tertentu.
-#define ENABLE_HEADING_CORRECTION true   // master switch
+#define ENABLE_HEADING_CORRECTION false   // master switch
 #define HEADING_UPDATE_MS 20              // throttle gyro read (cepat)
 #define HEADING_CALIB_MS 1500             // durasi kalibrasi bias gyro (ms)
 #define HEADING_GAIN 0.8                  // gain koreksi steering (0-2)
@@ -230,7 +230,7 @@ extern int AMBANG_KANAN;
 // Posisi grid robot tidak dapat diketahui tanpa odometri/encoder, jadi
 // planner ini tidak mengemudikan motor. Mengaktifkannya memakai ~94% RAM
 // ATMega2560 (sisa stack sangat tipis); biarkan OFF kecuali untuk debugging.
-#define ENABLE_PATH_PLANNER true     // default OFF (RAM ATMega2560 terbatas)
+#define ENABLE_PATH_PLANNER false     // default OFF (RAM ATMega2560 terbatas)
 #define GRID_CELL_SIZE_CM 20          // ukuran cell grid (cm)
 #define PATH_GRID_WIDTH 8             // lebar grid (8x8 untuk hemat RAM)
 #define PATH_GRID_HEIGHT 8            // tinggi grid
@@ -238,7 +238,7 @@ extern int AMBANG_KANAN;
 // --- FUZZY PID ---
 // Adaptive PID: fuzzy controller menghasilkan delta Kp/Kd/Ki berdasarkan
 // error dan delta_error. Aktifkan untuk respons PID yang dinamis.
-#define ENABLE_FUZZY_PID true         // aktifkan fuzzy adaptive PID
+#define ENABLE_FUZZY_PID false         // aktifkan fuzzy adaptive PID
 #define FUZZY_ERROR_MAX 10.0           // range error masukan [-10, 10]
 #define FUZZY_DERROR_MAX 10.0          // range delta_error masukan [-10, 10]
 #define FUZZY_DKP_MAX 5.0              // range delta Kp keluaran [-5, 5]
@@ -249,7 +249,7 @@ extern int AMBANG_KANAN;
 // Gain berbeda per kecepatan: rendah (tikungan) vs tinggi (lurus).
 // Low speed: Kp naik (responsif), Kd turun (tidak perlu damping keras).
 // High speed: Kp turun (anti overshoot), Kd naik (stabil).
-#define ENABLE_GAIN_SCHEDULING true
+#define ENABLE_GAIN_SCHEDULING false
 #define GS_SPEED_LOW_MAX 60
 #define GS_SPEED_MID_MAX 100
 #define GS_KP_LOW 1.2
@@ -276,7 +276,7 @@ extern int AMBANG_KANAN;
 // --- ADAPTIVE THRESHOLD ---
 // Ambang sensor dinamis: naik seiring kecepatan (noise meningkat di
 // kecepatan tinggi, sensor IR baca liar lebih sering).
-#define ENABLE_ADAPTIVE_THRESHOLD true
+#define ENABLE_ADAPTIVE_THRESHOLD false
 #define ADAPT_SPEED_FACTOR 0.25     // pengaruh kecepatan terhadap ambang
 #define ADAPT_THRESH_MIN 3
 #define ADAPT_THRESH_MAX 18
