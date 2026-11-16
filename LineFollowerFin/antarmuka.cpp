@@ -7,7 +7,16 @@
 #include "ukit_extern.h"
 #include "ukit_macros.h"
 #include <string.h>
-#include <ctype.h>
+
+#if ENABLE_RC
+#include "rc_ctrl.h"
+extern RcCtrl rc;
+#endif
+#if ENABLE_PATH_PLANNER
+#include "path_planner.h"
+extern PathPlanner pathPlanner;
+#endif
+
 
 Antarmuka::Antarmuka(Status &st, SensorGaris &sen, Penggerak &g, Pengaman &am, LapTimer &lt, Mapper &mp)
   : status(st), sensor(sen), gerak(g), aman(am), lapTimer(lt), mapper(mp)
