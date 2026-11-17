@@ -26,5 +26,6 @@ struct Status {
   unsigned long subStateMulai = 0;
   ActionType subStateAksi = ACT_NONE;
   int targetAmbangBelok = 0;
+  bool dalamGaris = true;  // true if previous loop was on line (one sensor white), false if both sensors white
 };
 #endif

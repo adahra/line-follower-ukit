@@ -238,6 +238,7 @@ void loop() {
       // --- SUBSTATE 1: CREEP MELEWATI PERSIMPANGAN (150ms) ---
       if (status.subState == SUBSTATE_INTER_CREEP) {
         gerak.maju(kecepatanDasarMin);
+        status.dalamGaris = true;  // We are on the line during intersection creep
         if (millis() - status.subStateMulai >= 150) {
           int bacaKiriSegar = sensor.bacaKiri();
           int bacaKananSegar = sensor.bacaKanan();
@@ -320,6 +321,11 @@ void loop() {
           status.subState = SUBSTATE_TRACKING;
           status.subStateAksi = ACT_NONE;
           status.subStateMulai = 0;
+          // When we find the line during turning, we're back on track
+          status.dalamGaris = true;
+        } else {
+          // We're off the line during turning
+          status.dalamGaris = false;
         }
         return;
       }
@@ -355,6 +361,7 @@ void loop() {
           setRgbledColor(255, 0, 255);
           gerak.putarCariGaris(gerak.errorTerakhir());
         }
+        status.dalamGaris = false;  // We are definitely off the line during recovery
       }
 
       // --- KONDISI C: MODE TRACER PID NORMAL DENGAN ADAPTIVE SPEED ---
@@ -399,9 +406,15 @@ void loop() {
           float currentError = (bacaKiri - bacaKanan) / 2.0;
           lapTimer.update(bacaKiri, bacaKanan, kecepatanDasar, currentError);
         }
+        
+        // Set status.dalamGaris based on current sensor readings
+        // True if at least one sensor is on the line (reading ≥ threshold)
+        // False if both sensors are off the line (both readings < threshold)
+        status.dalamGaris = (bacaKiri >= ambangKiriEfektif) || (bacaKanan >= ambangKananEfektif);
       }
     } else {
       gerak.saatBerhenti();
+      status.dalamGaris = false;  // Definitely not on line when stopped
       if (status.modeSetelKd == true) {
         // Mode tuning Kd aktif: magenta
         setRgbledColor(255, 0, 255);
