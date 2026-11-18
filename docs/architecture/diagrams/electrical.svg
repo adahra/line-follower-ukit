@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 1 600 400">
+<circle cx="100" cy="100" r="15" fill="currentColor"/>
+<text x="100" y="100" text-anchor="middle" font-family="monospace" font-size="12">Sensor IR</text>
+<text x="100" y="90" text-anchor="middle" font-family="monospace" font-size="10" fill="currentColor">Kiri (ID 2)</text>
+
+<line x1="115" y1="100" x2="200" y2="100" stroke="currentColor" stroke-width="2"/>
+<circle cx="200" cy="100" r="15" fill="currentColor"/>
+<text x="200" y="100" text-anchor="middle" font-family="monospace" font-size="12">Mega2560</text>
+
+<line x1="215" y1="100" x2="300" y2="100" stroke="currentColor" stroke-width="2"/>
+<circle cx="300" cy="100" r="15" fill="currentColor"/>
+<text x="300" y="90" text-anchor="middle" font-family="monospace" font-size="10">Motor Kiri</text>
+<text x="300" y="110" text-anchor="middle" font-family="monospace" font-size="10">Servos 4+2</text>
+
+<line x1="115" y1="100" x2="100" y2="200" stroke="currentColor" stroke-width="2"/>
+<circle cx="100" cy="200" r="15" fill="currentColor"/>
+<text x="100" y="200" text-anchor="middle" font-family="monospace" font-size="12">Battery</text>
+
+<line x1="115" y1="200" x2="300" y2="200" stroke="currentColor" stroke-width="2"/>
+<circle cx="300" cy="200" r="15" fill="currentColor"/>
+<text x="300" y="190" text-anchor="middle" font-family="monospace" font-size="10">Motor Kanan</text>
+<text x="300" y="210" text-anchor="middle" font-family="monospace" font-size="10">Servos 1+3</text>
+
+<text x="200" y="320" font-family="monospace" font-size="14" text-anchor="middle" fill="currentColor">Diagram Listrik - Koneksi Hardware uKit Explore 2</text>
+</svg>

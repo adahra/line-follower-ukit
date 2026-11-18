@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+<!-- Background grid for better visualization -->
+<defs>
+<pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+<path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" stroke-width="1" opacity="0.2"/>
+</pattern>
+</defs>
+<rect width="800" height="500" fill="url(#grid)"/>
+
+<!-- Main State Nodes -->
+<ellipse cx="150" cy="100" rx="80" ry="40" fill="currentColor" opacity="0.2" stroke="currentColor" stroke-width="2"/>
+<text x="150" y="95" text-anchor="middle" font-family="monospace" font-size="16" font-weight="bold">IDLE</text>
+<text x="150" y="115" text-anchor="middle" font-family="monospace" font-size="12">(protocol idle)</text>
+
+<ellipse cx="400" cy="100" rx="80" ry="40" fill="currentColor" opacity="0.2" stroke="currentColor" stroke-width="2"/>
+<text x="400" y="95" text-anchor="middle" font-family="monospace" font-size="16" font-weight="bold">RUNNING</text>
+<text x="400" y="115" text-anchor="middle" font-family="monospace" font-size="12">(tracking line)</text>
+
+<ellipse cx="650" cy="100" rx="80" ry="40" fill="currentColor" opacity="0.2" stroke="currentColor" stroke-width="2"/>
+<text x="650" y="95" text-anchor="middle" font-family="monospace" font-size="16" font-weight="bold">STOPPED</text>
+<text x="650" y="115" text-anchor="middle" font-family="monospace" font-size="12">(shutdown)</text>
+
+<!-- Sub-state nodes for RUNNING -->
+<ellipse cx="150" cy="250" rx="80" ry="40" fill="currentColor" opacity="0.2" stroke="currentColor" stroke-width="2"/>
+<text x="150" y="245" text-anchor="middle" font-family="monospace" font-size="14">SUBSTATE_TURNING</text>
+<text x="150" y="265" text-anchor="middle" font-family="monospace" font-size="12">(90° turn)</text>
+
+<ellipse cx="400" cy="250" rx="80" ry="40" fill="currentColor" opacity="0.2" stroke="currentColor" stroke-width="2"/>
+<text x="400" y="245" text-anchor="middle" font-family="monospace" font-size="14">SUBSTATE_INTER_CREEP</text>
+<text x="400" y="265" text-anchor="middle" font-family="monospace" font-size="12">(crossing)</text>
+
+<ellipse cx="650" cy="250" rx="80" ry="40" fill="currentColor" opacity="0.2" stroke="currentColor" stroke-width="2"/>
+<text x="650" y="245" text-anchor="middle" font-family="monospace" font-size="14">SUBSTATE_TRACKING</text>
+<text x="650" y="265" text-anchor="middle" font-family="monospace" font-size="12">(normal)</text>
+
+<!-- Transitions -->
+<line x1="230" y1="120" x2="370" y2="120" stroke="currentColor" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="300" y="110" text-anchor="middle" font-family="monospace" font-size="12" fill="currentColor">start</text>
+
+<line x1="470" y1="120" x2="530" y2="120" stroke="currentColor" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="500" y="110" text-anchor="middle" font-family="monospace" font-size="12" fill="currentColor">stop</text>
+
+<!-- RUNNING to SUBSTATE transitions -->
+<line x1="400" y1="140" x2="400" y2="210" stroke="currentColor" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="410" y="180" text-anchor="middle" font-family="monospace" font-size="12" fill="currentColor">enter</text>
+
+<!-- SUBSTATE_INTER_CREEP transitions -->
+<line x1="310" y1="290" x2="400" y2="290" stroke="currentColor" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="355" y="280" text-anchor="middle" font-family="monospace" font-size="12" fill="currentColor">timeout</text>
+
+<line x1="490" y1="290" x2="400" y2="290" stroke="currentColor" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="445" y="280" text-anchor="middle" font-family="monospace" font-size="12" fill="currentColor">detected</text>
+
+<!-- SUBSTATE_TURNING transitions -->
+<line x1="80" y1="290" x2="150" y2="290" stroke="currentColor" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="115" y="280" text-anchor="middle" font-family="monospace" font-size="12" fill="currentColor">timeout</text>
+
+<line x1="230" y1="290" x2="150" y2="290" stroke="currentColor" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="115" y="300" text-anchor="middle" font-family="monospace" font-size="12" fill="currentColor">detected</text>
+
+<!-- Recovery state -->
+<ellipse cx="400" cy="400" rx="80" ry="40" fill="currentColor" opacity="0.2" stroke="currentColor" stroke-width="2"/>
+<text x="400" y="395" text-anchor="middle" font-family="monospace" font-size="14">RECOVERY</text>
+<text x="400" y="415" text-anchor="middle" font-family="monospace" font-size="12">(lost line)</text>
+
+<line x1="650" y1="140" x2="650" y2="230" stroke="currentColor" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="660" y="200" text-anchor="middle" font-family="monospace" font-size="12" fill="currentColor">lost</text>
+
+<line x1="650" y1="140" x2="400" y2="350" stroke="currentColor" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="525" y="310" text-anchor="middle" font-family="monospace" font-size="12" fill="currentColor">spins</text>
+
+<line x1="400" y1="440" x2="400" y2="250" stroke="currentColor" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="395" y="400" text-anchor="middle" font-family="monospace" font-size="12" fill="currentColor">found</text>
+
+<line x1="400" y1="440" x2="650" y2="140" stroke="currentColor" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="500" y="370" text-anchor="middle" font-family="monospace" font-size="12"" fill="currentColor">timeout</text>
+
+<!-- Arrow definition -->
+<defs>
+<marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+<path d="M0,0 L9,3 L0,6 Z" fill="currentColor"/>
+</marker>
+</defs>
+
+<text x="400" y="470" text-anchor="middle" font-family="monospace" font-size="14" fill="currentColor">State Machine Diagram</text>
+</svg>

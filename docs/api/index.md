@@ -6,20 +6,17 @@ Dokumentasi API lengkap untuk semua modul LineFollowerFin. Digunakan untuk penge
 
 ```
 docs/api/
-├── index.md                           # Index API
-├── sensor_garis.md                    # SensorGaris API
-├── penggerak.md                       # Penggerak API
-├── pengaman.md                        # Pengaman API
-├── antarmuka.md                       # Antarmuka API
-├── mapping.md                         # Mapper API
-├── lap_timer.md                       # LapTimer API
-├── bluetooth_ctrl.md                  # BluetoothCtrl API
-├── rc_ctrl.md                         # RcCtrl API
-├── fuzzy_pid.md                       # FuzzyPID API
-├── heading_tracker.md                 # HeadingTracker API
-├── path_planner.md                    # PathPlanner API
-└── common.md                          # Tipe data & definisi bersama
-```
+  docs/api/antarmuka.md                    # Antarmuka API
+  docs/api/bluetooth_ctrl.md               # BluetoothCtrl API
+  docs/api/fuzzy_pid.md                    # FuzzyPID API
+  docs/api/heading_tracker.md              # HeadingTracker API
+  docs/api/lap_timer.md                    # LapTimer API
+  docs/api/mapping.md                      # Mapper API
+  docs/api/path_planner.md                 # PathPlanner API
+  docs/api/pengaman.md                     # Pengaman API
+  docs/api/penggerak.md                    # Penggerak API
+  docs/api/rc_ctrl.md                      # RcCtrl API
+  docs/api/sensor_garis.md                 # SensorGaris API
 
 ## Tipe Data Bersama
 

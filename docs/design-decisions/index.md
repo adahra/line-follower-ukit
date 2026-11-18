@@ -6,17 +6,15 @@ Dokumentasi keputusan desain dan alasan untuk semua komponen, konfigurasi, dan t
 
 ```
 docs/design-decisions/
-├── index.md                       # Index keputusan desain
-├── overall.md                     # Keputusan arsitektur keseluruhan
-├── pid.md                         # Keputusan PID controller
-├── sensor.md                      # Keputusan sensor & kalibrasi
-├── safety.md                      # Keputusan keselamatan
-├── ui.md                          # Keputusan UI & input
-├── telemetry.md                   # Keputusan telemetri & debugging
-├── optional_features.md            # Keputusan fitur opsional
-├── eeprom.md                      # Keputusan layout EEPROM
-└── performance.md                 # Keputusan kinerja & optimasi
-```
+  docs/design-decisions/overall.md                     # Keputusan arsitektur keseluruhan
+  docs/design-decisions/pid.md                         # Keputusan PID controller
+  docs/design-decisions/sensor.md                      # Keputusan sensor & kalibrasi
+  docs/design-decisions/safety.md                      # Keputusan keselamatan
+  docs/design-decisions/ui.md                          # Keputusan UI & input
+  docs/design-decisions/telemetry.md                   # Keputusan telemetri & debugging
+  docs/design-decisions/optional_features.md            # Keputusan fitur opsional
+  docs/design-decisions/eeprom.md                      # Keputusan layout EEPROM
+  docs/design-decisions/performance.md                 # Keputusan kinerja & optimasi
 
 ## Referensi Silang
 
