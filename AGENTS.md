@@ -2,7 +2,7 @@
 
 ## Structure
 - Sketch folder: `LineFollowerFin/` (name must match). Only `objects`, `setup()`, `loop()` in `LineFollowerFin.ino`; logic split into classes via refs.
-- Core modules: `config.h/.cpp`, `status.h`, `fwd.h`, `sensor_garis.*`, `penggerak.*`, `antarmuka.*`, `pengaman.*`, `mapping.*`, `lap_timer.*`, `bluetooth_ctrl.*`, `rc_ctrl.*`, `path_planner.*` (optional), `fuzzy_pid.h` (optional).
+- Core modules: `config.h/.cpp`, `status.h`, `fwd.h`, `sensor_garis.*`, `penggerak.*`, `antarmuka.*`, `pengaman.*`, `mapping.*`, `lap_timer.*`, `bluetooth_ctrl.*`, `rc_ctrl.*`, `path_planner.*` (optional), `fuzzy_pid.h` (optional), `heading_tracker.*` (optional).
 - `ucode.h` included only in `.ino`; `.cpp` files use `ukit_wrapper.h`/`ukit_extern.h`/`ukit_macros.h`.
 - Forward declarations in `fwd.h` are mandatory (template `eepromPutHemat` breaks auto-prototype). Keep `eepromPutHemat` in `sensor_garis.h`.
 

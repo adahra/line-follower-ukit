@@ -27,6 +27,7 @@ Struktur file utama di `LineFollowerFin/`:
 - `mapping.*` — learning/racing mapper untuk prediksi event (persimpangan).
 - `lap_timer.*` — lap timer opsional (start/finish line).
 - `bluetooth_ctrl.*` — kontrol/telemetri Bluetooth opsional.
+- `heading_tracker.*` — IMU heading correction (optional).
 - `path_planner.h/.cpp` — path planner (A*) opsional, kini berada di root sketch folder dan dibungkus `#if ENABLE_PATH_PLANNER`.
 - `LineFollowerFin.ino` — wiring objek + `setup()` + state machine `loop()`.
 

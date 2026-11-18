@@ -39,6 +39,14 @@ LineFollowerFin/
 └── docs/design-decisions/          # Keputusan desain & alasan
 ```
 
+## 12. Referensi Dokumentasi
+
+Dokumentasi lengkap tersedia di:
+- **`/home/tovi/Dokumen/line-follower-ukit/docs/architecture/`** – Penjelasan arsitektur dan diagram
+- **`/home/tovi/Dokumen/line-follower-ukit/docs/api/`** – Referensi API per modul
+- **`/home/tovi/Dokumen/line-follower-ukit/docs/design-decisions/`** – Keputusan desain & alasan
+
+**Status**: 12/12 modul terdokumentasi (~5,000 baris dokumentasi).
 ## 3. Struktur Kontrol & State Machine
 
 ### 3.1 Loop Utama (LineFollowerFin.ino:loop())
