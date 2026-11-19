@@ -3,6 +3,9 @@
 #ifndef FWD_H
 #define FWD_H
 
+// Forward declaration for EEPROM write helper template
+template <typename T> inline void eepromPutHemat(int addr, const T &nilai);
+
 class Status;
 class SensorGaris;
 class Penggerak;
