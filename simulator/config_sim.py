@@ -11,18 +11,18 @@ kecepatanDasarMaks = 85    # batas kecepatan tertinggi (servo derate 0-150)
 kecepatanDasarMin = 40     # batas kecepatan terendah (di atas deadband 25)
 kecepatanDasar = 85
 
-FAKTOR_REM_ADAPTIF = 0.5   # dasar = maks - abs(PID) * 0.5
-BATAS_INTEGRAL = 50        # I dipenjit ±50 (anti windup)
-
-# --- Batas servo 360 (open-loop) ---
-SERVO_MIN_EFEKTIF = 25     # deadband: speed 1-24 dipaksa ke 25
-SERVO_MAKS_DIPAKAI = 150   # derate dari 255
-
-# --- Slew + interval ---
+# --- Dynamic Speed Profile (Turbo Mode) ---
+# PENTING: KECEPATAN_TURBO adalah BONUS, bukan target absolut.
+# base = kecepatanDasarMaks + bonus turbo - pengereman PID.
+# 20 -> dengan maks 85 target lurus sekitar 105 (bukan 150).
+KECEPATAN_TURBO = 20          # sinkron dengan dokumentasi & sim
+LURUS_THRESHOLD = 2.0
+LURUS_TIME_REQUIRED = 500    # Waktu (ms) harus lurus sebelum masuk mode Turbo
+TURBO_RAMP_SPEED = 1         # turbo naik perlahan agar tidak slip
 SLEW_MAKS_PER_LOOP = 12    # maksimum perubahan speed per loop
 PID_INTERVAL_MS = 10       # interval PID konstan (ms)
+PID_MS = PID_INTERVAL_MS / 1000.0   # dt untuk normalisasi derivative
 LOOP_MS = 10               # periode simulasi per tick (ms)
-
 # --- Ambang sensor garis (default; dioverride kalibrasi) ---
 AMBANG_KIRI = 6
 AMBANG_KANAN = 6

@@ -40,14 +40,15 @@ bool Penggerak::hitung(int bacaKiri, int bacaKanan, bool paksa) {
 
   pidTerakhir = nowPid;
 
-  // 1. Hitung Nilai Error (pakai 2.0 agar tidak terpotong integer)
-  error = (bacaKiri - bacaKanan) / 2.0;
-
   // 2. Kalkulasi PID Standar
   P = error;
   I = I + error;
   I = constrain(I, -BATAS_INTEGRAL, BATAS_INTEGRAL);
-  D = error - lastError;
+  // FIX: raw delta error (tidak dinormalisasi) untuk fuzzy PID
+  float deltaError = error - lastError;
+  // FIX: dt yang sama dengan PID interval agar D konsisten di seluruh operasi
+  const float dtPid = PID_INTERVAL_MS / 1000.0;
+  D = deltaError / dtPid;
 
   // --- FUZZY ADAPTIVE PID ---
   // Jika fuzzy aktif, hitung delta Kp/Kd/Ki dari error & delta_error,
@@ -56,7 +57,7 @@ bool Penggerak::hitung(int bacaKiri, int bacaKanan, bool paksa) {
   float KpEff = Kp, KdEff = Kd, KiEff = Ki;
   if (fuzzyPid.isEnabled()) {
     float dKp = 0.0, dKd = 0.0, dKi = 0.0;
-    fuzzyPid.compute(error, D, dKp, dKd, dKi);  // D = delta error
+    fuzzyPid.compute(error, deltaError, dKp, dKd, dKi);  // delta error = error change (unnormalized)
     KpEff = Kp + dKp;
     KdEff = Kd + dKd;
     KiEff = Ki + dKi;
@@ -68,7 +69,6 @@ bool Penggerak::hitung(int bacaKiri, int bacaKanan, bool paksa) {
 #else
   float KpEff = Kp, KdEff = Kd, KiEff = Ki;
 #endif
-
   // --- GAIN SCHEDULING ---
   // Gain berbeda per kecepatan: rendah (tikungan) vs tinggi (lurus).
   // Low speed: Kp naik (responsif), Kd turun (tidak perlu damping keras).

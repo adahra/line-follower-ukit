@@ -40,14 +40,14 @@ Dokumen ini mencakup keputusan desain untuk PID controller di LineFollowerFin, y
 - PID_INTERVAL_MS = 10ms (pastikan dt konstan)
 - Gunakan millis() untuk interval yang akurat
 - Reset PID timer saat forced compute
-
+- D term: D = (error - lastError) / (PID_INTERVAL_MS / 1000.0) agar derivatif konsisten (dt dihilangkan)
 ## 3. Pemilihan Parameter PID
 
 ### 3.1 Kp (Proportional Gain)
 **Alasan:** Kp memberikan responsivitas error. Kp tinggi membuat robot lebih responsif tapi bisa menyebabkan overshoot.
 
 **Implementasi:**
-- Default: Kp = 1.2
+- Default: Kp = 7.0
 - Range: 0.5-3
 - Saat speed rendah: Kp tinggi (responsif)
 - Saat speed tinggi: Kp rendah (anti overshoot)
@@ -56,7 +56,7 @@ Dokumen ini mencakup keputusan desain untuk PID controller di LineFollowerFin, y
 **Alasan:** Ki menghilangkan steady-state error. Ki tinggi membuat robot lebih stabil tapi bisa menyebabkan integral windup.
 
 **Implementasi:**
-- Default: Ki = 1.0
+- Default: Ki = 0.05
 - Range: 0-5
 - Saat speed rendah: Ki menengah
 - Saat speed tinggi: Ki rendah
@@ -65,7 +65,7 @@ Dokumen ini mencakup keputusan desain untuk PID controller di LineFollowerFin, y
 **Alasan:** Kd memberikan damping untuk mencegah overshoot. Kd tinggi membuat robot lebih stabil tapi bisa menyebabkan noise amplification.
 
 **Implementasi:**
-- Default: Kd = 0.8
+- Default: Kd = 2.2
 - Range: 0-2
 - Saat speed rendah: Kd rendah (tidak butuh damping keras)
 - Saat speed tinggi: Kd tinggi (stabil)
@@ -77,7 +77,7 @@ Dokumen ini mencakup keputusan desain untuk PID controller di LineFollowerFin, y
 
 **Implementasi:**
 ```cpp
-float I = I + error * Ki;
+I = I + error;
 I = constrain(I, -BATAS_INTEGRAL, BATAS_INTEGRAL);  // anti windup
 ```
 

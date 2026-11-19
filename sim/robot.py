@@ -11,9 +11,9 @@ WHEELBASE = 0.16
 LINE_NOISE_STD = 0.3
 
 # --- config.h ---
-FAKTOR_REM_ADAPTIF = 0.3
+FAKTOR_REM_ADAPTIF = 0.5
 BATAS_INTEGRAL = 50
-KECEPATAN_TURBO = 0
+KECEPATAN_TURBO = 20
 LURUS_THRESHOLD = 2.0
 LURUS_TIME_REQUIRED = 500
 TURBO_RAMP_SPEED = 1
@@ -22,13 +22,13 @@ SERVO_MAKS_DIPAKAI = 150
 SLEW_MAKS_PER_LOOP = 12
 BELOK_TIMEOUT_MS = 1500
 RECOVERY_TIMEOUT_MS = 2000
-ALPHA_SENSOR = 0.4
+ALPHA_SENSOR = 0.65
 PID_INTERVAL_MS = 10
 RECOVERY_TIMEOUT_MS = 2000
 # --- config.cpp (default awal) ---
-KP_DEFAULT, KI_DEFAULT, KD_DEFAULT = 5.0, 0.1, 1.5
-SPEED_MAKS_DEFAULT, SPEED_MIN_DEFAULT = 110, 55
-AMBANG_DEFAULT = 8
+KP_DEFAULT, KI_DEFAULT, KD_DEFAULT = 7.0, 0.05, 2.2
+SPEED_MAKS_DEFAULT, SPEED_MIN_DEFAULT = 85, 40
+AMBANG_DEFAULT = 6
 
 PID_MS = PID_INTERVAL_MS / 1000.0
 
@@ -96,7 +96,7 @@ class Penggerak:
         self.error = (baca_kiri - baca_kanan) / 2.0
         self.P = self.error
         self.I = constrain(self.I + self.error, -BATAS_INTEGRAL, BATAS_INTEGRAL)
-        self.D = self.error - self.last_error
+        self.D = (self.error - self.last_error) / PID_MS
         self.pid = KP * self.P + KI * self.I + KD * self.D
         self.last_error = self.error
 

@@ -33,7 +33,7 @@ class PID:
         self.P = self.error
         self.I += self.error
         self.I = max(-cfg.BATAS_INTEGRAL, min(cfg.BATAS_INTEGRAL, self.I))
-        self.D = self.error - self.last_error
+        self.D = (self.error - self.last_error) / cfg.PID_MS
         self.pid_value = cfg.Kp * self.P + cfg.Ki * self.I + cfg.Kd * self.D
         self.last_error = self.error
         return True

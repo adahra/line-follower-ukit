@@ -6,8 +6,8 @@
 // - Kd dinaikkan (1.5 -> 2.2) untuk meredam osilasi di S.
 // - Ki diturunkan (0.1 -> 0.05) agar integral tidak menumpuk di tikungan.
 float Kp = 7.0;
-float Ki = 0.08;
-float Kd = 1.5;
+float Ki = 0.05;  // sinkron dengan dokumentasi & sim
+float Kd = 2.2;  // sinkron dengan dokumentasi & sim
 
 int kecepatanDasarMaks = 85;  // tuning awal; naikkan 5 poin per iterasi
 int kecepatanDasarMin = 40;   // di atas deadband 25, tikungan tak mati total
