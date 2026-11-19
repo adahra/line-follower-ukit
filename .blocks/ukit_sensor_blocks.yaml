@@ -1,0 +1,421 @@
+# uKit Hardware Block Catalog - Sensors Category
+schema: "https://raw.githubusercontent.com/platformio-platformio-blocks/platformio-blocks.github.io/schemas/block-catalog.schema.json"
+
+id: "ukit-sensor-blocks"
+author: "uKit Team"
+version: "1.0.1"
+description: "Blockly blocks for uKit Explore 2 hardware sensors - ultrasonic, infrared, light, sound, color, button, humiture, and eye lamp"
+category: "Sensors"
+colour: "#558B2F"  # Green lime
+tags: ["sensors", "ultrasonic", "infrared", "light", "sound", "color", "button", "humiture", "eyelamp", "uKit Explore 2"]
+runtime: "arduino:cpp"
+targets:
+  - "ubtrobot:avr:ukit_explore2"
+
+implementations:
+  - blocks:
+
+# Value Blocks (19)
+
+# Block 1: readUltrasonicDistance
+- blockly:
+    type: "uKitSensor_readUltrasonicDistance"
+    message0: "readUltrasonicDistance %1 sensorId"
+    output: "Number"
+    colour: "#558B2F"
+    tooltip: "Returns distance in centimeters from ultrasonic sensor"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "ultrasonic"]
+    args:
+      - name: "sensorId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 2: readInfraredDistance
+- blockly:
+    type: "uKitSensor_readInfraredDistance"
+    message0: "readInfraredDistance %1 sensorId"
+    output: "Number"
+    colour: "#558B2F"
+    tooltip: "Returns infrared sensor distance value"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "infrared"]
+    args:
+      - name: "sensorId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 3: readLightValue
+- blockly:
+    type: "uKitSensor_readLightValue"
+    message0: "readLightValue %1 sensorId"
+    output: "Number"
+    colour: "#558B2F"
+    tooltip: "Returns light sensor value"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "light"]
+    args:
+      - name: "sensorId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 4: readSoundValue
+- blockly:
+    type: "uKitSensor_readSoundValue"
+    message0: "readSoundValue %1 sensorId"
+    output: "Number"
+    colour: "#558B2F"
+    tooltip: "Returns sound sensor intensity value"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "sound"]
+    args:
+      - name: "sensorId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 5: readColorRgb
+- blockly:
+    type: "uKitSensor_readColorRgb"
+    message0: "readColorRgb %1 sensorId"
+    output: "String"
+    colour: "#558B2F"
+    tooltip: "Returns RGB color values as string"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "color"]
+    args:
+      - name: "sensorId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 6: readColor
+- blockly:
+    type: "uKitSensor_readColor"
+    message0: "readColor %1 sensorId %2 colorName"
+    output: "String"
+    colour: "#558B2F"
+    tooltip: "Recognize specific color from color sensor"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "color"]
+    args:
+      - name: "sensorId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+      - name: "colorName"
+        type: "field_dropdown"
+        options:
+          - ["Red", "RED"]
+          - ["Green", "GREEN"]
+          - ["Blue", "BLUE"]
+          - ["White", "WHITE"]
+          - ["Yellow", "YELLOW"]
+          - ["Black", "BLACK"]
+        check: ["String"]
+
+# Block 7: readButtonValue
+- blockly:
+    type: "uKitSensor_readButtonValue"
+    message0: "readButtonValue %1 sensorId"
+    output: "Number"
+    colour: "#558B2F"
+    tooltip: "Returns touch sensor state"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "button"]
+    args:
+      - name: "sensorId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 8: readHumitureValue
+- blockly:
+    type: "uKitSensor_readHumitureValue"
+    message0: "readHumitureValue %1 sensorId %2 choice"
+    output: "Number"
+    colour: "#558B2F"
+    tooltip: "Returns temperature or humidity value from sensor"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "humiture"]
+    args:
+      - name: "sensorId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+      - name: "choice"
+        type: "field_dropdown"
+        options:
+          - ["Temperature", "TEMP"]
+          - ["Humidity", "HUMI"]
+        check: ["String"]
+
+# Block 9: getRedValue
+- blockly:
+    type: "uKitSensor_getRedValue"
+    message0: "getRedValue()"
+    output: "Number"
+    colour: "#558B2F"
+    tooltip: "Returns red channel value from eye lamp/LED"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "eyelamp", "led"]
+
+# Block 10: getGreenValue
+- blockly:
+    type: "uKitSensor_getGreenValue"
+    message0: "getGreenValue()"
+    output: "Number"
+    colour: "#558B2F"
+    tooltip: "Returns green channel value from eye lamp/LED"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "eyelamp", "led"]
+
+# Block 11: getBlueValue
+- blockly:
+    type: "uKitSensor_getBlueValue"
+    message0: "getBlueValue()"
+    output: "Number"
+    colour: "#558B2F"
+    tooltip: "Returns blue channel value from eye lamp/LED"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "eyelamp", "led"]
+
+# Block 12: getInfraredId
+- blockly:
+    type: "uKitSensor_getInfraredId"
+    message0: "getInfraredId()"
+    output: "Number"
+    colour: "#558B2F"
+    tooltip: "Returns infrared sensor ID"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "infrared"]
+
+# Block 13: getLightSensorId
+- blockly:
+    type: "uKitSensor_getLightSensorId"
+    message0: "getLightSensorId()"
+    output: "Number"
+    colour: "#558B2F"
+    tooltip: "Returns light sensor ID"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "light"]
+
+# Block 14: getSoundSensorId
+- blockly:
+    type: "uKitSensor_getSoundSensorId"
+    message0: "getSoundSensorId()"
+    output: "Number"
+    colour: "#558B2F"
+    tooltip: "Returns sound sensor ID"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "sound"]
+
+# Block 15: getColorSensorId
+- blockly:
+    type: "uKitSensor_getColorSensorId"
+    message0: "getColorSensorId()"
+    output: "Number"
+    colour: "#558B2F"
+    tooltip: "Returns color sensor ID"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "color"]
+
+# Block 16: getButtonSensorId
+- blockly:
+    type: "uKitSensor_getButtonSensorId"
+    message0: "getButtonSensorId()"
+    output: "Number"
+    colour: "#558B2F"
+    tooltip: "Returns button/touch sensor ID"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "button"]
+
+# Block 17: getHumitureSensorId
+- blockly:
+    type: "uKitSensor_getHumitureSensorId"
+    message0: "getHumitureSensorId()"
+    output: "Number"
+    colour: "#558B2F"
+    tooltip: "Returns humiture sensor ID"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "humiture"]
+
+# Block 18: getUltrasonicId
+- blockly:
+    type: "uKitSensor_getUltrasonicId"
+    message0: "getUltrasonicId()"
+    output: "Number"
+    colour: "#558B2F"
+    tooltip: "Returns ultrasonic sensor ID"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "ultrasonic"]
+
+# Block 19: getEyelightId
+- blockly:
+    type: "uKitSensor_getEyelightId"
+    message0: "getEyelightId()"
+    output: "Number"
+    colour: "#558B2F"
+    tooltip: "Returns eye lamp ID"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "eyelamp"]
+
+# Statement Blocks (5)
+
+# Block 20: setUltrasonicRgbled
+- blockly:
+    type: "uKitSensor_setUltrasonicRgbled"
+    message0: "set ultrasonic LED color %1 R%2 G%3 B%4"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#558B2F"
+    tooltip: "Set ultrasonic sensor LED color using RGB values"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "ultrasonic", "led"]
+    args:
+      - name: "sensorId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+      - name: "R"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "0"
+      - name: "G"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "0"
+      - name: "B"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "0"
+
+# Block 21: setUltrasonicRgbledOff
+- blockly:
+    type: "uKitSensor_setUltrasonicRgbledOff"
+    message0: "set ultrasonic LED off %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#558B2F"
+    tooltip: "Turn off ultrasonic sensor LED"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "ultrasonic", "led"]
+    args:
+      - name: "sensorId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 22: setColorOff
+- blockly:
+    type: "uKitSensor_setColorOff"
+    message0: "set color sensor off %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#558B2F"
+    tooltip: "Turn off color sensor"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "color"]
+    args:
+      - name: "sensorId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 23: setEyelightLook
+- blockly:
+    type: "uKitSensor_setEyelightLook"
+    message0: "set eyelight look %1 times %2 R%3 G%4 B%5"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#558B2F"
+    tooltip: "Set eye lamp to specific emoticon and color (non-blocking)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "eyelamp"]
+    args:
+      - name: "face"
+        type: "field_dropdown"
+        options:
+          - ["Smile", "SMILE"]
+          - ["Sad", "SAD"]
+          - ["Angry", "ANGRY"]
+          - ["Surprised", "SURPRISED"]
+          - ["Sleepy", "SLEEPY"]
+        check: ["String"]
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+      - name: "R"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "255"
+      - name: "G"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "255"
+      - name: "B"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "255"
+
+# Block 24: setEyelightScene
+- blockly:
+    type: "uKitSensor_setEyelightScene"
+    message0: "set eyelight scene %1 times %2"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#558B2F"
+    tooltip: "Set eye lamp to different scene mode (non-blocking)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["sensors", "eyelamp"]
+    args:
+      - name: "scene"
+        type: "field_dropdown"
+        options:
+          - ["Rainbow", "RAINBOW"]
+          - ["Fire", "FIRE"]
+          - ["Ocean", "OCEAN"]
+          - ["Star", "STAR"]
+          - ["Pulse", "PULSE"]
+        check: ["String"]
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"

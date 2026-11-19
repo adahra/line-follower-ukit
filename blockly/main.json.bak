@@ -1,0 +1,23 @@
+{
+  "workspace": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "arduino_setup_loop",
+          "id": "H]Ri!o`/H_I9X+Jt_mB4",
+          "x": 384,
+          "y": 255,
+          "deletable": false
+        }
+      ]
+    },
+    "variables": [
+      {
+        "name": "i",
+        "id": "C(N|DU|R*s}MnX;-*zhi"
+      }
+    ]
+  },
+  "board": "mega"
+}

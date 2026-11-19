@@ -1,3 +1,4 @@
 {
-    "blocks-editor.fallbackFramework": "arduino"
+  "blocks-editor.fallbackFramework": "arduino",
+  "singular-blockly.theme": "light"
 }

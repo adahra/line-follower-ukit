@@ -1,0 +1,203 @@
+# uKit Hardware Block Catalog - Safety & Protection Category
+schema: "https://raw.githubusercontent.com/platformio-platformio-blocks/platformio-blocks.github.io/schemas/block-catalog.schema.json"
+
+id: "ukit-safety-protection-blocks"
+author: "uKit Team"
+version: "1.0.0"
+description: "Blockly blocks for uKit Explore 2 safety and protection systems - battery, tilt, obstacle, and emergency protection"
+category: "Safety & Protection"
+colour: "#C62828"  # Deep red
+tags: ["safety", "protection", "battery", "tilt", "obstacle", "emergency", "uKit Explore 2"]
+runtime: "arduino:cpp"
+targets:
+  - "ubtrobot:avr:ukit_explore2"
+
+implementations:
+  - blocks:
+
+# Value Blocks (5)
+
+# Block 1: checkBatteryLevel
+- blockly:
+    type: "uKitSafety_checkBatteryLevel"
+    message0: "check battery level()"
+    output: "Number"
+    colour: "#C62828"
+    tooltip: "Returns current battery voltage level (0-5V)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["safety", "battery", "voltage"]
+
+# Block 2: isCharging
+- blockly:
+    type: "uKitSafety_isCharging"
+    message0: "is charging()?"
+    output: "Boolean"
+    colour: "#C62828"
+    tooltip: "Check if system is currently charging"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["safety", "battery", "charging"]
+
+# Block 3: checkTiltAngle
+- blockly:
+    type: "uKitSafety_checkTiltAngle"
+    message0: "check tilt angle()"
+    output: "Number"
+    colour: "#C62828"
+    tooltip: "Returns current tilt angle from IMU"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["safety", "tilt", "imu"]
+
+# Block 4: isEmergencyStop
+- blockly:
+    type: "uKitSafety_isEmergencyStop"
+    message0: "is emergency stop active()?"
+    output: "Boolean"
+    colour: "#C62828"
+    tooltip: "Check if emergency stop mode is active"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["safety", "emergency", "stop"]
+
+# Block 5: getObstacleDistance
+- blockly:
+    type: "uKitSafety_getObstacleDistance"
+    message0: "get obstacle distance()"
+    output: "Number"
+    colour: "#C62828"
+    tooltip: "Returns distance to nearest obstacle from ultrasonic sensor"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["safety", "obstacle", "distance"]\n
+# Statement Blocks (10)
+
+# Block 6: setLowBatteryProtection
+- blockly:
+    type: "uKitSafety_setLowBatteryProtection"
+    message0: "set low battery protection to %1 volts"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#C62828"
+    tooltip: "Set threshold voltage for low battery protection (default: 3.5V)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["safety", "battery", "protection"]
+    args:
+      - name: "voltage"
+        type: "input_value"
+        check: ["Number", "float"]
+        inputDefaults: "3.5"
+
+# Block 7: startCharging
+- blockly:
+    type: "uKitSafety_startCharging"
+    message0: "start battery charging"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#C62828"
+    tooltip: "Start battery charging system"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["safety", "battery", "charging"]
+
+# Block 8: enableTiltProtection
+- blockly:
+    type: "uKitSafety_enableTiltProtection"
+    message0: "enable tilt protection threshold %1 degrees"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#C62828"
+    tooltip: "Enable tilt protection system with specified angle threshold"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["safety", "tilt", "protection"]
+    args:
+      - name: "angle"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "20"
+
+# Block 9: disableTiltProtection
+- blockly:
+    type: "uKitSafety_disableTiltProtection"
+    message0: "disable tilt protection"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#C62828"
+    tooltip: "Disable tilt protection system"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["safety", "tilt", "disable"]
+
+# Block 10: setEmergencyStop
+- blockly:
+    type: "uKitSafety_setEmergencyStop"
+    message0: "set emergency stop mode %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#C62828"
+    tooltip: "Set emergency stop mode"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["safety", "emergency", "stop"]
+    args:
+      - name: "mode"
+        type: "field_dropdown"
+        options:
+          - ["Immediate", "immediate"]
+          - ["Gradual", "gradual"]
+          - ["Delayed", "delayed"]
+        check: ["String"]
+        inputDefaults: "immediate"
+
+# Block 11: activateObstacleAvoidance
+- blockly:
+    type: "uKitSafety_activateObstacleAvoidance"
+    message0: "activate obstacle avoidance system"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#C62828"
+    tooltip: "Activate obstacle avoidance system"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["safety", "obstacle", "avoidance"]
+
+# Block 12: setObstacleThreshold
+- blockly:
+    type: "uKitSafety_setObstacleThreshold"
+    message0: "set obstacle threshold to %1 cm"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#C62828"
+    tooltip: "Set obstacle detection threshold distance"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["safety", "obstacle", "threshold"]
+    args:
+      - name: "distance"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "30"
+
+# Block 13: emergencySafetyShutdown
+- blockly:
+    type: "uKitSafety_emergencySafetyShutdown"
+    message0: "emergency safety shutdown all systems"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#C62828"
+    tooltip: "Emergency safety shutdown all systems immediately"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["safety", "emergency", "shutdown"]
+
+# Block 14: resetSafetySystem
+- blockly:
+    type: "uKitSafety_resetSafetySystem"
+    message0: "reset safety system"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#C62828"
+    tooltip: "Reset safety system to normal state"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["safety", "reset"]
+
+# Block 15: enableAutoRecovery
+- blockly:
+    type: "uKitSafety_enableAutoRecovery"
+    message0: "enable auto recovery system"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#C62828"
+    tooltip: "Enable automatic recovery after safety events"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["safety", "auto-recovery"]

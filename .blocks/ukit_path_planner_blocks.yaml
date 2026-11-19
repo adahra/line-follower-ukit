@@ -1,0 +1,210 @@
+# uKit Hardware Block Catalog - Path Planner Category
+schema: "https://raw.githubusercontent.com/platformio-platformio-blocks/platformio-blocks.github.io/schemas/block-catalog.schema.json"
+
+id: "ukit-path-planner-blocks"
+author: "uKit Team"
+version: "1.0.0"
+description: "Blockly blocks for uKit Explore 2 path planner - racing prediction, path optimization, and event recording"
+category: "Path Planner"
+colour: "#1976D2"  # Deep blue
+tags: ["path-planner", "racing", "navigation", "optimization", "uKit Explore 2"]
+runtime: "arduino:cpp"
+targets:
+  - "ubtrobot:avr:ukit_explore2"
+
+implementations:
+  - blocks:
+
+# Value Blocks (3)
+
+# Block 1: getPredictedPath
+- blockly:
+    type: "uKitPathPlanner_getPredictedPath"
+    message0: "get predicted path()"
+    output: "String"
+    colour: "#1976D2"
+    tooltip: "Returns predicted future path based on current position"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["path-planner", "prediction", "navigation"]
+
+# Block 2: getOptimalSpeed
+- blockly:
+    type: "uKitPathPlanner_getOptimalSpeed"
+    message0: "get optimal speed()"
+    output: "Number"
+    colour: "#1976D2"
+    tooltip: "Returns optimal speed for current path"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["path-planner", "speed", "optimization"]
+
+# Block 3: getPathConfidence
+- blockly:
+    type: "uKitPathPlanner_getPathConfidence"
+    message0: "get path confidence()"
+    output: "Number"
+    colour: "#1976D2"
+    tooltip: "Returns prediction confidence level (0-100)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["path-planner", "confidence", "prediction"]\n
+# Statement Blocks (12)
+
+# Block 4: enablePathPlanner
+- blockly:
+    type: "uKitPathPlanner_enablePathPlanner"
+    message0: "enable path planner"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Enable path planning and prediction"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["path-planner", "enable"]
+
+# Block 5: disablePathPlanner
+- blockly:
+    type: "uKitPathPlanner_disablePathPlanner"
+    message0: "disable path planner"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Disable path planning and prediction"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["path-planner", "disable"]
+
+# Block 6: setCurrentPath
+- blockly:
+    type: "uKitPathPlanner_setCurrentPath"
+    message0: "set current path %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Set current path for navigation"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["path-planner", "path", "navigation"]
+    args:
+      - name: "pathName"
+        type: "input_value"
+        check: ["String"]
+        inputDefaults: "MainPath"
+
+# Block 7: getNextWaypoint
+- blockly:
+    type: "uKitPathPlanner_getNextWaypoint"
+    message0: "get next waypoint()"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Get next waypoint in current path"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["path-planner", "waypoint", "navigation"]
+
+# Block 8: calculateOptimalRoute
+- blockly:
+    type: "uKitPathPlanner_calculateOptimalRoute"
+    message0: "calculate optimal route from %1 to %2"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Calculate optimal route between two waypoints"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["path-planner", "route", "optimization"]
+    args:
+      - name: "startPoint"
+        type: "input_value"
+        check: ["String"]
+        inputDefaults: "Start"
+      - name: "endPoint"
+        type: "input_value"
+        check: ["String"]
+        inputDefaults: "End"
+
+# Block 9: setPathOptimization
+- blockly:
+    type: "uKitPathPlanner_setPathOptimization"
+    message0: "set path optimization to %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Set path optimization parameters"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["path-planner", "optimization"]
+    args:
+      - name: "optimization"
+        type: "field_dropdown"
+        options:
+          - ["Fastest", "fastest"]
+          - ["Shortest", "shortest"]
+          - ["Safe", "safe"]
+          - ["Custom", "custom"]
+        check: ["String"]
+        inputDefaults: "fastest"
+
+# Block 10: getPathHistory
+- blockly:
+    type: "uKitPathPlanner_getPathHistory"
+    message0: "get path history()"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Get recorded path history"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["path-planner", "history"]
+
+# Block 11: saveOptimalPath
+- blockly:
+    type: "uKitPathPlanner_saveOptimalPath"
+    message0: "save optimal path to file %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Save optimal path to file"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["path-planner", "save", "path"]
+    args:
+      - name: "filename"
+        type: "input_value"
+        check: ["String"]
+        inputDefaults: "optimalpath.txt"
+
+# Block 12: showPathPlannerScreen
+- blockly:
+    type: "uKitPathPlanner_showPathPlannerScreen"
+    message0: "show path planner screen"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Display path planner screen with visualization"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["path-planner", "display", "screen"]
+
+# Block 13: resetPathPlanner
+- blockly:
+    type: "uKitPathPlanner_resetPathPlanner"
+    message0: "reset path planner"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Reset path planner to initial state"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["path-planner", "reset"]
+
+# Block 14: exportPathData
+- blockly:
+    type: "uKitPathPlanner_exportPathData"
+    message0: "export path data"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Export path data to external format"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["path-planner", "export", "data"]
+
+# Block 15: clearPathHistory
+- blockly:
+    type: "uKitPathPlanner_clearPathHistory"
+    message0: "clear path history"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Clear recorded path history"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["path-planner", "history", "clear"]

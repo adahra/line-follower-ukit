@@ -1,0 +1,445 @@
+# uKit Hardware Block Catalog - Robot Motion Category
+schema: "https://raw.githubusercontent.com/platformio-platformio-blocks/platformio-blocks.github.io/schemas/block-catalog.schema.json"
+
+id: "ukit-robot-motion-blocks"
+author: "uKit Team"
+version: "1.0.0"
+description: "Blockly blocks for uKit Explore 2 robot motion and movement sequences - transformer car controls, motion patterns, and line tracking"
+category: "Robot Motion"
+colour: "#1565C0"  # Deep blue
+tags: ["robot-motion", "transformer", "movement", "sequences", "uKit Explore 2"]
+runtime: "arduino:cpp"
+targets:
+  - "ubtrobot:avr:ukit_explore2"
+
+implementations:
+  - blocks:
+
+# Value Blocks (4)
+
+# Block 1: getMotionCaseCount
+- blockly:
+    type: "uKitMotion_getMotionCaseCount"
+    message0: "get motion case count()"
+    output: "Number"
+    colour: "#1565C0"
+    tooltip: "Returns total number of predefined motion cases available"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "sequences"]
+
+# Block 2: getMotionCurrentState
+- blockly:
+    type: "uKitMotion_getMotionCurrentState"
+    message0: "get motion current state()"
+    output: "String"
+    colour: "#1565C0"
+    tooltip: "Returns current motion state (Getup, Sitdown, Car, Forward, etc.)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "state"]
+
+# Block 3: getMotionAvailableCases
+- blockly:
+    type: "uKitMotion_getMotionAvailableCases"
+    message0: "get motion available cases()"
+    output: "String"
+    colour: "#1565C0"
+    tooltip: "Returns list of available motion case names"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "cases"]
+
+# Block 4: getMotionDuration
+- blockly:
+    type: "uKitMotion_getMotionDuration"
+    message0: "get motion duration()"
+    output: "Number"
+    colour: "#1565C0"
+    tooltip: "Returns current motion execution duration in milliseconds"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "timing"]
+
+# Statement Blocks (16)
+
+# Block 5: carForward
+- blockly:
+    type: "uKitMotion_carForward"
+    message0: "car forward speed %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Move robot forward at specified speed (0-150, PWM-based)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "transformer", "control"]
+    args:
+      - name: "speed"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "100"
+
+# Block 6: carTurnLeft
+- blockly:
+    type: "uKitMotion_carTurnLeft"
+    message0: "car turn left speed %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Turn robot left with specified speed"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "transformer", "control"]
+    args:
+      - name: "speed"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "100"
+
+# Block 7: carTurnRight
+- blockly:
+    type: "uKitMotion_carTurnRight"
+    message0: "car turn right speed %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Turn robot right with specified speed"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "transformer", "control"]
+    args:
+      - name: "speed"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "100"
+
+# Block 8: carBackward
+- blockly:
+    type: "uKitMotion_carBackward"
+    message0: "car backward speed %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Move robot backward with specified speed"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "transformer", "control"]
+    args:
+      - name: "speed"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "100"
+
+# Block 9: carStop
+- blockly:
+    type: "uKitMotion_carStop"
+    message0: "car stop"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Stop robot movement"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "transformer", "control"]
+
+# Block 10: lineTrackingTurnLeft
+- blockly:
+    type: "uKitMotion_lineTrackingTurnLeft"
+    message0: "line tracking turn left speed %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Turn left while following line (for line follower robots)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "line-tracking", "control"]
+    args:
+      - name: "speed"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "80"
+
+# Block 11: lineTrackingTurnRight
+- blockly:
+    type: "uKitMotion_lineTrackingTurnRight"
+    message0: "line tracking turn right speed %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Turn right while following line (for line follower robots)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "line-tracking", "control"]
+    args:
+      - name: "speed"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "80"
+
+# Block 12: lineTrackingTurnAround
+- blockly:
+    type: "uKitMotion_lineTrackingTurnAround"
+    message0: "line tracking turn around speed %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Turn 180 degrees while following line (for line follower robots)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "line-tracking", "control"]
+    args:
+      - name: "speed"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "80"
+
+# Block 13: carForwardWithTime
+- blockly:
+    type: "uKitMotion_carForwardWithTime"
+    message0: "car forward speed %1 for %2 ms"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Move robot forward for specified time (non-blocking)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "transformer", "timing"]
+    args:
+      - name: "speed"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "100"
+      - name: "time"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1000"
+
+# Block 14: motionCase
+- blockly:
+    type: "uKitMotion_motionCase"
+    message0: "motion case %1 times %2"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Execute predefined movement pattern"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "sequences"]
+    args:
+      - name: "caseId"
+        type: "field_dropdown"
+        options:
+          - ["Getup", "GETUP"]
+          - ["Sitdown", "SITDOWN"]
+          - ["Car", "CAR"]
+          - ["Forward", "FORWARD"]
+          - ["Back", "BACK"]
+          - ["Left", "LEFT"]
+          - ["Right", "RIGHT"]
+          - ["Omotion", "OMOTION"]
+          - ["Button", "BUTTON"]
+          - ["Lift", "LIFT"]
+          - ["Lift Hand", "LIFT_HAND"]
+          - ["Head", "HEAD"]
+          - ["Zero", "ZERO"]
+        check: ["String"]
+        inputDefaults: "CAR"
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 15: motionForward
+- blockly:
+    type: "uKitMotion_motionForward"
+    message0: "motion forward times %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Move robot forward for specified number of steps"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "forward"]
+    args:
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 16: motionCar
+- blockly:
+    type: "uKitMotion_motionCar"
+    message0: "motion car times %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Car movement sequence (navigation)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "car"]
+    args:
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 17: motionGetup
+- blockly:
+    type: "uKitMotion_motionGetup"
+    message0: "motion getup times %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Robot getup sequence (stand up)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "getup"]
+    args:
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 18: motionSitdown
+- blockly:
+    type: "uKitMotion_motionSitdown"
+    message0: "motion sitdown times %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Robot sitdown sequence"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "sitdown"]
+    args:
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 19: motionBack
+- blockly:
+    type: "uKitMotion_motionBack"
+    message0: "motion back times %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Move robot backward"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "back"]
+    args:
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 20: motionTurnLeft
+- blockly:
+    type: "uKitMotion_motionTurnLeft"
+    message0: "motion turn left times %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Turn robot left"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "turn-left"]
+    args:
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 21: motionTurnRight
+- blockly:
+    type: "uKitMotion_motionTurnRight"
+    message0: "motion turn right times %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Turn robot right"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "turn-right"]
+    args:
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 22: motionOmotion
+- blockly:
+    type: "uKitMotion_motionOmotion"
+    message0: "motion omotion times %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Robot omnidirectional motion"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "omotion"]
+    args:
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 23: motionButton
+- blockly:
+    type: "uKitMotion_motionButton"
+    message0: "motion button times %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Button press motion"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "button"]
+    args:
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 24: motionLift
+- blockly:
+    type: "uKitMotion_motionLift"
+    message0: "motion lift times %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Robot lift mechanism"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "lift"]
+    args:
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 25: motionLiftHand
+- blockly:
+    type: "uKitMotion_motionLiftHand"
+    message0: "motion lift hand times %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Robot hand lift"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "lift-hand"]
+    args:
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 26: motionHead
+- blockly:
+    type: "uKitMotion_motionHead"
+    message0: "motion head times %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Robot head movement"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "head"]
+    args:
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 27: motionZero
+- blockly:
+    type: "uKitMotion_motionZero"
+    message0: "motion zero times %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1565C0"
+    tooltip: "Robot zero position (calibration)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["robot-motion", "controller", "zero"]
+    args:
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"

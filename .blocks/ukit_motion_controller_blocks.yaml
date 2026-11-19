@@ -1,0 +1,254 @@
+# uKit Hardware Block Catalog - Motion Controller Category
+schema: "https://raw.githubusercontent.com/platformio-platformio-blocks/platformio-blocks.github.io/schemas/block-catalog.schema.json"
+
+id: "ukit-motion-controller-blocks"
+author: "uKit Team"
+version: "1.0.0"
+description: "Blockly blocks for uKit Explore 2 motion controller - PID control, heading correction, adaptive speed"
+category: "Motion Controller"
+colour: "#1976D2"  # Deep blue
+tags: ["motion-controller", "pid", "heading", "adaptive", "control", "uKit Explore 2"]
+runtime: "arduino:cpp"
+targets:
+  - "ubtrobot:avr:ukit_explore2"
+
+implementations:
+  - blocks:
+
+# Value Blocks (5)
+
+# Block 1: getPidError
+- blockly:
+    type: "uKitController_getPidError"
+    message0: "get PID error()"
+    output: "Number"
+    colour: "#1976D2"
+    tooltip: "Returns current PID error value for line tracking"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "pid", "error"]
+
+# Block 2: getPidOutput
+- blockly:
+    type: "uKitController_getPidOutput"
+    message0: "get PID output()"
+    output: "Number"
+    colour: "#1976D2"
+    tooltip: "Returns current PID output value"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "pid", "output"]
+
+# Block 3: getPidIntegral
+- blockly:
+    type: "uKitController_getPidIntegral"
+    message0: "get PID integral()"
+    output: "Number"
+    colour: "#1976D2"
+    tooltip: "Returns current PID integral value"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "pid", "integral"]
+
+# Block 4: getHeading
+- blockly:
+    type: "uKitController_getHeading"
+    message0: "get heading()"
+    output: "Number"
+    colour: "#1976D2"
+    tooltip: "Returns current heading from IMU gyroscope"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "imu", "heading"]
+
+# Block 5: getSpeed
+- blockly:
+    type: "uKitController_getSpeed"
+    message0: "get speed()"
+    output: "Number"
+    colour: "#1976D2"
+    tooltip: "Returns current motor speed"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "speed"]\n
+# Statement Blocks (10)
+
+# Block 6: resetPid
+- blockly:
+    type: "uKitController_resetPid"
+    message0: "reset PID controllers"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Reset all PID controllers to initial state"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "pid", "reset"]
+
+# Block 7: resetIntegralAfterRecovery
+- blockly:
+    type: "uKitController_resetIntegralAfterRecovery"
+    message0: "reset integral after recovery"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Reset PID integral value after line recovery"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "pid", "integral", "recovery"]
+
+# Block 8: calculatePid
+- blockly:
+    type: "uKitController_calculatePid"
+    message0: "calculate PID for error %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Calculate PID control output for given error"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "pid", "calculate"]
+    args:
+      - name: "error"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "0"
+
+# Block 9: applyPid
+- blockly:
+    type: "uKitController_applyPid"
+    message0: "apply PID control to motor %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Apply calculated PID output to motor control"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "pid", "apply"]
+    args:
+      - name: "motorId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 10: startMotor
+- blockly:
+    type: "uKitMotionController_startMotor"
+    message0: "start motor speed %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Start motor with specified speed (0-150)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "motor", "start"]
+    args:
+      - name: "speed"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "100"
+
+# Block 11: startDirection
+- blockly:
+    type: "uKitMotionController_startDirection"
+    message0: "start direction %1 with speed %2"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Start motion in specific direction"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "direction", "start"]
+    args:
+      - name: "direction"
+        type: "field_dropdown"
+        options:
+          - ["Forward", "forward"]
+          - ["Backward", "backward"]
+          - ["Left", "left"]
+          - ["Right", "right"]
+        check: ["String"]
+        inputDefaults: "forward"
+      - name: "speed"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "100"
+
+# Block 12: stopMotor
+- blockly:
+    type: "uKitMotionController_stopMotor"
+    message0: "stop motor"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Stop all motors"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "motor", "stop"]
+
+# Block 13: emergencyStop
+- blockly:
+    type: "uKitMotionController_emergencyStop"
+    message0: "emergency stop all motors"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Emergency stop all motors immediately"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "safety", "emergency"]
+
+# Block 14: moveForward
+- blockly:
+    type: "uKitMotionController_moveForward"
+    message0: "move forward with PID control"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Move robot forward using PID control for line following"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "motion", "forward"]
+
+# Block 15: turnLeft
+- blockly:
+    type: "uKitMotionController_turnLeft"
+    message0: "turn left with PID heading correction"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Turn robot left using PID heading correction"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "motion", "turn-left"]
+
+# Block 16: turnRight
+- blockly:
+    type: "uKitMotionController_turnRight"
+    message0: "turn right with PID heading correction"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Turn robot right using PID heading correction"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "motion", "turn-right"]
+
+# Block 17: calibrateTurn
+- blockly:
+    type: "uKitMotionController_calibrateTurn"
+    message0: "calibrate turn (zero heading)"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Calibrate robot heading to zero position"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "calibration", "heading"]
+
+# Block 18: getErrorLast
+- blockly:
+    type: "uKitMotionController_getErrorLast"
+    message0: "get last error"
+    output: "Number"
+    colour: "#1976D2"
+    tooltip: "Returns last line tracking error"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "error", "last"]
+
+# Block 19: sendTelemetry
+- blockly:
+    type: "uKitMotionController_sendTelemetry"
+    message0: "send telemetry data"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#1976D2"
+    tooltip: "Send telemetry data for monitoring and debugging"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motion-controller", "telemetry", "data"]

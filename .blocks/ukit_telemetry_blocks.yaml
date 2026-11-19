@@ -1,0 +1,211 @@
+# uKit Hardware Block Catalog - Telemetry Category
+schema: "https://raw.githubusercontent.com/platformio-platformio-blocks/platformio-blocks.github.io/schemas/block-catalog.schema.json"
+
+id: "ukit-telemetry-blocks"
+author: "uKit Team"
+version: "1.0.0"
+description: "Blockly blocks for uKit Explore 2 telemetry - Bluetooth communication and data transmission"
+category: "Telemetry"
+colour: "#0D47F2"  # Deep blue
+tags: ["telemetry", "bluetooth", "communication", "data", "uKit Explore 2"]
+runtime: "arduino:cpp"
+targets:
+  - "ubtrobot:avr:ukit_explore2"
+
+implementations:
+  - blocks:
+
+# Value Blocks (3)
+
+# Block 1: getBluetoothStatus
+- blockly:
+    type: "uKitTelemetry_getBluetoothStatus"
+    message0: "get Bluetooth status()"
+    output: "String"
+    colour: "#0D47F2"
+    tooltip: "Returns current Bluetooth connection status (connected/disconnected)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["telemetry", "bluetooth", "status"]
+
+# Block 2: getTelemetryData
+- blockly:
+    type: "uKitTelemetry_getTelemetryData"
+    message0: "get telemetry data()"
+    output: "String"
+    colour: "#0D47F2"
+    tooltip: "Returns current telemetry data buffer"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["telemetry", "data", "buffer"]
+
+# Block 3: getSignalStrength
+- blockly:
+    type: "uKitTelemetry_getSignalStrength"
+    message0: "get signal strength()"
+    output: "Number"
+    colour: "#0D47F2"
+    tooltip: "Returns current Bluetooth signal strength (-100 to 0 dBm)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["telemetry", "bluetooth", "signal"]\n
+# Statement Blocks (9)
+
+# Block 4: startBluetooth
+- blockly:
+    type: "uKitTelemetry_startBluetooth"
+    message0: "start Bluetooth with name %1 and device type %2"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#0D47F2"
+    tooltip: "Initialize and start Bluetooth communication module"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["telemetry", "bluetooth", "start"]
+    args:
+      - name: "deviceName"
+        type: "input_value"
+        check: ["String"]
+        inputDefaults: "uKitDevice"
+      - name: "deviceType"
+        type: "field_dropdown"
+        options:
+          - ["Slave", "slave"]
+          - ["Master", "master"]
+          - ["Peripheral", "peripheral"]
+        check: ["String"]
+        inputDefaults: "slave"
+
+# Block 5: stopBluetooth
+- blockly:
+    type: "uKitTelemetry_stopBluetooth"
+    message0: "stop Bluetooth communication"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#0D47F2"
+    tooltip: "Stop Bluetooth communication module"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["telemetry", "bluetooth", "stop"]
+
+# Block 6: sendTelemetryData
+- blockly:
+    type: "uKitTelemetry_sendTelemetryData"
+    message0: "send telemetry data %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#0D47F2"
+    tooltip: "Transmit telemetry data over Bluetooth connection"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["telemetry", "bluetooth", "send"]
+    args:
+      - name: "data"
+        type: "input_value"
+        check: ["String"]
+        inputDefaults: "Sensor data"
+
+# Block 7: configureBluetoothDevice
+- blockly:
+    type: "uKitTelemetry_configureBluetoothDevice"
+    message0: "configure Bluetooth device %1 with PIN %2"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#0D47F2"
+    tooltip: "Configure Bluetooth device with specified PIN"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["telemetry", "bluetooth", "configure"]
+    args:
+      - name: "deviceId"
+        type: "input_value"
+        check: ["String"]
+        inputDefaults: "Device001"
+      - name: "pin"
+        type: "input_value"
+        check: ["String"]
+        inputDefaults: "1234"
+
+# Block 8: pairBluetoothDevice
+- blockly:
+    type: "uKitTelemetry_pairBluetoothDevice"
+    message0: "pair with Bluetooth device %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#0D47F2"
+    tooltip: "Pair with remote Bluetooth device"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["telemetry", "bluetooth", "pair"]
+    args:
+      - name: "deviceName"
+        type: "input_value"
+        check: ["String"]
+        inputDefaults: "RemoteDevice"
+
+# Block 9: setTelemetryFormat
+- blockly:
+    type: "uKitTelemetry_setTelemetryFormat"
+    message0: "set telemetry format %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#0D47F2"
+    tooltip: "Set telemetry data format"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["telemetry", "format", "data"]
+    args:
+      - name: "format"
+        type: "field_dropdown"
+        options:
+          - ["JSON", "json"]
+          - ["CSV", "csv"]
+          - ["XML", "xml"]
+          - ["Plain Text", "plain"]
+        check: ["String"]
+        inputDefaults: "json"
+
+# Block 10: enableDataLogging
+- blockly:
+    type: "uKitTelemetry_enableDataLogging"
+    message0: "enable data logging to file %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#0D47F2"
+    tooltip: "Enable data logging to file"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["telemetry", "logging", "file"]
+    args:
+      - name: "filename"
+        type: "input_value"
+        check: ["String"]
+        inputDefaults: "telemetry.log"
+
+# Block 11: setTelemetryInterval
+- blockly:
+    type: "uKitTelemetry_setTelemetryInterval"
+    message0: "set telemetry interval to %1 ms"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#0D47F2"
+    tooltip: "Set telemetry data transmission interval"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["telemetry", "interval", "timing"]
+    args:
+      - name: "interval"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1000"
+
+# Block 12: showTelemetryScreen
+- blockly:
+    type: "uKitTelemetry_showTelemetryScreen"
+    message0: "show telemetry screen"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#0D47F2"
+    tooltip: "Display telemetry screen on LCD"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["telemetry", "display", "screen"]
+
+# Block 13: clearTelemetryBuffer
+- blockly:
+    type: "uKitTelemetry_clearTelemetryBuffer"
+    message0: "clear telemetry buffer"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#0D47F2"
+    tooltip: "Clear telemetry data buffer"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["telemetry", "buffer", "clear"]

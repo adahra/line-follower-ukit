@@ -1,0 +1,518 @@
+# uKit Hardware Block Catalog - Motors Category
+schema: "https://raw.githubusercontent.com/platformio-platformio-blocks/platformio-blocks.github.io/schemas/block-catalog.schema.json"
+
+id: "ukit-motor-blocks"
+author: "uKit Team"
+version: "1.0.0"
+description: "Blockly blocks for uKit Explore 2 DC motors and servo motors - speed control, positioning, and motion control"
+category: "Motors"
+colour: "#E65100"  # Warm orange
+tags: ["motors", "dc-motors", "servo-motors", "actuators", "uKit Explore 2"]
+runtime: "arduino:cpp"
+targets:
+  - "ubtrobot:avr:ukit_explore2"
+
+implementations:
+  - blocks:
+
+# Value Blocks (15)
+
+# Block 1: readMotorSpeed
+- blockly:
+    type: "uKitMotor_readMotorSpeed"
+    message0: "readMotorSpeed %1 motorId"
+    output: "Number"
+    colour: "#E65100"
+    tooltip: "Returns DC motor speed reading"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "dc-motors", "speed"]
+    args:
+      - name: "motorId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+          - ["3", "3"]
+          - ["4", "4"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 2: readServoAnglePD
+- blockly:
+    type: "uKitServo_readServoAnglePD"
+    message0: "readServoAnglePD %1 servoId"
+    output: "Number"
+    colour: "#E65100"
+    tooltip: "Read servo angle while maintaining position (Proportional Derivative)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "servo-motors", "position"]
+    args:
+      - name: "servoId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+          - ["3", "3"]
+          - ["4", "4"]
+          - ["5", "5"]
+          - ["6", "6"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 3: readServoAngleNPD
+- blockly:
+    type: "uKitServo_readServoAngleNPD"
+    message0: "readServoAngleNPD %1 servoId"
+    output: "Number"
+    colour: "#E65100"
+    tooltip: "Read servo angle while servo is powered off (can be moved externally)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "servo-motors", "position"]
+    args:
+      - name: "servoId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+          - ["3", "3"]
+          - ["4", "4"]
+          - ["5", "5"]
+          - ["6", "6"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 4: getMotorId
+- blockly:
+    type: "uKitMotor_getMotorId"
+    message0: "getMotorId()"
+    output: "Number"
+    colour: "#E65100"
+    tooltip: "Returns motor ID"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "dc-motors", "config"]
+
+# Block 5: getServoId
+- blockly:
+    type: "uKitServo_getServoId"
+    message0: "getServoId()"
+    output: "Number"
+    colour: "#E65100"
+    tooltip: "Returns servo ID"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "servo-motors", "config"]
+
+# Block 6: getMotorStatus
+- blockly:
+    type: "uKitMotor_getMotorStatus"
+    message0: "getMotorStatus()"
+    output: "Number"
+    colour: "#E65100"
+    tooltip: "Returns motor status"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "dc-motors", "status"]
+
+# Block 7: getServoStatus
+- blockly:
+    type: "uKitServo_getServoStatus"
+    message0: "getServoStatus()"
+    output: "Number"
+    colour: "#E65100"
+    tooltip: "Returns servo status"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "servo-motors", "status"]
+
+# Block 8: getPidError
+- blockly:
+    type: "uKitController_getPidError"
+    message0: "get PID error()"
+    output: "Number"
+    colour: "#E65100"
+    tooltip: "Returns current PID error value for line tracking"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "controller", "pid"]
+
+# Block 9: getPidPidValue
+- blockly:
+    type: "uKitController_getPidPidValue"
+    message0: "get PID value()"
+    output: "Number"
+    colour: "#E65100"
+    tooltip: "Returns current PID output value"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "controller", "pid"]
+
+# Block 10: getHeading
+- blockly:
+    type: "uKitController_getHeading"
+    message0: "get heading()"
+    output: "Number"
+    colour: "#E65100"
+    tooltip: "Returns current heading from IMU gyroscope"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "controller", "imu"]
+
+# Block 11: getTargetHeading
+- blockly:
+    type: "uKitController_getTargetHeading"
+    message0: "get target heading()"
+    output: "Number"
+    colour: "#E65100"
+    tooltip: "Returns target heading value"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "controller", "heading"]
+
+# Block 12: getHeadingError
+- blockly:
+    type: "uKitController_getHeadingError"
+    message0: "get heading error()"
+    output: "Number"
+    colour: "#E65100"
+    tooltip: "Returns heading error (current - target)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "controller", "heading"]
+
+# Block 13: getSpeedDasar
+- blockly:
+    type: "uKitController_getSpeedDasar"
+    message0: "get base speed()"
+    output: "Number"
+    colour: "#E65100"
+    tooltip: "Returns base PID speed"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "controller", "speed"]
+
+# Block 14: getSpeedKiri
+- blockly:
+    type: "uKitController_getSpeedKiri"
+    message0: "get left speed()"
+    output: "Number"
+    colour: "#E65100"
+    tooltip: "Returns left motor speed"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "controller", "left"]
+
+# Block 15: getSpeedKanan
+- blockly:
+    type: "uKitController_getSpeedKanan"
+    message0: "get right speed()"
+    output: "Number"
+    colour: "#E65100"
+    tooltip: "Returns right motor speed"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "controller", "right"]
+
+# Statement Blocks (13)
+
+# Block 16: setMotorTurn
+- blockly:
+    type: "uKitMotor_setMotorTurn"
+    message0: "set motor %1 speed to %2"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#E65100"
+    tooltip: "Set DC motor rotation speed using PWM (0-255, derated to 0-150)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "dc-motors", "control"]
+    args:
+      - name: "motorId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+          - ["3", "3"]
+          - ["4", "4"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+      - name: "speed"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "128"
+
+# Block 17: setMotorTurnAdj
+- blockly:
+    type: "uKitMotor_setMotorTurnAdj"
+    message0: "set motor %1 speed with adjust %2 for %3 ms"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#E65100"
+    tooltip: "Set motor to rotate at constant speed (non-blocking)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "dc-motors", "control"]
+    args:
+      - name: "motorId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+          - ["3", "3"]
+          - ["4", "4"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+      - name: "speed"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "100"
+      - name: "time"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1000"
+
+# Block 18: setMotorStop
+- blockly:
+    type: "uKitMotor_setMotorStop"
+    message0: "stop motor %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#E65100"
+    tooltip: "Stop DC motor"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "dc-motors", "control"]
+    args:
+      - name: "motorId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+          - ["3", "3"]
+          - ["4", "4"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 19: setMotorsStop
+- blockly:
+    type: "uKitMotor_setMotorsStop"
+    message0: "stop all motors"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#E65100"
+    tooltip: "Stop all DC motors"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "dc-motors", "control"]
+    args:
+      - name: "ids"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1,2,3,4"
+
+# Block 20: motorSetId
+- blockly:
+    type: "uKitMotor_motorSetId"
+    message0: "set motor ID from %1 to %2"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#E65100"
+    tooltip: "Change motor ID"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "dc-motors", "config"]
+    args:
+      - name: "oldId"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+      - name: "newId"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "2"
+
+# Block 21: motorCheckId
+- blockly:
+    type: "uKitMotor_motorCheckId"
+    message0: "check motor ID %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#E65100"
+    tooltip: "Check motor ID validity"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "dc-motors", "config"]
+    args:
+      - name: "motorId"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 22: stopServo
+- blockly:
+    type: "uKitServo_stopServo"
+    message0: "stop servo %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#E65100"
+    tooltip: "Stop servo motor"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "servo-motors", "control"]
+    args:
+      - name: "servoId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+          - ["3", "3"]
+          - ["4", "4"]
+          - ["5", "5"]
+          - ["6", "6"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 23: setServoAngle
+- blockly:
+    type: "uKitServo_setServoAngle"
+    message0: "set servo %1 angle to %2 times %3"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#E65100"
+    tooltip: "Control servo motor to rotate to specified angle (non-blocking)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "servo-motors", "control"]
+    args:
+      - name: "servoId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+          - ["3", "3"]
+          - ["4", "4"]
+          - ["5", "5"]
+          - ["6", "6"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+      - name: "angle"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "90"
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 24: setServoTurn
+- blockly:
+    type: "uKitServo_setServoTurn"
+    message0: "set servo %1 turn with dir %2 speed %3"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#E65100"
+    tooltip: "Control servo motor to rotate 360 degrees"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "servo-motors", "control"]
+    args:
+      - name: "servoId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+          - ["3", "3"]
+          - ["4", "4"]
+          - ["5", "5"]
+          - ["6", "6"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+      - name: "dir"
+        type: "field_dropdown"
+        options:
+          - ["Clockwise", "1"]
+          - ["Counter-Clockwise", "0"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+      - name: "speed"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "100"
+
+# Block 25: setServoAngles
+- blockly:
+    type: "uKitServo_setServoAngles"
+    message0: "set servos %1 angles %2 times %3 length %4"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#E65100"
+    tooltip: "Control multiple servos to specific angles (non-blocking)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "servo-motors", "control"]
+    args:
+      - name: "ids"
+        type: "input_value"
+        check: ["String"]
+        inputDefaults: "1,2"
+      - name: "angles"
+        type: "input_value"
+        check: ["String"]
+        inputDefaults: "90,90"
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+      - name: "length"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "2"
+
+# Block 26: setServoAnglesWait
+- blockly:
+    type: "uKitServo_setServoAnglesWait"
+    message0: "set servos %1 angles %2 times %3 length %4 wait %5"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#E65100"
+    tooltip: "Control multiple servos to specific angles (blocking)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "servo-motors", "control"]
+    args:
+      - name: "ids"
+        type: "input_value"
+        check: ["String"]
+        inputDefaults: "1,2"
+      - name: "angles"
+        type: "input_value"
+        check: ["String"]
+        inputDefaults: "90,90"
+      - name: "times"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+      - name: "length"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "2"
+      - name: "wait"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "100"
+
+# Block 27: setServoStop
+- blockly:
+    type: "uKitServo_setServoStop"
+    message0: "set servo %1 stop"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#E65100"
+    tooltip: "Set servo motor to stop"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "servo-motors", "control"]
+    args:
+      - name: "servoId"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+          - ["3", "3"]
+          - ["4", "4"]
+          - ["5", "5"]
+          - ["6", "6"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 28: setServosStop
+- blockly:
+    type: "uKitServo_setServosStop"
+    message0: "set servos %1 stop"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#E65100"
+    tooltip: "Stop multiple servo motors"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["motors", "servo-motors", "control"]
+    args:
+      - name: "ids"
+        type: "input_value"
+        check: ["String"]
+        inputDefaults: "1,2"

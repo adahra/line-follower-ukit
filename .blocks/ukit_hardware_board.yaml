@@ -1,0 +1,231 @@
+# uKit Hardware Block Catalog - Hardware Board Category
+schema: "https://raw.githubusercontent.com/platformio-platformio-blocks/platformio-blocks.github.io/schemas/block-catalog.schema.json"
+
+id: "ukit-hardware-board"
+author: "uKit Team"
+version: "1.0.абар"
+description: "Blockly blocks for uKit Explore 2 hardware board peripherals and sensors"
+category: "Hardware Board"
+colour: "#00979D"  # Arduino teal
+tags: ["hardware", "board", "peripherals", "uKit Explore 2"]
+runtime: "arduino:cpp"
+targets:
+  - "ubtrobot:avr:ukit_explore2"
+
+implementations:
+  - blocks:
+
+# Value Blocks (10)
+
+# Block 1: getGrayAllValue
+- blockly:
+    type: "uKitHardware_getGrayAllValue"
+    message0: "getGrayAllValue()"
+    output: "Array"
+    colour: "#00979D"
+    tooltip: "Returns an array of all grayscale sensor readings from the onboard hardware"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["hardware", "board", "sensors"]
+
+# Block 2: readGrayValue
+- blockly:
+    type: "uKitHardware_readGrayValue"
+    message0: "readGrayValue %1 sensor"
+    output: "Number"
+    colour: "#00979D"
+    tooltip: "Read grayscale sensor value from specific sensor number (1-5)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["hardware", "board", "sensors"]
+    args:
+      - name: "sensor"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+          - ["3", "3"]
+          - ["4", "4"]
+          - ["5", "5"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 3: readBatteryVoltage
+- blockly:
+    type: "uKitHardware_readBatteryVoltage"
+    message0: "readBatteryVoltage()"
+    output: "Number"
+    colour: "#00979D"
+    tooltip: "Returns battery voltage as float (0-8.4V)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["hardware", "board", "sensors"]
+
+# Block 4: readHcsr04Distance
+- blockly:
+    type: "uKitHardware_readHcsr04Distance"
+    message0: "readHcsr04Distance %1 port"
+    output: "Number"
+    colour: "#00979D"
+    tooltip: "Returns distance in centimeters from ultrasonic sensor"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["hardware", "board", "sensors"]
+    args:
+      - name: "port"
+        type: "field_dropdown"
+        options:
+          - ["1", "1"]
+          - ["2", "2"]
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 5: getRedValue
+- blockly:
+    type: "uKitHardware_getRedValue"
+    message0: "getRedValue()"
+    output: "Number"
+    colour: "#00979D"
+    tooltip: "Returns red channel value (0-255) from RGB LED controller"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["hardware", "board", "led"]
+
+# Block 6: getGreenValue
+- blockly:
+    type: "uKitHardware_getGreenValue"
+    message0: "getGreenValue()"
+    output: "Number"
+    colour: "#00979D"
+    tooltip: "Returns green channel value (0-255) from RGB LED controller"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["hardware", "board", "led"]
+
+# Block 7: getBlueValue
+- blockly:
+    type: "uKitHardware_getBlueValue"
+    message0: "getBlueValue()"
+    output: "Number"
+    colour: "#00979D"
+    tooltip: "Returns blue channel value (0-255) from RGB LED controller"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["hardware", "board", "led"]
+
+# Block 8: getButtonPin
+- blockly:
+    type: "uKitHardware_getButtonPin"
+    message0: "getButtonPin()"
+    output: "Number"
+    colour: "#00979D"
+    tooltip: "Returns the GPIO pin number for the onboard user button"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["hardware", "board", "input"]
+
+# Block 9: getGrayscaleNum1
+- blockly:
+    type: "uKitHardware_getGrayscaleNum1"
+    message0: "getGrayscaleNum1()"
+    output: "Number"
+    colour: "#00979D"
+    tooltip: "Returns the sensor ID/number for grayscale sensor 1"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["hardware", "board", "sensors"]
+
+# Block 10: getGrayscaleNum5
+- blockly:
+    type: "uKitHardware_getGrayscaleNum5"
+    message0: "getGrayscaleNum5()"
+    output: "Number"
+    colour: "#00979D"
+    tooltip: "Returns the sensor ID/number for grayscale sensor 5"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["hardware", "board", "sensors"]
+
+# Statement Blocks (5)
+
+# Block 11: setRgbledColor
+- blockly:
+    type: "uKitHardware_setRgbledColor"
+    message0: "set RGB LED color R%1 G%2 B%3"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#00979D"
+    tooltip: "Set RGB LED color using RGB values (0-255 each)"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["hardware", "board", "led"]
+    args:
+      - name: "R"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "128"
+      - name: "G"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "128"
+      - name: "B"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "128"
+
+# Block 12: setColor
+- blockly:
+    type: "uKitHardware_setColor"
+    message0: "set color %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#00979D"
+    tooltip: "Set onboard LED color to predefined color"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["hardware", "board", "led"]
+    args:
+      - name: "color"
+        type: "field_dropdown"
+        options:
+          - ["Red", "RED"]
+          - ["Green", "GREEN"]
+          - ["Blue", "BLUE"]
+          - ["White", "WHITE"]
+        check: ["String"]
+
+# Block 13: setGrayscaleNum1
+- blockly:
+    type: "uKitHardware_setGrayscaleNum1"
+    message0: "set grayscale num1 to %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#00979D"
+    tooltip: "Configure grayscale sensor 1 with specific sensor ID/number"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["hardware", "board", "sensors"]
+    args:
+      - name: "num1"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "1"
+
+# Block 14: setGrayscaleNum5
+- blockly:
+    type: "uKitHardware_setGrayscaleNum5"
+    message0: "set grayscale num5 to %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#00979D"
+    tooltip: "Configure grayscale sensor 5 with specific sensor ID/number"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["hardware", "board", "sensors"]
+    args:
+      - name: "num5"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "5"
+
+# Block 15: setBuzzerPin
+- blockly:
+    type: "uKitHardware_setBuzzerPin"
+    message0: "set buzzer pin to %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#00979D"
+    tooltip: "Configure buzzer GPIO pin number"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["hardware", "board", "output"]
+    args:
+      - name: "pin"
+        type: "input_value"
+        check: ["Number", "int"]
+        inputDefaults: "0"

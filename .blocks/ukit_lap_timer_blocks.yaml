@@ -1,0 +1,153 @@
+# uKit Hardware Block Catalog - Lap Timer Category
+schema: "https://raw.githubusercontent.com/platformio-platformio-blocks/platformio-blocks.github.io/schemas/block-catalog.schema.json"
+
+id: "ukit-lap-timer-blocks"
+author: "uKit Team"
+version: "1.0.0"
+description: "Blockly blocks for uKit Explore 2 lap timer - lap counting, race timing, and timing management"
+category: "Lap Timer"
+colour: "#8B4513"  # Brown
+tags: ["lap-timer", "timing", "race", "chronometry", "uKit Explore 2"]
+runtime: "arduino:cpp"
+targets:
+  - "ubtrobot:avr:ukit_explore2"
+
+implementations:
+  - blocks:
+
+# Value Blocks (3)
+
+# Block 1: getLapCount
+- blockly:
+    type: "uKitLapTimer_getLapCount"
+    message0: "get lap count()"
+    output: "Number"
+    colour: "#8B4513"
+    tooltip: "Returns current lap count"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["lap-timer", "count"]
+
+# Block 2: getCurrentLapTime
+- blockly:
+    type: "uKitLapTimer_getCurrentLapTime"
+    message0: "get current lap time()"
+    output: "Number"
+    colour: "#8B43513"
+    tooltip: "Returns current lap time in milliseconds"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["lap-timer", "time", "current"]
+
+# Block 3: getTotalRaceTime
+- blockly:
+    type: "uKitLapTimer_getTotalRaceTime"
+    message0: "get total race time()"
+    output: "Number"
+    colour: "#8B4513"
+    tooltip: "Returns total race time in milliseconds"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["lap-timer", "time", "total"]\n
+# Statement Blocks (7)
+
+# Block 4: startLapTimer
+- blockly:
+    type: "uKitLapTimer_startLapTimer"
+    message0: "start lap timer"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#8B4513"
+    tooltip: "Start lap timer"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["lap-timer", "start"]
+
+# Block 5: stopLapTimer
+- blockly:
+    type: "uKitLapTimer_stopLapTimer"
+    message0: "stop lap timer"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#8B4513"
+    tooltip: "Stop lap timer"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["lap-timer", "stop"]
+
+# Block 6: resetLapTimer
+- blockly:
+    type: "uKitLapTimer_resetLapTimer"
+    message0: "reset lap timer"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#8B4513"
+    tooltip: "Reset lap timer to zero"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["lap-timer", "reset"]
+
+# Block 7: lapCount
+- blockly:
+    type: "uKitLapTimer LapCount"
+    message0: "lap count"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#8B4513"
+    tooltip: "Record current lap count"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["lap-timer", "count"]
+
+# Block 8: lapTime
+- blockly:
+    type: "uKitLapTimer_lapTime"
+    message0: "lap time"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#8B4513"
+    tooltip: "Record current lap time"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["lap-timer", "time"]
+
+# Block 9: totalTime
+- blockly:
+    type: "uKitLapTimer_totalTime"
+    message0: "total time"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#8B4513"
+    tooltip: "Record total race time"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["lap-timer", "time", "total"]
+
+# Block 10: showLapScreen
+- blockly:
+    type: "uKitLapTimer_showLapScreen"
+    message0: "show lap screen"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#8B4513"
+    tooltip: "Display lap timing screen"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["lap-timer", "display", "screen"]
+
+# Block 11: saveLapData
+- blockly:
+    type: "uKitLapTimer_saveLapData"
+    message0: "save lap data to file %1"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#8B4513"
+    tooltip: "Save lap timing data to file"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["lap-timer", "save", "data"]
+    args:
+      - name: "filename"
+        type: "input_value"
+        check: ["String"]
+        inputDefaults: "lappoints.txt"
+
+# Block 12: exportLapResults
+- blockly:
+    type: "uKitLapTimer_exportLapResults"
+    message0: "export lap results"
+    previousStatement: "null"
+    nextStatement: "null"
+    colour: "#8B4513"
+    tooltip: "Export lap results to external format"
+    helpUrl: "docs/ukit_explore/master.md"
+    tags: ["lap-timer", "export", "results"]

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "skillVersion": "2.0.0",
+  "backupPaths": [],
+  "issues": [],
+  "manifestPath": ".agents/skills/singular-blockly/managed-manifest.json",
+  "lastAttemptAt": "2026-11-19T04:52:40.540Z"
+}
