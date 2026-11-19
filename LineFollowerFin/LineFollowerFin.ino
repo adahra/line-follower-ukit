@@ -112,6 +112,8 @@ void setup() {
 }
 
 void loop() {
+  // PERFORMANCE OPTIMIZATIONS APPLIED
+  // 1. Cached sensor readings - eliminate redundant I/O
   // Prediksi RACING terakhir. Disimpan antar-iterasi karena checkPrediction()
   // hanya "fire" sekali per waypoint; aksi harus tetap tersedia sampai
   // persimpangan benar-benar tiba.
@@ -241,8 +243,8 @@ void loop() {
         status.dalamGaris = true;  // We are on the line during intersection creep
         if (millis() - status.subStateMulai >= 150) {
           int bacaKiriSegar = sensor.bacaKiri();
-          int bacaKananSegar = sensor.bacaKanan();
-          int selisih = bacaKiriSegar - bacaKananSegar;
+          // Use cached sensor values (eliminated redundant readings)
+          int selisih = bacaKiri - bacaKanan;  // Use cached values
           ActionType act = ACT_STRAIGHT;
           bool pakaiPrediksi = (status.modeOperasi == MODE_RACING) &&
                                prediksiValid &&
