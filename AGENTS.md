@@ -16,6 +16,7 @@
 - Motors: servos 4+2 = kiri (dir `1`), servos 1+3 = kanan (dir `0`). Derated to 0–150, deadband ~25, slew ±14/loop by default.
 - Sensor IDs (`LIGHT_SENSOR_ID`, `ULTRASONIC_ID`, `SOUND_SENSOR_ID`) may differ by wiring.
 - Comments/serial prints mostly Indonesian — keep consistent.
+- Comments/serial prints mostly Indonesian — keep consistent.
 
 ## Flow & State Machine (`loop()`)
 Order/priority (from code): protocol() if not running; check battery critical → return; check tilt → return; `ui.cekTombol()`, `ui.cekTepuk()`, `ui.cekSerial()` (if enabled), `aman.lampuOtomatis()`, heading update (if enabled); update optional modules (BT/RC; PathPlanner hanya via serial, bukan loop); if `status.jalan`:
@@ -40,7 +41,34 @@ Order/priority (from code): protocol() if not running; check battery critical �
 - Path planner files live in sketch root and are only included if `ENABLE_PATH_PLANNER`.
 - Serial output controlled by `ENABLE_SERIAL_OUTPUT`/`ENABLE_SERIAL_MODE` (Bluetooth forces serial on).
 
-## Quick Commands
-- Verify: open `LineFollowerFin/LineFollowerFin.ino` in Arduino IDE with uKitExplore2 installed.
-- CLI: see `BUILD.md` (arduino-cli examples for `arduino:avr:mega`).
-- CI: `.github/workflows/compile.yml` compiles main + all three tests.
+## Build & Test
+- **Compile main**: `arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin.ino`
+- **Compile tests**: `arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin/tests/TestLapTimer` (and `TestBluetooth`, `TestPathPlanner`)
+- **Upload**: `arduino-cli upload -p /dev/ttyUSB0 --fqbn arduino:avr:mega LineFollowerFin.ino`
+- **Serial monitor**: `arduino-cli monitor -p /dev/ttyUSB0 -c baudrate=115200`
+- **CI**: `.github/workflows/compile.yml` compiles main + all three tests automatically.
+- **Fuzzy PID**: enable with `ENABLE_FUZZY_PID true` in `config.h`.
+- **Path Planner**: enable with `ENABLE_PATH_PLANNER true` in `config.h`; files live in root sketch folder.
+- **Lap Timer**: enable with `ENABLE_LAP_TIMER true` in `config.h`; uses `LAP_SF_THRESHOLD` and `LAP_MIN_LAP_MS` from `config.h`.
+
+## Code Writing Rules
+- **YAGNI**: Never add unused features or abstractions.
+- **Stdlib first**: Use `EEPROM.h`, `Arduino.h`, `Servo.h` before custom code.
+- **Minimal code**: One line if possible; only add code that fixes a verified bug or enables a requested feature.
+- **No boilerplate**: Delete throwaway scripts after verification.
+- **Verification**: Always verify changes with specific tests or manual checks.
+- **No magic**: All parameters must be in `config.h` or clearly documented.
+- **EEPROM**: Use `eepromPutHemat` template; never write directly to EEPROM without change detection.
+- **Non-blocking**: All UI and timing must be non-blocking (use millis(), not delay()).
+- **Error handling**: All critical paths must have explicit checks (battery, tilt, ultrasonic, stuck).
+- **Documentation**: Every class/function must have clear comments in English.
+- **Indonesian comments**: Keep serial prints and comments in Indonesian for consistency.
+- **Modular**: Each component (sensor, PID, safety, UI) must be in its own class with clear interfaces.
+- **Forward declarations**: Required for `eepromPutHemat` template in headers.
+- **Testing**: Add regression tests only for uncertain edges or on request.
+- **Performance**: Monitor RAM usage; disable features if RAM < 7KB (ATMega2560 limit).
+- **Safety**: All critical functions must have explicit exit conditions.
+- **Versioning**: Keep `config.h` as single source of truth for tunable parameters.
+- **No external dependencies**: Only use built-in Arduino libraries and uKitExplore2.
+- **Consistency**: Follow existing naming conventions and code style.
+- **Verification**: Test every change with at least one specific scenario.
