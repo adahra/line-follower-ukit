@@ -2,6 +2,7 @@
 
 #include <EEPROM.h>
 #include "config.h"
+#include "eeprom_layout.h"
 
 Mapper::Mapper() {
   reset();
@@ -96,28 +97,28 @@ void Mapper::debugPrint() {
 void Mapper::simpan() {
   // Jaga agar array waypoint tidak menimpa parameter heading/adaptive
   // (alamat 280+). Gagal compile bila layout EEPROM berubah tanpa sengaja.
-  static_assert(ADDR_MAP + 3 + MAX_WAYPOINTS * sizeof(Waypoint) <= ADDR_HEADING_GAIN,
+  static_assert(EEPROM_ADDR::EE_ADDR_MAP_START + 3 + MAX_WAYPOINTS * sizeof(Waypoint) <= EEPROM_ADDR::EE_ADDR_HEADING_START,
                 "Peta waypoint EEPROM bertabrakan dengan parameter heading/adaptive");
 
-  EEPROM.update(ADDR_MAP, 77);  // penanda peta valid
-  EEPROM.put(ADDR_MAP + 1, count);
-  EEPROM.put(ADDR_MAP + 3, waypoints);
+  EEPROM.update(EEPROM_ADDR::EE_ADDR_MAP_MAGIC, MAGIC_MAP_VALID);  // penanda peta valid
+  EEPROM.put(EEPROM_ADDR::EE_ADDR_MAP_COUNT, count);
+  EEPROM.put(EEPROM_ADDR::EE_ADDR_MAP_WAYPOINTS, waypoints);
   Serial.print(F("Peta disimpan ke EEPROM: "));
   Serial.print(count);
   Serial.println(F(" waypoint."));
 }
 
 void Mapper::muat() {
-  if (EEPROM.read(ADDR_MAP) != 77) {
+  if (EEPROM.read(EEPROM_ADDR::EE_ADDR_MAP_MAGIC) != MAGIC_MAP_VALID) {
     return;  // belum pernah disimpan: pakai peta kosong
   }
   int n;
-  EEPROM.get(ADDR_MAP + 1, n);
+  EEPROM.get(EEPROM_ADDR::EE_ADDR_MAP_COUNT, n);
   if (n < 0 || n > MAX_WAYPOINTS) {
     Serial.println(F("Peta EEPROM invalid, abaikan."));
     return;
   }
-  EEPROM.get(ADDR_MAP + 3, waypoints);
+  EEPROM.get(EEPROM_ADDR::EE_ADDR_MAP_WAYPOINTS, waypoints);
   count = n;
   Serial.print(F("Peta dimuat dari EEPROM: "));
   Serial.print(count);

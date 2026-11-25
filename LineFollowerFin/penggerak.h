@@ -1,32 +1,35 @@
-// penggerak.h — PID line tracer + seluruh output motor servo.
+// penggerak.h — PID line tracer + motor output facade.
+// Composes PIDController, MotorDriver, SpeedProfile, HeadingTracker.
 #ifndef PENGGERAK_H
 #define PENGGERAK_H
 
 #include "fwd.h"
 #include "config.h"
-#if ENABLE_FUZZY_PID
-#include "fuzzy_pid.h"
-#endif
+#include "pid_controller.h"
+#include "motor_driver.h"
+#include "speed_profile.h"
 #if ENABLE_HEADING_CORRECTION
 #include "heading_tracker.h"
 #endif
 
 class Penggerak {
- public:
-  void reset();  // PID + speed + telemetri kembali nol
-  // Dipanggil saat tracer kembali dari recovery: buang hutang integral,
-  // samakan lastError agar tak ada spike D di loop pertama.
+public:
+  Penggerak();
+
+  void reset();  // PID + speed + telemetry reset
+  // Called when tracer returns from recovery: clear integral windup,
+  // sync lastError to avoid D spike on first loop.
   void resetIntegralSetelahRecovery(float errorBaru);
-  // Hitung PID + terapkan ke motor. False = interval belum tiba,
-  // pemanggil harus terapkanTerakhir().
+  // Compute PID + apply to motors. False = interval not elapsed,
+  // caller must call terapkanTerakhir().
   bool hitung(int bacaKiri, int bacaKanan, bool paksa = false);
-  void terapkanTerakhir();  // pertahankan speed terakhir antar interval PID
+  void terapkanTerakhir();  // maintain last speed between PID intervals
   void jalankan(int speedKiri, int speedKanan);
-  // Seperti jalankan(), tapi menerima kecepatan bertanda: positif = maju,
-  // negatif = mundur, 0 = berhenti. Dipakai mode RC.
+  // Like jalankan(), but accepts signed speeds: positive = forward,
+  // negative = reverse, 0 = stop. Used by RC mode.
   void jalankanArah(int speedKiri, int speedKanan);
   void berhenti();
-  void saatBerhenti();  // berhenti + buang memori slew
+  void saatBerhenti();  // stop + clear slew memory
   void maju(int speed);
   void putarKiri(int speed);
   void putarKanan(int speed);
@@ -54,7 +57,7 @@ class Penggerak {
 #if ENABLE_HEADING_CORRECTION
   void setHeadingCorrection(bool on);
   bool isHeadingCorrectionEnabled() const;
-  void updateHeading();  // integrasi gyro tiap loop (juga saat berhenti/kalibrasi)
+  void updateHeading();  // integrate gyro each loop (also when stopped/calibrating)
   void setHeadingTarget(float t);
   float getHeading() const;
   float getTargetHeading() const;
@@ -66,37 +69,25 @@ class Penggerak {
   void muatHeading();
 #endif
 
- private:
-  int terapkanDeadband(int speed);
-  int batasiSlew(int target, int prev);
-
-  float error = 0, lastError = 0;
-  float P = 0, I = 0, D = 0, PID_value = 0;
-  int prevKiri = 0, prevKanan = 0;
-  int kecepatanKiri = 0, kecepatanKanan = 0;
-  unsigned long pidTerakhir = 0;
-  unsigned long telemTerakhir = 0;
-  bool telemHeader = false;
-
-  // Dynamic Speed State
-  unsigned long waktuLurusMulai = 0;
-  int kecepatanTurboAktif = 0;
-
-  // Fuzzy adaptive PID (optional)
-#if ENABLE_FUZZY_PID
-  FuzzyPID fuzzyPid;
+  // Access to sub-components for advanced use
+  PIDController& getPIDController() { return pid; }
+  MotorDriver& getMotorDriver() { return motor; }
+  SpeedProfile& getSpeedProfile() { return speed; }
+#if ENABLE_HEADING_CORRECTION
+  HeadingTracker& getHeadingTracker() { return headingTracker; }
 #endif
 
-  // Gain scheduling state
-#if ENABLE_GAIN_SCHEDULING
-  bool gainSchedulingEnabled = false;
-#endif
-
-  // IMU heading correction state
+private:
+  PIDController pid;
+  MotorDriver motor;
+  SpeedProfile speed;
 #if ENABLE_HEADING_CORRECTION
   HeadingTracker headingTracker;
-  float headingGain = HEADING_GAIN;  // gain runtime (bisa dimuat dari EEPROM)
+  float headingGain = HEADING_GAIN;  // runtime gain (can be loaded from EEPROM)
 #endif
+
+  // Forward heading correction to PID computation
+  float applyHeadingCorrection(float pidValue);
 };
 
-#endif
+#endif // PENGGERAK_H

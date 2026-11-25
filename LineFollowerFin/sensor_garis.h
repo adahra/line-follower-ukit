@@ -6,7 +6,7 @@
 #include <string.h>
 #include "fwd.h"
 #include "config.h"
-
+#include "eeprom_layout.h"
 // EEPROM hemat tulis: tulis hanya bila byte berubah
 // (EEPROM ~100rb siklus; kalibrasi + save tiap start aman).
 // Template wajib di header (definisi harus terlihat saat dipakai).

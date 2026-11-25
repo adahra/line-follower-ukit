@@ -171,45 +171,45 @@ void SensorGaris::kalibrasi(Penggerak &gerak, bool manual) {
 }
 
 void SensorGaris::simpan() {
-  eepromPutHemat(ADDR_KP, Kp);
-  eepromPutHemat(ADDR_KI, Ki);
-  eepromPutHemat(ADDR_KD, Kd);
-  eepromPutHemat(ADDR_SPEED, kecepatanDasarMaks);
-  eepromPutHemat(ADDR_AMBANG, AMBANG_KIRI);
-  eepromPutHemat(ADDR_AMBANG_KANAN, AMBANG_KANAN);
+  // Use new versioned EEPROM layout
+  eepromWritePID(Kp, Ki, Kd);
+  eepromWriteSpeed(kecepatanDasarMaks, kecepatanDasarMin);
+  eepromWriteThresholds(AMBANG_KIRI, AMBANG_KANAN);
 #if ENABLE_ADAPTIVE_THRESHOLD
-  eepromPutHemat(ADDR_AMBANG_BASE, AMBANG_KIRI);
-  eepromPutHemat(ADDR_AMBANG_KANAN_BASE, AMBANG_KANAN);
-  EEPROM.update(ADDR_ADAPT_MAGIC, 66);
+  // Adaptive threshold base values
+  eepromWriteIfChanged(EEPROM_ADDR::EE_ADDR_ADAPT_AMBANG_KIRI, (uint16_t)AMBANG_KIRI);
+  eepromWriteIfChanged(EEPROM_ADDR::EE_ADDR_ADAPT_AMBANG_KANAN, (uint16_t)AMBANG_KANAN);
+  EEPROM.update(EEPROM_ADDR::EE_ADDR_ADAPT_MAGIC, MAGIC_ADAPT_VALID);
+  EEPROM.update(EEPROM_ADDR::EE_ADDR_ADAPT_ENABLED, adaptiveThresholdEnabled ? 1 : 0);
 #endif
-  EEPROM.update(ADDR_EEPROM_CHECK, 123);
+  EEPROM.update(EEPROM_ADDR::EE_ADDR_MAGIC, MAGIC_EEPROM_VALID);
+  EEPROM.update(EEPROM_ADDR::EE_ADDR_VERSION, EEPROM_FMT_VERSION);
 }
 
 void SensorGaris::muat() {
-  if (EEPROM.read(ADDR_EEPROM_CHECK) == 123) {
-    EEPROM.get(ADDR_KP, Kp);
-    EEPROM.get(ADDR_KI, Ki);
-    EEPROM.get(ADDR_KD, Kd);
-    EEPROM.get(ADDR_SPEED, kecepatanDasarMaks);
-    EEPROM.get(ADDR_AMBANG, AMBANG_KIRI);
-    EEPROM.get(ADDR_AMBANG_KANAN, AMBANG_KANAN);
-    // Kompatibel format lama (satu ambang): sampah EEPROM dijepit ke rentang valid.
+  // Use new versioned EEPROM layout
+  if (EEPROM.read(EEPROM_ADDR::EE_ADDR_MAGIC) == MAGIC_EEPROM_VALID &&
+      EEPROM.read(EEPROM_ADDR::EE_ADDR_VERSION) == EEPROM_FMT_VERSION) {
+    eepromReadPID(Kp, Ki, Kd);
+    eepromReadSpeed(kecepatanDasarMaks, kecepatanDasarMin);
+    eepromReadThresholds(AMBANG_KIRI, AMBANG_KANAN);
+    // Clamp thresholds to calibration range
     AMBANG_KIRI = constrain(AMBANG_KIRI, 3, 18);
     AMBANG_KANAN = constrain(AMBANG_KANAN, 3, 18);
 #if ENABLE_ADAPTIVE_THRESHOLD
-    // Base adaptive hanya dipakai bila magic-nya valid. Tanpa magic, EEPROM
-    // kosong (0xFFFF) terbaca -1 dan menjepit ambang ke batas bawah 3.
-    if (EEPROM.read(ADDR_ADAPT_MAGIC) == 66) {
-      int baseKiri = 0, baseKanan = 0;
-      EEPROM.get(ADDR_AMBANG_BASE, baseKiri);
-      EEPROM.get(ADDR_AMBANG_KANAN_BASE, baseKanan);
+    // Load adaptive base if magic valid
+    if (EEPROM.read(EEPROM_ADDR::EE_ADDR_ADAPT_MAGIC) == MAGIC_ADAPT_VALID) {
+      uint16_t baseKiri, baseKanan;
+      EEPROM.get(EEPROM_ADDR::EE_ADDR_ADAPT_AMBANG_KIRI, baseKiri);
+      EEPROM.get(EEPROM_ADDR::EE_ADDR_ADAPT_AMBANG_KANAN, baseKanan);
       if (baseKiri >= 1 && baseKiri <= 20 && baseKanan >= 1 && baseKanan <= 20) {
         AMBANG_KIRI = constrain(baseKiri, 3, 18);
         AMBANG_KANAN = constrain(baseKanan, 3, 18);
       }
+      adaptAmbangKiri = AMBANG_KIRI;
+      adaptAmbangKanan = AMBANG_KANAN;
+      adaptiveThresholdEnabled = EEPROM.read(EEPROM_ADDR::EE_ADDR_ADAPT_ENABLED) != 0;
     }
-    adaptAmbangKiri = AMBANG_KIRI;
-    adaptAmbangKanan = AMBANG_KANAN;
 #endif
   }
 }
@@ -244,33 +244,39 @@ void SensorGaris::resetAdaptive() {
 }
 
 void SensorGaris::simpanAdaptive() {
-  eepromPutHemat(ADDR_AMBANG_BASE, AMBANG_KIRI);
-  eepromPutHemat(ADDR_AMBANG_KANAN_BASE, AMBANG_KANAN);
-  EEPROM.update(ADDR_ADAPT_MAGIC, 66);
+  eepromWriteIfChanged(EEPROM_ADDR::EE_ADDR_ADAPT_AMBANG_KIRI, (uint16_t)AMBANG_KIRI);
+  eepromWriteIfChanged(EEPROM_ADDR::EE_ADDR_ADAPT_AMBANG_KANAN, (uint16_t)AMBANG_KANAN);
+  EEPROM.update(EEPROM_ADDR::EE_ADDR_ADAPT_MAGIC, MAGIC_ADAPT_VALID);
+  EEPROM.update(EEPROM_ADDR::EE_ADDR_ADAPT_ENABLED, adaptiveThresholdEnabled ? 1 : 0);
 }
 
 void SensorGaris::muatAdaptive() {
-  if (EEPROM.read(ADDR_ADAPT_MAGIC) != 66) {
+  if (EEPROM.read(EEPROM_ADDR::EE_ADDR_ADAPT_MAGIC) != MAGIC_ADAPT_VALID) {
     resetAdaptive();  // belum pernah disimpan: pakai ambang saat ini
     return;
   }
 
-  int baseKiri = 0, baseKanan = 0;
-  EEPROM.get(ADDR_AMBANG_BASE, baseKiri);
-  EEPROM.get(ADDR_AMBANG_KANAN_BASE, baseKanan);
+  uint16_t baseKiri = 0, baseKanan = 0;
+  EEPROM.get(EEPROM_ADDR::EE_ADDR_ADAPT_AMBANG_KIRI, baseKiri);
+  EEPROM.get(EEPROM_ADDR::EE_ADDR_ADAPT_AMBANG_KANAN, baseKanan);
   if (baseKiri >= 1 && baseKiri <= 20 && baseKanan >= 1 && baseKanan <= 20) {
     AMBANG_KIRI = constrain(baseKiri, 3, 18);
     AMBANG_KANAN = constrain(baseKanan, 3, 18);
   }
   adaptAmbangKiri = AMBANG_KIRI;
   adaptAmbangKanan = AMBANG_KANAN;
+  adaptiveThresholdEnabled = EEPROM.read(EEPROM_ADDR::EE_ADDR_ADAPT_ENABLED) != 0;
 }
 #endif
 
 void SensorGaris::cetak() {
   Serial.println(F("--- NILAI TERSIMPAN ---"));
+  bool valid = (EEPROM.read(EEPROM_ADDR::EE_ADDR_MAGIC) == MAGIC_EEPROM_VALID &&
+                EEPROM.read(EEPROM_ADDR::EE_ADDR_VERSION) == EEPROM_FMT_VERSION);
   Serial.print(F("EEPROM valid: "));
-  Serial.println(EEPROM.read(ADDR_EEPROM_CHECK) == 123 ? F("YA") : F("TIDAK (pakai default kode)"));
+  Serial.println(valid ? F("YA") : F("TIDAK (pakai default kode)"));
+  Serial.print(F("EEPROM version: "));
+  Serial.println(EEPROM.read(EEPROM_ADDR::EE_ADDR_VERSION));
   Serial.print(F("Kp: "));
   Serial.println(Kp);
   Serial.print(F("Ki: "));
@@ -280,11 +286,18 @@ void SensorGaris::cetak() {
   Serial.print(F("Speed maks: "));
   Serial.println(kecepatanDasarMaks);
   Serial.print(F("Speed min: "));
-  Serial.print(kecepatanDasarMin);
-  Serial.println(F(" (tidak disimpan)"));
+  Serial.println(kecepatanDasarMin);
   Serial.print(F("Ambang kiri: "));
   Serial.println(AMBANG_KIRI);
   Serial.print(F("Ambang kanan: "));
   Serial.println(AMBANG_KANAN);
+#if ENABLE_ADAPTIVE_THRESHOLD
+  Serial.print(F("Adaptive: "));
+  Serial.println(adaptiveThresholdEnabled ? F("ON") : F("OFF"));
+  Serial.print(F("Adapt base kiri: "));
+  Serial.println(adaptAmbangKiri);
+  Serial.print(F("Adapt base kanan: "));
+  Serial.println(adaptAmbangKanan);
+#endif
   Serial.println(F("-----------------------"));
 }

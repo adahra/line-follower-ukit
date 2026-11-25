@@ -14,13 +14,38 @@ class Antarmuka {
   void cekTepuk();    // 1x tepuk = toggle jalan/berhenti
   void cekSerial();   // parsing command serial: Kp/Ki/Kd/speed/ambang/calibrate/save/help
 
- private:
+private:
   void mulai(const char *via);
   void berhenti(const char *via);
   void resetSemua();
   void parseCommand(char *cmd);
   void tuningSequence();
   void tampilkanStatusJalannya();
+
+  // parseCommand helpers
+  void parsePIDCommand(const char *key, const char *valStr, float val, bool hasVal);
+  void parseSpeedCommand(const char *key, const char *valStr, float val, bool hasVal);
+  void parseThresholdCommand(const char *key, const char *valStr, float val, bool hasVal);
+  void parseCalibrateCommand(const char *valStr);
+  void parseTuneCommand();
+  void parseLapCommand(const char *valStr);
+  void parseLapConfigCommand(const char *valStr);
+  void parseSaveCommand();
+  void parseLoadCommand();
+  void parseModeCommand(const char *valStr);
+  void parseRCCommand(const char *valStr);
+  void parseFuzzyCommand(const char *valStr);
+  void parseGainSchedulingCommand(const char *valStr);
+  void parseHeadingCommand(const char *valStr);
+  void parseHTargetCommand(const char *valStr);
+  void parseAdaptiveCommand(const char *valStr);
+  void parseMapClearCommand();
+  void parsePathCommand(const char *valStr);
+  void parseStartCommand();
+  void parseStopCommand();
+  void parseStatusCommand();
+  void parseHelpCommand();
+
   Status &status;
   SensorGaris &sensor;
   Penggerak &gerak;

@@ -1,370 +1,145 @@
+// penggerak.cpp — Facade implementation using PIDController, MotorDriver, SpeedProfile.
 #include "penggerak.h"
-#include "ukit_extern.h"
-#include "ukit_macros.h"
-#include <EEPROM.h>
 #include <string.h>
+#include "eeprom_layout.h"
+
+Penggerak::Penggerak() {
+  // Sub-components initialize in their begin() called from reset()
+}
 
 void Penggerak::reset() {
-  error = 0;
-  lastError = 0;
-  P = 0;
-  I = 0;
-  D = 0;
-  PID_value = 0;
-  prevKiri = 0;
-  prevKanan = 0;
-  // Turbo ikut direset: tanpa ini, waktuLurusMulai/kecepatanTurboAktif
-  // nyangkut antar run dan turbo bisa langsung aktif dari nilai lama.
-  waktuLurusMulai = 0;
-  kecepatanTurboAktif = 0;
-  pidTerakhir = 0;
-  telemHeader = false;  // cetak header CSV lagi di run berikutnya
-  telemTerakhir = 0;
+  pid.begin();
+  motor.begin();
+  speed.begin();
 #if ENABLE_HEADING_CORRECTION
-  // Mulai/berhenti = baseline arah baru. Bias gyro tetap dipertahankan.
-  headingTracker.reset();
+  headingTracker.begin();
+  headingTracker.setEnabled(false);
+  headingGain = HEADING_GAIN;
 #endif
 }
 
 void Penggerak::resetIntegralSetelahRecovery(float errorBaru) {
-  I = 0;
-  lastError = errorBaru;  // cegah spike D di loop pertama
+  pid.resetAfterRecovery(errorBaru);
+#if ENABLE_HEADING_CORRECTION
+  if (headingTracker.isEnabled()) {
+    headingTracker.reset();
+  }
+#endif
 }
 
 bool Penggerak::hitung(int bacaKiri, int bacaKanan, bool paksa) {
-  // PID jalan pada interval tetap agar D konsisten.
-  unsigned long nowPid = millis();
-  if (!paksa && nowPid - pidTerakhir < PID_INTERVAL_MS) {
+  // Compute PID (includes fuzzy, gain scheduling)
+  bool pidUpdated = pid.compute(bacaKiri, bacaKanan, paksa);
+  if (!pidUpdated) {
     return false;
   }
 
-  pidTerakhir = nowPid;
+  // Apply heading correction to PID value
+  float pidValue = applyHeadingCorrection(pid.getPIDValue());
 
-  // 2. Kalkulasi PID Standar
-  P = error;
-  I = I + error;
-  I = constrain(I, -BATAS_INTEGRAL, BATAS_INTEGRAL);
-  // FIX: raw delta error (tidak dinormalisasi) untuk fuzzy PID
-  float deltaError = error - lastError;
-  // FIX: dt yang sama dengan PID interval agar D konsisten di seluruh operasi
-  const float dtPid = PID_INTERVAL_MS / 1000.0;
-  D = deltaError / dtPid;
+  // Update speed profile
+  int baseSpeed = speed.update(pid.getError(), pidValue);
 
-  // --- FUZZY ADAPTIVE PID ---
-  // Jika fuzzy aktif, hitung delta Kp/Kd/Ki dari error & delta_error,
-  // lalu gunakan gain efektif (base + delta) untuk PID.
-#if ENABLE_FUZZY_PID
-  float KpEff = Kp, KdEff = Kd, KiEff = Ki;
-  if (fuzzyPid.isEnabled()) {
-    float dKp = 0.0, dKd = 0.0, dKi = 0.0;
-    fuzzyPid.compute(error, deltaError, dKp, dKd, dKi);  // delta error = error change (unnormalized)
-    KpEff = Kp + dKp;
-    KdEff = Kd + dKd;
-    KiEff = Ki + dKi;
-    // Clamp: gain efektif tidak boleh negatif
-    if (KpEff < 0.0) KpEff = 0.0;
-    if (KdEff < 0.0) KdEff = 0.0;
-    if (KiEff < 0.0) KiEff = 0.0;
-  }
-#else
-  float KpEff = Kp, KdEff = Kd, KiEff = Ki;
-#endif
-  // --- GAIN SCHEDULING ---
-  // Gain berbeda per kecepatan: rendah (tikungan) vs tinggi (lurus).
-  // Low speed: Kp naik (responsif), Kd turun (tidak perlu damping keras).
-  // High speed: Kp turun (anti overshoot), Kd naik (stabil).
-#if ENABLE_GAIN_SCHEDULING
-  if (gainSchedulingEnabled) {
-    KpEff *= getGainScheduleKp();
-    KdEff *= getGainScheduleKd();
-    KiEff *= getGainScheduleKi();
-  }
-#endif
+  // Compute motor speeds
+  int speedKiri = baseSpeed - pidValue;
+  int speedKanan = baseSpeed + pidValue;
 
-  PID_value = (KpEff * P) + (KiEff * I) + (KdEff * D);
+  // Apply to motors (includes deadband, slew, clamping)
+  motor.run(speedKiri, speedKanan);
 
-  lastError = error;
+  // Telemetry
+  motor.telemetry(bacaKiri, bacaKanan, pid.getError(), pidValue, baseSpeed);
 
-  // --- IMU HEADING CORRECTION ---
-  // Tambahkan steering offset dari heading error ke PID_value.
-  // Koreksi ini berlaku sebagai "perekam arah": mencegah robot drift
-  // di lintasan lurus panjang tanpa garis kuat di kedua sensor.
-  // Hanya dihitung saat PID interval tiba (dt konstan, konsisten).
-#if ENABLE_HEADING_CORRECTION
-  if (headingTracker.isEnabled()) {
-    // updateHeading() dipanggil dari loop() tiap iterasi (termasuk saat
-    // berhenti/kalibrasi). Di sini cukup terapkan koreksinya saja.
-    float headingErr = headingTracker.getHeadingError();
-    float headingCorrection = headingErr * headingGain;
-    headingCorrection = constrain(headingCorrection, -HEADING_MAX_OFFSET, HEADING_MAX_OFFSET);
-    PID_value += headingCorrection;
-  }
-#endif
-
-  // --- DYNAMIC SPEED PROFILE (Turbo Mode) ---
-  // Jika error kecil (jalan lurus) dalam waktu lama, naikkan kecepatan dasar.
-  if (abs(error) < LURUS_THRESHOLD) {
-    if (waktuLurusMulai == 0) {
-      waktuLurusMulai = millis();
-    } else if (millis() - waktuLurusMulai > LURUS_TIME_REQUIRED) {
-      // Masuk mode Turbo: naikkan kecepatan secara gradual agar tidak slip
-      kecepatanTurboAktif += TURBO_RAMP_SPEED;
-      if (kecepatanTurboAktif > KECEPATAN_TURBO) {
-        kecepatanTurboAktif = KECEPATAN_TURBO;
-      }
-    }
-  } else {
-    // Tikungan terdeteksi: reset turbo segera
-    waktuLurusMulai = 0;
-    kecepatanTurboAktif = 0;
-  }
-
-  // 3. Kecepatan dasar adaptif: makin melenceng makin direm.
-  int faktorPengurang =
-    abs(PID_value) * FAKTOR_REM_ADAPTIF;  // agresivitas pengereman (bisa di-tuning)
-  
-  // Base speed adalah gabungan dari kecepatanDasarMaks + bonus Turbo - pengereman adaptif
-  int baseSpeedTarget = kecepatanDasarMaks + kecepatanTurboAktif - faktorPengurang;
-  kecepatanDasar = constrain(baseSpeedTarget, kecepatanDasarMin, SERVO_MAKS_DIPAKAI);
-
-  // 4. Kecepatan motor akhir dari kecepatan dasar yang sudah beradaptasi
-  kecepatanKiri = kecepatanDasar - PID_value;
-  kecepatanKanan = kecepatanDasar + PID_value;
-
-  // 5. Batasi Output Akhir (derate servo 0-150, bukan 0-255 docs)
-  kecepatanKiri = constrain(kecepatanKiri, 0, SERVO_MAKS_DIPAKAI);
-  kecepatanKanan = constrain(kecepatanKanan, 0, SERVO_MAKS_DIPAKAI);
-
-  // 6. Deadband compensation: servo diam di speed 1-24, paksa ke
-  // SERVO_MIN_EFEKTIF agar koreksi PID benar-benar menggerakkan roda.
-  kecepatanKiri = terapkanDeadband(kecepatanKiri);
-  kecepatanKanan = terapkanDeadband(kecepatanKanan);
-
-  // 7. Slew-rate limiter: tahan lompatan speed per loop agar roda
-  // servo tidak slip (open-loop, tanpa encoder).
-  kecepatanKiri = batasiSlew(kecepatanKiri, prevKiri);
-  kecepatanKanan = batasiSlew(kecepatanKanan, prevKanan);
-  prevKiri = kecepatanKiri;
-  prevKanan = kecepatanKanan;
-
-  jalankan(kecepatanKiri, kecepatanKanan);
-  telemetri(bacaKiri, bacaKanan);
   return true;
 }
 
 void Penggerak::terapkanTerakhir() {
-  jalankan(prevKiri, prevKanan);
+  motor.applyLast();
 }
 
 void Penggerak::jalankan(int speedKiri, int speedKanan) {
-  setServoTurn(4, 1, speedKiri);
-  setServoTurn(2, 1, speedKiri);
-  setServoTurn(1, 0, speedKanan);
-  setServoTurn(3, 0, speedKanan);
+  motor.run(speedKiri, speedKanan);
 }
 
 void Penggerak::jalankanArah(int speedKiri, int speedKanan) {
-  int kiri = constrain(abs(speedKiri), 0, SERVO_MAKS_DIPAKAI);
-  int kanan = constrain(abs(speedKanan), 0, SERVO_MAKS_DIPAKAI);
-  kiri = terapkanDeadband(kiri);
-  kanan = terapkanDeadband(kanan);
-
-  if (kiri == 0) {
-    setServoStop(4);
-    setServoStop(2);
-  } else {
-    int dirKiri = (speedKiri > 0) ? 1 : 0;
-    setServoTurn(4, dirKiri, kiri);
-    setServoTurn(2, dirKiri, kiri);
-  }
-
-  if (kanan == 0) {
-    setServoStop(1);
-    setServoStop(3);
-  } else {
-    int dirKanan = (speedKanan > 0) ? 0 : 1;
-    setServoTurn(1, dirKanan, kanan);
-    setServoTurn(3, dirKanan, kanan);
-  }
+  motor.runSigned(speedKiri, speedKanan);
 }
 
 void Penggerak::berhenti() {
-  setServoStop(4);
-  setServoStop(2);
-  setServoStop(1);
-  setServoStop(3);
+  motor.stop();
 }
 
 void Penggerak::saatBerhenti() {
-  berhenti();
-  prevKiri = 0;
-  prevKanan = 0;
+  motor.stopAndClear();
 }
 
-
 void Penggerak::maju(int speed) {
-  setServoTurn(4, 1, speed);
-  setServoTurn(2, 1, speed);
-  setServoTurn(1, 0, speed);
-  setServoTurn(3, 0, speed);
+  motor.forward(speed);
 }
 
 void Penggerak::putarKiri(int speed) {
-  setServoTurn(4, 0, speed);
-  setServoTurn(2, 0, speed);
-  setServoTurn(1, 0, speed);
-  setServoTurn(3, 0, speed);
+  motor.turnLeft(speed);
 }
 
 void Penggerak::putarKanan(int speed) {
-  setServoTurn(4, 1, speed);
-  setServoTurn(2, 1, speed);
-  setServoTurn(1, 1, speed);
-  setServoTurn(3, 1, speed);
+  motor.turnRight(speed);
 }
 
 void Penggerak::putarKalibrasi() {
-  // Speed 50 sering terlalu lemah untuk satu putaran penuh (terutama di
-  // permukaan beralas karet); 90 memberi torsi cukup tanpa saturasi gyro.
-  setServoTurn(4, 0, CALIB_SPIN_SPEED);
-  setServoTurn(2, 0, CALIB_SPIN_SPEED);
-  setServoTurn(1, 0, CALIB_SPIN_SPEED);
-  setServoTurn(3, 0, CALIB_SPIN_SPEED);
+  motor.turnCalibration();
 }
 
 void Penggerak::putarCariGaris(float lastErr) {
-  int kecCariGaris = kecepatanDasarMin;
-  if (lastErr > 0) {
-    setServoTurn(4, 0, kecCariGaris);
-    setServoTurn(2, 0, kecCariGaris);
-    setServoTurn(1, 0, kecCariGaris);
-    setServoTurn(3, 0, kecCariGaris);
-  } else {
-    setServoTurn(4, 1, kecCariGaris);
-    setServoTurn(2, 1, kecCariGaris);
-    setServoTurn(1, 1, kecCariGaris);
-    setServoTurn(3, 1, kecCariGaris);
-  }
+  motor.spinFindLine(lastErr);
 }
 
 float Penggerak::errorTerakhir() const {
-  return lastError;
+  return pid.getLastError();
 }
 
-int Penggerak::terapkanDeadband(int speed) {
-  if (speed == 0) {
-    return 0;
-  }
-
-  if (speed < SERVO_MIN_EFEKTIF) {
-    return SERVO_MIN_EFEKTIF;
-  }
-
-  return speed;
-}
-
-int Penggerak::batasiSlew(int target, int prev) {
-  int selisih = target - prev;
-  if (selisih > SLEW_MAKS_PER_LOOP) {
-    return prev + SLEW_MAKS_PER_LOOP;
-  }
-
-  if (selisih < -SLEW_MAKS_PER_LOOP) {
-    return prev - SLEW_MAKS_PER_LOOP;
-  }
-
-  return target;
-}
-
-// t,err,pid,dasar,kiri,kanan,senK,senN — throttle 100 ms, non-blocking.
 void Penggerak::telemetri(int bacaKiri, int bacaKanan) {
-#if ENABLE_TELEMETRI
-  unsigned long now = millis();
-  if (now - telemTerakhir < TELEM_MS) {
-    return;
-  }
-
-  telemTerakhir = now;
-  if (!telemHeader) {
-    telemHeader = true;
-    Serial.println(F("t,err,pid,dasar,kiri,kanan,senK,senN"));
-  }
-
-  Serial.print(now);
-  Serial.print(F(","));
-  Serial.print(error);
-  Serial.print(F(","));
-  Serial.print(PID_value);
-  Serial.print(F(","));
-  Serial.print(kecepatanDasar);
-  Serial.print(F(","));
-  Serial.print(kecepatanKiri);
-  Serial.print(F(","));
-  Serial.print(kecepatanKanan);
-  Serial.print(F(","));
-  Serial.print(bacaKiri);
-  Serial.print(F(","));
-  Serial.println(bacaKanan);
-#else
-  (void)bacaKiri;
-  (void)bacaKanan;
-#endif
+  // Use motor's telemetry with current PID values
+  motor.telemetry(bacaKiri, bacaKanan, pid.getError(), pid.getPIDValue(), speed.getBaseSpeed());
 }
 
-// --- Fuzzy PID methods ---
+// --- Fuzzy PID ---
 #if ENABLE_FUZZY_PID
 void Penggerak::setFuzzyEnabled(bool on) {
-  fuzzyPid.setEnabled(on);
+  pid.setFuzzyEnabled(on);
 }
 
 bool Penggerak::isFuzzyEnabled() const {
-  return fuzzyPid.isEnabled();
+  return pid.isFuzzyEnabled();
 }
 #endif
 
-// --- Gain Scheduling methods ---
+// --- Gain Scheduling ---
 #if ENABLE_GAIN_SCHEDULING
 void Penggerak::setGainScheduling(bool on) {
-  gainSchedulingEnabled = on;
+  pid.setGainScheduling(on);
 }
 
 bool Penggerak::isGainSchedulingEnabled() const {
-  return gainSchedulingEnabled;
+  return pid.isGainSchedulingEnabled();
 }
 
 float Penggerak::getGainScheduleKp() const {
-  if (kecepatanDasar < GS_SPEED_LOW_MAX) return GS_KP_LOW;
-  if (kecepatanDasar < GS_SPEED_MID_MAX) return GS_KP_MID;
-  return GS_KP_HIGH;
+  return pid.getGainScheduleKp(speed.getBaseSpeed());
 }
 
 float Penggerak::getGainScheduleKd() const {
-  if (kecepatanDasar < GS_SPEED_LOW_MAX) return GS_KD_LOW;
-  if (kecepatanDasar < GS_SPEED_MID_MAX) return GS_KD_MID;
-  return GS_KD_HIGH;
+  return pid.getGainScheduleKd(speed.getBaseSpeed());
 }
 
 float Penggerak::getGainScheduleKi() const {
-  if (kecepatanDasar < GS_SPEED_LOW_MAX) return GS_KI_LOW;
-  if (kecepatanDasar < GS_SPEED_MID_MAX) return GS_KI_MID;
-  return GS_KI_HIGH;
+  return pid.getGainScheduleKi(speed.getBaseSpeed());
 }
 #endif
 
-// --- IMU Heading Correction methods ---
+// --- IMU Heading Correction ---
 #if ENABLE_HEADING_CORRECTION
 void Penggerak::setHeadingCorrection(bool on) {
-  if (on) {
-    // begin() mereset integrasi/heading, tapi mempertahankan bias & target.
-    // Dulu urutannya setEnabled(true) lalu begin() yang mengeset enabled=false,
-    // sehingga fitur langsung mati begitu diaktifkan.
-    if (!headingTracker.isEnabled()) {
-      headingTracker.begin();
-    }
-    headingTracker.setEnabled(true);
-  } else {
-    headingTracker.setEnabled(false);
-  }
+  headingTracker.setEnabled(on);
 }
 
 bool Penggerak::isHeadingCorrectionEnabled() const {
@@ -404,32 +179,41 @@ bool Penggerak::isHeadingCalibrating() const {
 }
 
 void Penggerak::simpanHeading() {
-  EEPROM.put(ADDR_HEADING_GAIN, headingGain);
-  EEPROM.put(ADDR_HEADING_TARGET, headingTracker.getTargetHeading());
-  EEPROM.put(ADDR_HEADING_BIAS, headingTracker.getBias());
-  // Magic ditulis terakhir: data setengah jadi tidak dianggap valid.
-  EEPROM.update(ADDR_HEADING_MAGIC, 88);
+  EEPROM.update(EEPROM_ADDR::EE_ADDR_HEADING_MAGIC, MAGIC_HEADING_VALID);
+  eepromWriteIfChanged(EEPROM_ADDR::EE_ADDR_HEADING_GAIN, headingGain);
+  eepromWriteIfChanged(EEPROM_ADDR::EE_ADDR_HEADING_TARGET, headingTracker.getTargetHeading());
+  eepromWriteIfChanged(EEPROM_ADDR::EE_ADDR_HEADING_BIAS, headingTracker.getBias());
+  EEPROM.update(EEPROM_ADDR::EE_ADDR_HEADING_CALIBRATED, headingTracker.isBiasCalibrated() ? 1 : 0);
 }
 
 void Penggerak::muatHeading() {
-  if (EEPROM.read(ADDR_HEADING_MAGIC) != 88) {
-    return;  // belum pernah disimpan: pakai default config
-  }
-
-  float savedGain, savedTarget, savedBias;
-  EEPROM.get(ADDR_HEADING_GAIN, savedGain);
-  EEPROM.get(ADDR_HEADING_TARGET, savedTarget);
-  EEPROM.get(ADDR_HEADING_BIAS, savedBias);
-
-  // Validasi: EEPROM kosong terbaca NaN/0xFF, jangan sampai dipakai.
-  if (savedGain >= 0.0 && savedGain <= 2.0) {
-    headingGain = savedGain;
-  }
-  if (savedTarget >= -180.0 && savedTarget <= 180.0) {
-    headingTracker.setTarget(savedTarget);
-  }
-  if (savedBias >= -20.0 && savedBias <= 20.0) {
-    headingTracker.setBias(savedBias);
+  if (EEPROM.read(EEPROM_ADDR::EE_ADDR_HEADING_MAGIC) == MAGIC_HEADING_VALID) {
+    EEPROM.get(EEPROM_ADDR::EE_ADDR_HEADING_GAIN, headingGain);
+    headingGain = constrain(headingGain, 0.0f, 10.0f);
+    float target;
+    EEPROM.get(EEPROM_ADDR::EE_ADDR_HEADING_TARGET, target);
+    headingTracker.setTarget(target);
+    float bias;
+    EEPROM.get(EEPROM_ADDR::EE_ADDR_HEADING_BIAS, bias);
+    headingTracker.setBias(bias);
+    bool calibrated = EEPROM.read(EEPROM_ADDR::EE_ADDR_HEADING_CALIBRATED) != 0;
+    // headingTracker internal state for calibrated - setBias already handles it
+    (void)calibrated;
   }
 }
 #endif
+
+// Private helper
+float Penggerak::applyHeadingCorrection(float pidValue) {
+#if ENABLE_HEADING_CORRECTION
+  if (headingTracker.isEnabled()) {
+    // updateHeading() called from loop() each iteration (including when stopped/calibrating).
+    // Here we just apply the correction.
+    float headingErr = headingTracker.getHeadingError();
+    float headingCorrection = headingErr * headingGain;
+    headingCorrection = constrain(headingCorrection, -HEADING_MAX_OFFSET, HEADING_MAX_OFFSET);
+    pidValue += headingCorrection;
+  }
+#endif
+  return pidValue;
+}

@@ -269,33 +269,142 @@ void Antarmuka::parseCommand(char *cmd) {
   float val = atof(valStr);
   bool hasVal = (valStr[0] != '\0');
 
+  // Dispatch to appropriate handler
+  if (strcmp(key, "kp") == 0 || strcmp(key, "ki") == 0 || strcmp(key, "kd") == 0) {
+    parsePIDCommand(key, valStr, val, hasVal);
+  } else if (strcmp(key, "speed") == 0 || strcmp(key, "speedmin") == 0) {
+    parseSpeedCommand(key, valStr, val, hasVal);
+  } else if (strcmp(key, "ambang") == 0 || strcmp(key, "ambangk") == 0 || strcmp(key, "ambangn") == 0) {
+    parseThresholdCommand(key, valStr, val, hasVal);
+  } else if (strcmp(key, "calibrate") == 0) {
+    parseCalibrateCommand(valStr);
+  } else if (strcmp(key, "tune") == 0) {
+    parseTuneCommand();
+  } else if (strcmp(key, "lap") == 0) {
+    parseLapCommand(valStr);
+  } else if (strcmp(key, "lapconfig") == 0) {
+    parseLapConfigCommand(valStr);
+  } else if (strcmp(key, "save") == 0) {
+    parseSaveCommand();
+  } else if (strcmp(key, "load") == 0) {
+    parseLoadCommand();
+  } else if (strcmp(key, "mode") == 0) {
+    parseModeCommand(valStr);
+  } else if (strcmp(key, "rc") == 0) {
+    parseRCCommand(valStr);
+  } else if (strcmp(key, "fuzzy") == 0) {
+    parseFuzzyCommand(valStr);
+  } else if (strcmp(key, "gs") == 0) {
+    parseGainSchedulingCommand(valStr);
+  } else if (strcmp(key, "heading") == 0) {
+    parseHeadingCommand(valStr);
+  } else if (strcmp(key, "htarget") == 0) {
+    parseHTargetCommand(valStr);
+  } else if (strcmp(key, "adapt") == 0) {
+    parseAdaptiveCommand(valStr);
+  } else if (strcmp(key, "mapclear") == 0) {
+    parseMapClearCommand();
+  } else if (strcmp(key, "path") == 0) {
+    parsePathCommand(valStr);
+  } else if (strcmp(key, "start") == 0) {
+    parseStartCommand();
+  } else if (strcmp(key, "stop") == 0) {
+    parseStopCommand();
+  } else if (strcmp(key, "status") == 0) {
+    parseStatusCommand();
+  } else if (strcmp(key, "help") == 0 || strcmp(key, "?") == 0) {
+    parseHelpCommand();
+  } else {
+    Serial.print(F("Perintah tidak dikenal: "));
+    Serial.println(cmd);
+    Serial.println(F("Ketik 'help' untuk daftar perintah."));
+  }
+}
+
+// ===== parseCommand Helpers =====
+
+void Antarmuka::parsePIDCommand(const char *key, const char *valStr, float val, bool hasVal) {
+  (void)valStr;
+  // Bounds: Kp 0-50, Ki 0-5, Kd 0-50 (reasonable limits for line follower)
   if (strcmp(key, "kp") == 0) {
-    if (hasVal) Kp = val;
+    if (hasVal) {
+      if (val < 0.0f || val > 50.0f) {
+        Serial.println(F("ERROR: Kp harus 0.0 - 50.0"));
+      } else {
+        Kp = val;
+      }
+    }
     Serial.print(F("Kp = "));
     Serial.println(Kp);
   } else if (strcmp(key, "ki") == 0) {
-    if (hasVal) Ki = val;
+    if (hasVal) {
+      if (val < 0.0f || val > 5.0f) {
+        Serial.println(F("ERROR: Ki harus 0.0 - 5.0"));
+      } else {
+        Ki = val;
+      }
+    }
     Serial.print(F("Ki = "));
     Serial.println(Ki);
   } else if (strcmp(key, "kd") == 0) {
-    if (hasVal) Kd = val;
+    if (hasVal) {
+      if (val < 0.0f || val > 50.0f) {
+        Serial.println(F("ERROR: Kd harus 0.0 - 50.0"));
+      } else {
+        Kd = val;
+      }
+    }
     Serial.print(F("Kd = "));
     Serial.println(Kd);
-  } else if (strcmp(key, "speed") == 0) {
-    if (hasVal) kecepatanDasarMaks = constrain((int)val, SPEED_TOMBOL_MIN, SPEED_TOMBOL_MAKS);
+  }
+}
+
+void Antarmuka::parseSpeedCommand(const char *key, const char *valStr, float val, bool hasVal) {
+  (void)valStr;
+  // Bounds: speed 10-150 (derived from SERVO_MIN/MAX and deadband)
+  if (strcmp(key, "speed") == 0) {
+    if (hasVal) {
+      int v = (int)val;
+      if (v < SPEED_TOMBOL_MIN || v > SPEED_TOMBOL_MAKS) {
+        Serial.print(F("ERROR: Speed maks harus "));
+        Serial.print(SPEED_TOMBOL_MIN);
+        Serial.print(F("-"));
+        Serial.println(SPEED_TOMBOL_MAKS);
+      } else {
+        kecepatanDasarMaks = v;
+      }
+    }
     Serial.print(F("Speed maks = "));
     Serial.println(kecepatanDasarMaks);
   } else if (strcmp(key, "speedmin") == 0) {
-    if (hasVal) kecepatanDasarMin = constrain((int)val, 10, SPEED_TOMBOL_MAKS);
+    if (hasVal) {
+      int v = (int)val;
+      if (v < 10 || v > SPEED_TOMBOL_MAKS) {
+        Serial.print(F("ERROR: Speed min harus 10-"));
+        Serial.println(SPEED_TOMBOL_MAKS);
+      } else {
+        kecepatanDasarMin = v;
+      }
+    }
     Serial.print(F("Speed min = "));
     Serial.println(kecepatanDasarMin);
-  } else if (strcmp(key, "ambang") == 0) {
+  }
+}
+
+void Antarmuka::parseThresholdCommand(const char *key, const char *valStr, float val, bool hasVal) {
+  (void)valStr;
+  // Bounds: threshold 1-20 (clamped by sensor hardware)
+  if (strcmp(key, "ambang") == 0) {
     if (hasVal) {
-      int v = constrain((int)val, 1, 20);
-      AMBANG_KIRI = v;
-      AMBANG_KANAN = v;
-      Serial.print(F("Ambang kiri/kanan = "));
-      Serial.println(v);
+      int v = (int)val;
+      if (v < 1 || v > 20) {
+        Serial.println(F("ERROR: Ambang harus 1-20"));
+      } else {
+        AMBANG_KIRI = v;
+        AMBANG_KANAN = v;
+        Serial.print(F("Ambang kiri/kanan = "));
+        Serial.println(v);
+      }
     } else {
       Serial.print(F("Ambang kiri = "));
       Serial.print(AMBANG_KIRI);
@@ -303,288 +412,360 @@ void Antarmuka::parseCommand(char *cmd) {
       Serial.println(AMBANG_KANAN);
     }
   } else if (strcmp(key, "ambangk") == 0) {
-    if (hasVal) AMBANG_KIRI = constrain((int)val, 1, 20);
-    Serial.print(F("Ambang kiri = "));
-    Serial.println(AMBANG_KIRI);
-  } else if (strcmp(key, "ambangn") == 0) {
-    if (hasVal) AMBANG_KANAN = constrain((int)val, 1, 20);
-    Serial.print(F("Ambang kanan = "));
-    Serial.println(AMBANG_KANAN);
-  } else if (strcmp(key, "calibrate") == 0) {
-    if (status.jalan) {
-      Serial.println(F("ERROR: Robot jalan, hentikan dulu."));
-    } else if (valStr[0] == '\0' || strcmp(valStr, "auto") == 0) {
-      Serial.println(F("Kalibrasi AUTO dimulai via serial (robot berputar sendiri)..."));
-      sensor.kalibrasi(gerak, false);
-    } else if (strcmp(valStr, "manual") == 0) {
-      Serial.println(F("Kalibrasi MANUAL dimulai: putar robot 360 derajat dengan tangan."));
-      sensor.kalibrasi(gerak, true);
-    } else {
-      Serial.println(F("Penggunaan: calibrate [auto|manual]"));
-      Serial.println(F("  auto   = robot berputar sendiri (default)"));
-      Serial.println(F("  manual = motor diam, robot diputar dengan tangan"));
-    }
-  } else if (strcmp(key, "tune") == 0) {
-    if (!status.jalan) {
-      Serial.println(F("Memulai Kalibrasi + Auto-Tuning PID..."));
-      tuningSequence();
-    } else {
-      Serial.println(F("ERROR: Robot jalan, hentikan dulu."));
-    }
-  } else if (strcmp(key, "lap") == 0) {
-    if (strcmp(valStr, "reset") == 0) {
-      lapTimer.reset();
-      Serial.println(F("Lap timer direset."));
-    } else if (strcmp(valStr, "summary") == 0) {
-      lapTimer.printSummary();
-    } else if (strcmp(valStr, "csv") == 0) {
-      lapTimer.printCSV();
-    } else {
-      // Default: tampilkan summary
-      lapTimer.printSummary();
-    }
-  } else if (strcmp(key, "lapconfig") == 0) {
     if (hasVal) {
-      // Format: lapconfig <threshold> <minLapMs>
-      // Untuk simplicity, parse manual
-      int threshold = atoi(valStr);
-      const char* space = strchr(valStr, ' ');
-      if (space) {
-        int minLap = atoi(space + 1);
+      int v = (int)val;
+      if (v < 1 || v > 20) {
+        Serial.println(F("ERROR: Ambang kiri harus 1-20"));
+      } else {
+        AMBANG_KIRI = v;
+        Serial.print(F("Ambang kiri = "));
+        Serial.println(AMBANG_KIRI);
+      }
+    } else {
+      Serial.print(F("Ambang kiri = "));
+      Serial.println(AMBANG_KIRI);
+    }
+  } else if (strcmp(key, "ambangn") == 0) {
+    if (hasVal) {
+      int v = (int)val;
+      if (v < 1 || v > 20) {
+        Serial.println(F("ERROR: Ambang kanan harus 1-20"));
+      } else {
+        AMBANG_KANAN = v;
+        Serial.print(F("Ambang kanan = "));
+        Serial.println(AMBANG_KANAN);
+      }
+    } else {
+      Serial.print(F("Ambang kanan = "));
+      Serial.println(AMBANG_KANAN);
+    }
+  }
+}
+
+void Antarmuka::parseCalibrateCommand(const char *valStr) {
+  if (status.jalan) {
+    Serial.println(F("ERROR: Robot jalan, hentikan dulu."));
+  } else if (valStr[0] == '\0' || strcmp(valStr, "auto") == 0) {
+    Serial.println(F("Kalibrasi AUTO dimulai via serial (robot berputar sendiri)..."));
+    sensor.kalibrasi(gerak, false);
+  } else if (strcmp(valStr, "manual") == 0) {
+    Serial.println(F("Kalibrasi MANUAL dimulai: putar robot 360 derajat dengan tangan."));
+    sensor.kalibrasi(gerak, true);
+  } else {
+    Serial.println(F("Penggunaan: calibrate [auto|manual]"));
+    Serial.println(F("  auto   = robot berputar sendiri (default)"));
+    Serial.println(F("  manual = motor diam, robot diputar dengan tangan"));
+  }
+}
+
+void Antarmuka::parseTuneCommand() {
+  if (!status.jalan) {
+    Serial.println(F("Memulai Kalibrasi + Auto-Tuning PID..."));
+    tuningSequence();
+  } else {
+    Serial.println(F("ERROR: Robot jalan, hentikan dulu."));
+  }
+}
+
+void Antarmuka::parseLapCommand(const char *valStr) {
+  if (strcmp(valStr, "reset") == 0) {
+    lapTimer.reset();
+    Serial.println(F("Lap timer direset."));
+  } else if (strcmp(valStr, "summary") == 0) {
+    lapTimer.printSummary();
+  } else if (strcmp(valStr, "csv") == 0) {
+    lapTimer.printCSV();
+  } else {
+    // Default: tampilkan summary
+    lapTimer.printSummary();
+  }
+}
+
+void Antarmuka::parseLapConfigCommand(const char *valStr) {
+  if (valStr[0] != '\0') {
+    // Format: lapconfig <threshold> <minLapMs>
+    // Untuk simplicity, parse manual
+    int threshold = atoi(valStr);
+    const char* space = strchr(valStr, ' ');
+    if (space) {
+      int minLap = atoi(space + 1);
+      // Bounds: threshold 1-20, minLap 500-60000
+      if (threshold < 1 || threshold > 20) {
+        Serial.println(F("ERROR: Lap threshold harus 1-20"));
+      } else if (minLap < 500 || minLap > 60000) {
+        Serial.println(F("ERROR: Min lap harus 500-60000 ms"));
+      } else {
         lapTimer.setThresholds(threshold, minLap);
+      }
+    } else {
+      // Bounds: threshold 1-20
+      if (threshold < 1 || threshold > 20) {
+        Serial.println(F("ERROR: Lap threshold harus 1-20"));
       } else {
         lapTimer.setThresholds(threshold, LAP_MIN_LAP_MS);
       }
-    } else {
-      Serial.print(F("LapConfig: threshold=")); Serial.print(LAP_SF_THRESHOLD);
-      Serial.print(F(" minLap=")); Serial.println(LAP_MIN_LAP_MS);
     }
-  } else if (strcmp(key, "save") == 0) {
-    sensor.simpan();
-    mapper.simpan();  // peta waypoint learning ikut persisten
-    mapper.debugPrint();
-    Serial.println(F("Disimpan ke EEPROM."));
-  } else if (strcmp(key, "load") == 0) {
-    sensor.muat();
-    mapper.muat();
-    mapper.debugPrint();
-    sensor.cetak();
-    Serial.print(F("Waypoint tersimpan: "));
-    Serial.println(mapper.getWaypointCount());
-  } else if (strcmp(key, "mode") == 0) {
-    if (status.jalan) {
-      Serial.println(F("ERROR: Tidak dapat mengubah mode saat robot sedang jalan. Berhentikan dulu."));
-    } else if (strcmp(valStr, "learn") == 0) {
-      status.modeOperasi = MODE_LEARNING;
-      Serial.println(F("Mode: LEARNING (Rekam Lintasan)"));
-    } else if (strcmp(valStr, "race") == 0) {
-      status.modeOperasi = MODE_RACING;
-      Serial.println(F("Mode: RACING (Gunakan Peta)"));
-    } else if (strcmp(valStr, "rc") == 0) {
-#if ENABLE_RC
-      status.modeOperasi = MODE_RC;
-      Serial.println(F("Mode: RC (Remote Control)"));
-#else
-      Serial.println(F("ERROR: RC dimatikan (ENABLE_RC=false di config.h)."));
-#endif
-    } else {
-      status.modeOperasi = MODE_NORMAL;
-      Serial.println(F("Mode: NORMAL"));
-    }
-  } else if (strcmp(key, "rc") == 0) {
-#if ENABLE_RC
-    if (strcmp(valStr, "on") == 0) {
-      status.modeOperasi = MODE_RC;
-      Serial.println(F("RC mode: ON (MODE_RC)"));
-    } else if (strcmp(valStr, "off") == 0) {
-      status.modeOperasi = MODE_NORMAL;
-      Serial.println(F("RC mode: OFF (kembali ke MODE_NORMAL)"));
-    } else if (strcmp(valStr, "status") == 0) {
-      Serial.print(F("RC Throttle: ")); Serial.print(rc.getThrottle());
-      Serial.print(F("% | Steering: ")); Serial.print(rc.getSteering());
-      Serial.print(F("% | Signal: "));
-      Serial.println(rc.isSignalLost() ? F("HILANG") : F("OK"));
-    } else {
-      Serial.println(F("Penggunaan: rc on | rc off | rc status"));
-    }
-#else
-    Serial.println(F("RC tidak aktif (ENABLE_RC=false)."));
-#endif
-  } else if (strcmp(key, "fuzzy") == 0) {
-#if ENABLE_FUZZY_PID
-    if (strcmp(valStr, "on") == 0) {
-      gerak.setFuzzyEnabled(true);
-      Serial.println(F("Fuzzy PID: ON (adaptive gains aktif)"));
-    } else if (strcmp(valStr, "off") == 0) {
-      gerak.setFuzzyEnabled(false);
-      Serial.println(F("Fuzzy PID: OFF (static gains dari config/EEPROM)"));
-    } else {
-      // Tampilkan status saja
-      Serial.print(F("Fuzzy PID: "));
-      Serial.println(gerak.isFuzzyEnabled() ? F("ON") : F("OFF"));
-      Serial.println(F("Penggunaan: fuzzy on | fuzzy off | fuzzy"));
-    }
-#else
-    Serial.println(F("Fuzzy PID tidak aktif (ENABLE_FUZZY_PID=false)."));
-#endif
-  } else if (strcmp(key, "gs") == 0) {
-    // Gain Scheduling
-#if ENABLE_GAIN_SCHEDULING
-    if (strcmp(valStr, "on") == 0) {
-      gerak.setGainScheduling(true);
-      Serial.println(F("Gain Scheduling: ON"));
-    } else if (strcmp(valStr, "off") == 0) {
-      gerak.setGainScheduling(false);
-      Serial.println(F("Gain Scheduling: OFF"));
-    } else {
-      Serial.print(F("Gain Scheduling: "));
-      Serial.println(gerak.isGainSchedulingEnabled() ? F("ON") : F("OFF"));
-      Serial.print(F("Kp sched: ")); Serial.print(gerak.getGainScheduleKp(), 2);
-      Serial.print(F(" | Kd sched: ")); Serial.print(gerak.getGainScheduleKd(), 2);
-      Serial.print(F(" | Ki sched: ")); Serial.println(gerak.getGainScheduleKi(), 2);
-      Serial.println(F("Penggunaan: gs on | gs off | gs"));
-    }
-#else
-    Serial.println(F("Gain Scheduling tidak aktif (ENABLE_GAIN_SCHEDULING=false)."));
-#endif
-  } else if (strcmp(key, "heading") == 0) {
-    // IMU Heading Correction
-#if ENABLE_HEADING_CORRECTION
-    if (strcmp(valStr, "on") == 0) {
-      gerak.setHeadingCorrection(true);
-      Serial.println(F("Heading correction: ON"));
-    } else if (strcmp(valStr, "off") == 0) {
-      gerak.setHeadingCorrection(false);
-      Serial.println(F("Heading correction: OFF"));
-    } else if (strcmp(valStr, "reset") == 0) {
-      gerak.resetHeading();
-      Serial.println(F("Heading direset ke 0 (arah sekarang = lurus)."));
-    } else if (strcmp(valStr, "cal") == 0) {
-      if (!status.jalan) {
-        Serial.println(F("Kalibrasi bias gyro... diamkan robot 1.5 detik."));
-        gerak.calibrateHeadingBias();
-      } else {
-        Serial.println(F("ERROR: Hentikan robot dulu untuk kalibrasi heading."));
-      }
-    } else if (strcmp(valStr, "save") == 0) {
-      gerak.simpanHeading();
-      Serial.println(F("Heading correction disimpan ke EEPROM."));
-    } else {
-      Serial.print(F("Heading: ")); Serial.print(gerak.getHeading(), 1);
-      Serial.print(F("° | Target: ")); Serial.print(gerak.getTargetHeading(), 1);
-      Serial.print(F("° | Error: ")); Serial.print(gerak.getHeadingError(), 1);
-      Serial.print(F("° | Correction: "));
-      Serial.println(gerak.isHeadingCorrectionEnabled() ? F("ON") : F("OFF"));
-      Serial.println(F("Penggunaan: heading on|off|reset|cal|save"));
-    }
-#else
-    Serial.println(F("Heading correction tidak aktif (ENABLE_HEADING_CORRECTION=false)."));
-#endif
-  } else if (strcmp(key, "htarget") == 0) {
-#if ENABLE_HEADING_CORRECTION
-    if (hasVal) gerak.setHeadingTarget(val);
-    Serial.print(F("Heading target = "));
-    Serial.println(gerak.getTargetHeading());
-#else
-    Serial.println(F("Heading correction tidak aktif."));
-#endif
-  } else if (strcmp(key, "adapt") == 0) {
-    // Adaptive Threshold
-#if ENABLE_ADAPTIVE_THRESHOLD
-    if (strcmp(valStr, "on") == 0) {
-      sensor.setAdaptiveThreshold(true);
-      Serial.println(F("Adaptive Threshold: ON"));
-    } else if (strcmp(valStr, "off") == 0) {
-      sensor.setAdaptiveThreshold(false);
-      Serial.println(F("Adaptive Threshold: OFF"));
-    } else if (strcmp(valStr, "reset") == 0) {
-      sensor.resetAdaptive();
-      Serial.println(F("Adaptive threshold direset ke base."));
-    } else if (strcmp(valStr, "save") == 0) {
-      sensor.simpanAdaptive();
-      Serial.println(F("Adaptive threshold base disimpan ke EEPROM."));
-    } else {
-      Serial.print(F("Adaptive Threshold: "));
-      Serial.println(sensor.isAdaptiveThresholdEnabled() ? F("ON") : F("OFF"));
-      Serial.print(F("Ambang kiri dinamis: ")); Serial.print(sensor.ambangDinamis(2));
-      Serial.print(F(" | kanan: ")); Serial.println(sensor.ambangDinamis(1));
-      Serial.println(F("Penggunaan: adapt on|off|reset|save"));
-    }
-#else
-    Serial.println(F("Adaptive Threshold tidak aktif (ENABLE_ADAPTIVE_THRESHOLD=false)."));
-#endif
-  } else if (strcmp(key, "mapclear") == 0) {
-    if (status.jalan) {
-      Serial.println(F("ERROR: Robot sedang jalan, hentikan dulu sebelum mapclear."));
-    } else {
-      mapper.reset();
-      Serial.println(F("Peta waypoint direset (mapclear)."));
-    }
-  } else if (strcmp(key, "path") == 0) {
-#if ENABLE_PATH_PLANNER
-    pathPlanner.handleCommand(valStr);
-#else
-    Serial.println(F("Path planner dinonaktifkan (ENABLE_PATH_PLANNER=false)."));
-#endif
-  } else if (strcmp(key, "start") == 0) {
-    if (!status.jalan) {
-      mulai("Serial");
-    } else {
-      Serial.println(F("Sudah jalan."));
-    }
-  } else if (strcmp(key, "stop") == 0) {
-    if (status.jalan) {
-      berhenti("Serial");
-    } else {
-      Serial.println(F("Sudah berhenti."));
-    }
-  } else if (strcmp(key, "status") == 0) {
-    tampilkanStatusJalannya();
-    Serial.println(F("ki <val>        : set Ki (contoh: ki 0.02)"));
-    Serial.println(F("kd <val>        : set Kd (contoh: kd 1.8)"));
-    Serial.println(F("speed <val>     : set speed maks 60-150"));
-    Serial.println(F("speedmin <val>  : set speed min"));
-    Serial.println(F("ambang <val>    : set ambang kiri & kanan (1-20)"));
-    Serial.println(F("ambangk <val>   : set ambang kiri saja"));
-    Serial.println(F("ambangn <val>   : set ambang kanan saja"));
-    Serial.println(F("mode <val>      : set mode (learn/race/rc/normal)"));
-    Serial.println(F("rc on|off|status: aktifkan/nonaktifkan/cek status RC"));
-    Serial.println(F("fuzzy on|off   : aktifkan/nonaktifkan/cek Fuzzy adaptive PID"));
-    Serial.println(F("gs on|off     : aktifkan/nonaktifkan/cek Gain Scheduling"));
-    Serial.println(F("heading on|off|reset|cal|save : aktifkan/cek/reset/kalibrasi/save heading correction"));
-    Serial.println(F("htarget <val> : set target heading (derajat)"));
-    Serial.println(F("adapt on|off|reset|save : aktifkan/cek/reset/save Adaptive Threshold"));
-    Serial.println(F("calibrate [auto|manual] : kalibrasi sensor; auto = robot berputar, manual = diputar tangan"));
-    Serial.println(F("tune            : Auto-Tune PID via relay feedback (Ziegler-Nichols)"));
-    Serial.println(F("lap [summary|csv|reset] : lap timer summary/CSV/reset"));
-    Serial.println(F("lapconfig <th> [minMs] : set threshold start/finish & min lap time"));
-#if ENABLE_PATH_PLANNER
-    Serial.println(F("path map        : tampilkan grid map"));
-    Serial.println(F("path find       : cari path ke goal"));
-    Serial.println(F("path goal <x> <y> : set goal position"));
-    Serial.println(F("path next       : waypoint berikutnya"));
-    Serial.println(F("path obstacle <x> <y> : tambah obstacle"));
-    Serial.println(F("path reset      : reset path planner"));
-#endif
-    Serial.println(F("save            : simpan ke EEPROM (termasuk waypoint learning)"));
-    Serial.println(F("load            : muat dari EEPROM & cetak waypoint"));
-    Serial.println(F("start           : mulai jalan"));
-    Serial.println(F("stop            : berhenti"));
-    Serial.println(F("status          : tampilkan status sedang ini"));
-    Serial.println(F("mapclear        : hapus semua waypoint peta (harus berhenti)"));
-    Serial.println(F("help / ?        : tampilkan ini"));
-    Serial.println(F("-----------------------"));
-    Serial.println();
-    Serial.println(F("=== MODE via TOMBOL (saat berhenti) ==="));
-    Serial.println(F("B1 pendek: Pindah mode Normal <-> Learning <-> Racing <-> RC"));
-    Serial.println(F("B1 lama: Toggle mode Setel Kp/Kd"));
-    Serial.println(F("B1+B2: Kalibrasi sensor (pendek) / Auto-Tuning (lama)"));
-    Serial.println(F("Fuzzy PID: gunakan serial 'fuzzy on/off' untuk toggle"));
   } else {
-    Serial.print(F("Perintah tidak dikenal: "));
-    Serial.println(cmd);
-    Serial.println(F("Ketik 'help' untuk daftar perintah."));
+    Serial.print(F("LapConfig: threshold=")); Serial.print(LAP_SF_THRESHOLD);
+    Serial.print(F(" minLap=")); Serial.println(LAP_MIN_LAP_MS);
   }
+}
+
+void Antarmuka::parseSaveCommand() {
+  sensor.simpan();
+  mapper.simpan();  // peta waypoint learning ikut persisten
+  mapper.debugPrint();
+  Serial.println(F("Disimpan ke EEPROM."));
+}
+
+void Antarmuka::parseLoadCommand() {
+  sensor.muat();
+  mapper.muat();
+  mapper.debugPrint();
+  sensor.cetak();
+  Serial.print(F("Waypoint tersimpan: "));
+  Serial.println(mapper.getWaypointCount());
+}
+
+void Antarmuka::parseModeCommand(const char *valStr) {
+  if (status.jalan) {
+    Serial.println(F("ERROR: Tidak dapat mengubah mode saat robot sedang jalan. Berhentikan dulu."));
+  } else if (strcmp(valStr, "learn") == 0) {
+    status.modeOperasi = MODE_LEARNING;
+    Serial.println(F("Mode: LEARNING (Rekam Lintasan)"));
+  } else if (strcmp(valStr, "race") == 0) {
+    status.modeOperasi = MODE_RACING;
+    Serial.println(F("Mode: RACING (Gunakan Peta)"));
+  } else if (strcmp(valStr, "rc") == 0) {
+#if ENABLE_RC
+    status.modeOperasi = MODE_RC;
+    Serial.println(F("Mode: RC (Remote Control)"));
+#else
+    Serial.println(F("ERROR: RC dimatikan (ENABLE_RC=false di config.h)."));
+#endif
+  } else {
+    status.modeOperasi = MODE_NORMAL;
+    Serial.println(F("Mode: NORMAL"));
+  }
+}
+
+void Antarmuka::parseRCCommand(const char *valStr) {
+#if ENABLE_RC
+  if (strcmp(valStr, "on") == 0) {
+    status.modeOperasi = MODE_RC;
+    Serial.println(F("RC mode: ON (MODE_RC)"));
+  } else if (strcmp(valStr, "off") == 0) {
+    status.modeOperasi = MODE_NORMAL;
+    Serial.println(F("RC mode: OFF (kembali ke MODE_NORMAL)"));
+  } else if (strcmp(valStr, "status") == 0) {
+    Serial.print(F("RC Throttle: ")); Serial.print(rc.getThrottle());
+    Serial.print(F("% | Steering: ")); Serial.print(rc.getSteering());
+    Serial.print(F("% | Signal: "));
+    Serial.println(rc.isSignalLost() ? F("HILANG") : F("OK"));
+  } else {
+    Serial.println(F("Penggunaan: rc on | rc off | rc status"));
+  }
+#else
+  Serial.println(F("RC tidak aktif (ENABLE_RC=false)."));
+#endif
+}
+
+void Antarmuka::parseFuzzyCommand(const char *valStr) {
+#if ENABLE_FUZZY_PID
+  if (strcmp(valStr, "on") == 0) {
+    gerak.setFuzzyEnabled(true);
+    Serial.println(F("Fuzzy PID: ON (adaptive gains aktif)"));
+  } else if (strcmp(valStr, "off") == 0) {
+    gerak.setFuzzyEnabled(false);
+    Serial.println(F("Fuzzy PID: OFF (static gains dari config/EEPROM)"));
+  } else {
+    // Tampilkan status saja
+    Serial.print(F("Fuzzy PID: "));
+    Serial.println(gerak.isFuzzyEnabled() ? F("ON") : F("OFF"));
+    Serial.println(F("Penggunaan: fuzzy on | fuzzy off | fuzzy"));
+  }
+#else
+  Serial.println(F("Fuzzy PID tidak aktif (ENABLE_FUZZY_PID=false)."));
+#endif
+}
+
+void Antarmuka::parseGainSchedulingCommand(const char *valStr) {
+#if ENABLE_GAIN_SCHEDULING
+  if (strcmp(valStr, "on") == 0) {
+    gerak.setGainScheduling(true);
+    Serial.println(F("Gain Scheduling: ON"));
+  } else if (strcmp(valStr, "off") == 0) {
+    gerak.setGainScheduling(false);
+    Serial.println(F("Gain Scheduling: OFF"));
+  } else {
+    Serial.print(F("Gain Scheduling: "));
+    Serial.println(gerak.isGainSchedulingEnabled() ? F("ON") : F("OFF"));
+    Serial.print(F("Kp sched: ")); Serial.print(gerak.getGainScheduleKp(), 2);
+    Serial.print(F(" | Kd sched: ")); Serial.print(gerak.getGainScheduleKd(), 2);
+    Serial.print(F(" | Ki sched: ")); Serial.println(gerak.getGainScheduleKi(), 2);
+    Serial.println(F("Penggunaan: gs on | gs off | gs"));
+  }
+#else
+  Serial.println(F("Gain Scheduling tidak aktif (ENABLE_GAIN_SCHEDULING=false)."));
+#endif
+}
+
+void Antarmuka::parseHeadingCommand(const char *valStr) {
+#if ENABLE_HEADING_CORRECTION
+  if (strcmp(valStr, "on") == 0) {
+    gerak.setHeadingCorrection(true);
+    Serial.println(F("Heading correction: ON"));
+  } else if (strcmp(valStr, "off") == 0) {
+    gerak.setHeadingCorrection(false);
+    Serial.println(F("Heading correction: OFF"));
+  } else if (strcmp(valStr, "reset") == 0) {
+    gerak.resetHeading();
+    Serial.println(F("Heading direset ke 0 (arah sekarang = lurus)."));
+  } else if (strcmp(valStr, "cal") == 0) {
+    if (!status.jalan) {
+      Serial.println(F("Kalibrasi bias gyro... diamkan robot 1.5 detik."));
+      gerak.calibrateHeadingBias();
+    } else {
+      Serial.println(F("ERROR: Hentikan robot dulu untuk kalibrasi heading."));
+    }
+  } else if (strcmp(valStr, "save") == 0) {
+    gerak.simpanHeading();
+    Serial.println(F("Heading correction disimpan ke EEPROM."));
+  } else {
+    Serial.print(F("Heading: ")); Serial.print(gerak.getHeading(), 1);
+    Serial.print(F("° | Target: ")); Serial.print(gerak.getTargetHeading(), 1);
+    Serial.print(F("° | Error: ")); Serial.print(gerak.getHeadingError(), 1);
+    Serial.print(F("° | Correction: "));
+    Serial.println(gerak.isHeadingCorrectionEnabled() ? F("ON") : F("OFF"));
+    Serial.println(F("Penggunaan: heading on|off|reset|cal|save"));
+  }
+#else
+  Serial.println(F("Heading correction tidak aktif (ENABLE_HEADING_CORRECTION=false)."));
+#endif
+}
+
+void Antarmuka::parseHTargetCommand(const char *valStr) {
+#if ENABLE_HEADING_CORRECTION
+  if (valStr[0] != '\0') {
+    float target = atof(valStr);
+    // Bounds: heading target -180 to 180 degrees
+    if (target < -180.0f || target > 180.0f) {
+      Serial.println(F("ERROR: Heading target -180 s/d 180 derajat"));
+    } else {
+      gerak.setHeadingTarget(target);
+    }
+  }
+  Serial.print(F("Heading target = "));
+  Serial.println(gerak.getTargetHeading());
+#else
+  Serial.println(F("Heading correction tidak aktif."));
+#endif
+}
+
+void Antarmuka::parseAdaptiveCommand(const char *valStr) {
+#if ENABLE_ADAPTIVE_THRESHOLD
+  if (strcmp(valStr, "on") == 0) {
+    sensor.setAdaptiveThreshold(true);
+    Serial.println(F("Adaptive Threshold: ON"));
+  } else if (strcmp(valStr, "off") == 0) {
+    sensor.setAdaptiveThreshold(false);
+    Serial.println(F("Adaptive Threshold: OFF"));
+  } else if (strcmp(valStr, "reset") == 0) {
+    sensor.resetAdaptive();
+    Serial.println(F("Adaptive threshold direset ke base."));
+  } else if (strcmp(valStr, "save") == 0) {
+    sensor.simpanAdaptive();
+    Serial.println(F("Adaptive threshold base disimpan ke EEPROM."));
+  } else {
+    Serial.print(F("Adaptive Threshold: "));
+    Serial.println(sensor.isAdaptiveThresholdEnabled() ? F("ON") : F("OFF"));
+    Serial.print(F("Ambang kiri dinamis: ")); Serial.print(sensor.ambangDinamis(2));
+    Serial.print(F(" | kanan: ")); Serial.println(sensor.ambangDinamis(1));
+    Serial.println(F("Penggunaan: adapt on|off|reset|save"));
+  }
+#else
+  Serial.println(F("Adaptive Threshold tidak aktif (ENABLE_ADAPTIVE_THRESHOLD=false)."));
+#endif
+}
+
+void Antarmuka::parseMapClearCommand() {
+  if (status.jalan) {
+    Serial.println(F("ERROR: Robot sedang jalan, hentikan dulu sebelum mapclear."));
+  } else {
+    mapper.reset();
+    Serial.println(F("Peta waypoint direset (mapclear)."));
+  }
+}
+
+void Antarmuka::parsePathCommand(const char *valStr) {
+#if ENABLE_PATH_PLANNER
+  pathPlanner.handleCommand(valStr);
+#else
+  Serial.println(F("Path planner dinonaktifkan (ENABLE_PATH_PLANNER=false)."));
+#endif
+}
+
+void Antarmuka::parseStartCommand() {
+  if (!status.jalan) {
+    mulai("Serial");
+  } else {
+    Serial.println(F("Sudah jalan."));
+  }
+}
+
+void Antarmuka::parseStopCommand() {
+  if (status.jalan) {
+    berhenti("Serial");
+  } else {
+    Serial.println(F("Sudah berhenti."));
+  }
+}
+
+void Antarmuka::parseStatusCommand() {
+  tampilkanStatusJalannya();
+}
+
+void Antarmuka::parseHelpCommand() {
+  Serial.println(F("ki <val>        : set Ki (contoh: ki 0.02)"));
+  Serial.println(F("kd <val>        : set Kd (contoh: kd 1.8)"));
+  Serial.println(F("speed <val>     : set speed maks 60-150"));
+  Serial.println(F("speedmin <val>  : set speed min"));
+  Serial.println(F("ambang <val>    : set ambang kiri & kanan (1-20)"));
+  Serial.println(F("ambangk <val>   : set ambang kiri saja"));
+  Serial.println(F("ambangn <val>   : set ambang kanan saja"));
+  Serial.println(F("mode <val>      : set mode (learn/race/rc/normal)"));
+  Serial.println(F("rc on|off|status: aktifkan/nonaktifkan/cek status RC"));
+  Serial.println(F("fuzzy on|off   : aktifkan/nonaktifkan/cek Fuzzy adaptive PID"));
+  Serial.println(F("gs on|off     : aktifkan/nonaktifkan/cek Gain Scheduling"));
+  Serial.println(F("heading on|off|reset|cal|save : aktifkan/cek/reset/kalibrasi/save heading correction"));
+  Serial.println(F("htarget <val> : set target heading (derajat)"));
+  Serial.println(F("adapt on|off|reset|save : aktifkan/cek/reset/save Adaptive Threshold"));
+  Serial.println(F("calibrate [auto|manual] : kalibrasi sensor; auto = robot berputar, manual = diputar tangan"));
+  Serial.println(F("tune            : Auto-Tune PID via relay feedback (Ziegler-Nichols)"));
+  Serial.println(F("lap [summary|csv|reset] : lap timer summary/CSV/reset"));
+  Serial.println(F("lapconfig <th> [minMs] : set threshold start/finish & min lap time"));
+#if ENABLE_PATH_PLANNER
+  Serial.println(F("path map        : tampilkan grid map"));
+  Serial.println(F("path find       : cari path ke goal"));
+  Serial.println(F("path goal <x> <y> : set goal position"));
+  Serial.println(F("path next       : waypoint berikutnya"));
+  Serial.println(F("path obstacle <x> <y> : tambah obstacle"));
+  Serial.println(F("path reset      : reset path planner"));
+#endif
+  Serial.println(F("save            : simpan ke EEPROM (termasuk waypoint learning)"));
+  Serial.println(F("load            : muat dari EEPROM & cetak waypoint"));
+  Serial.println(F("start           : mulai jalan"));
+  Serial.println(F("stop            : berhenti"));
+  Serial.println(F("status          : tampilkan status sedang ini"));
+  Serial.println(F("mapclear        : hapus semua waypoint peta (harus berhenti)"));
+  Serial.println(F("help / ?        : tampilkan ini"));
+  Serial.println(F("-----------------------"));
+  Serial.println();
+  Serial.println(F("=== MODE via TOMBOL (saat berhenti) ==="));
+  Serial.println(F("B1 pendek: Pindah mode Normal <-> Learning <-> Racing <-> RC"));
+  Serial.println(F("B1 lama: Toggle mode Setel Kp/Kd"));
+  Serial.println(F("B1+B2: Kalibrasi sensor (pendek) / Auto-Tuning (lama)"));
+  Serial.println(F("Fuzzy PID: gunakan serial 'fuzzy on/off' untuk toggle"));
 }
 
 // Fungsi tampilkan status jalanannya ke serial

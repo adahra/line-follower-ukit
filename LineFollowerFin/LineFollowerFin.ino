@@ -2,6 +2,7 @@
 #include <EEPROM.h>
 #include "fwd.h"
 #include "config.h"
+#include "eeprom_layout.h"
 #include "status.h"
 #include "sensor_garis.h"
 #include "penggerak.h"
@@ -39,16 +40,15 @@ RcCtrl rc(status, gerak, sensor, aman, lapTimer);
 #endif
 
 void setup() {
-  // Lindungi konfigurasi EEPROM 0..20: Initialization() library uKit
-  // menghapus alamat itu bila byte 3 != 77. Guard harus ditulis SEBELUM
-  // Initialization() agar tuning yang sudah disimpan tidak hilang.
-  EEPROM.update(3, 77);
+  // Initialize EEPROM with versioned layout (handles guard byte 3 internally)
+  eepromInit();
   Initialization();
   IMU::init();
   if (protocolRunState == false) {
     sensor.muat();
     mapper.muat();  // peta waypoint LEARNING persisten antar power cycle
-    bool eepromValid = (EEPROM.read(ADDR_EEPROM_CHECK) == 123);
+    bool eepromValid = (EEPROM.read(EEPROM_ADDR::EE_ADDR_MAGIC) == MAGIC_EEPROM_VALID &&
+                        EEPROM.read(EEPROM_ADDR::EE_ADDR_VERSION) == EEPROM_FMT_VERSION);
     if (!eepromValid && AUTO_CALIBRATE_ON_BOOT) {
       Serial.println(F("EEPROM invalid + AUTO_CALIBRATE_ON_BOOT=true -> kalibrasi otomatis..."));
       sensor.kalibrasi(gerak);
@@ -111,6 +111,306 @@ void setup() {
   #endif
 }
 
+// ===== HELPER FUNCTIONS FOR loop() =====
+
+// Handle safety checks: battery, tilt, ultrasonic obstacle
+// Returns true if robot should stop (safety triggered)
+bool handleSafetyChecks() {
+  // Prioritas tertinggi: baterai lemah menghentikan SEMUA fungsi.
+  if (aman.bateraiKritis()) {
+    return true;
+  }
+
+  // Robot miring/terangkat: matikan motor selama tidak rata (tak dikunci).
+  if (aman.miring()) {
+    return true;
+  }
+
+  // Halangan depan menghentikan semua logika jalan.
+  if (aman.halangan()) {
+    return true;
+  }
+  return false;
+}
+
+// Handle UI updates: buttons, clap, serial, auto lights, heading, BT, RC
+void handleUIUpdates() {
+  ui.cekTombol();
+  ui.cekTepuk();          // toggle jalan/berhenti via tepuk tangan
+#if ENABLE_SERIAL_MODE
+  ui.cekSerial();         // serial command parser
+#endif
+  aman.lampuOtomatis();   // headlight otomatis, non-blocking (throttle 200ms)
+
+  // IMU heading: integrasi gyro tiap loop
+#if ENABLE_HEADING_CORRECTION
+  gerak.updateHeading();
+#endif
+
+  // Bluetooth update
+#if ENABLE_BLUETOOTH
+  bluetooth.update();
+#endif
+
+  // RC update
+#if ENABLE_RC
+  rc.update();
+#endif
+}
+
+// Handle racing prediction logic, updates aksiPrediksi/prediksiMulai
+void handleRacingPrediction(int bacaKiri, int bacaKanan,
+                            int ambangKiriEfektif, int ambangKananEfektif,
+                            ActionType &aksiPrediksi, unsigned long &prediksiMulai,
+                            bool &prediksiValid) {
+  if (status.modeOperasi != MODE_RACING) {
+    aksiPrediksi = ACT_NONE;
+    prediksiValid = false;
+    return;
+  }
+
+  if (mapper.getWaypointCount() == 0) {
+    aksiPrediksi = ACT_NONE;
+    prediksiValid = false;
+    return;
+  }
+
+  EventType predType;
+  ActionType predAct;
+  if (mapper.checkPrediction(millis(), predType, predAct)) {
+    aksiPrediksi = predAct;
+    prediksiMulai = millis();
+  }
+
+  prediksiValid = (aksiPrediksi != ACT_NONE) &&
+                  (millis() - prediksiMulai <= RACE_PREDICTION_HOLD_MS);
+  if (!prediksiValid) {
+    aksiPrediksi = ACT_NONE;
+  }
+
+  // LED menampilkan prediksi yang sedang berlaku
+  if (!prediksiValid) {
+    setRgbledColor(0, 0, 255); // Biru = tidak ada event prediction
+  } else if (aksiPrediksi == ACT_STRAIGHT) {
+    setRgbledColor(255, 255, 255); // Putih = lurus
+  } else if (aksiPrediksi == ACT_LEFT) {
+    setRgbledColor(0, 255, 0); // Hijau = belok kiri
+  } else if (aksiPrediksi == ACT_RIGHT) {
+    setRgbledColor(255, 0, 0); // Merah = belok kanan
+  }
+}
+
+// Handle RC mode - returns true if RC mode active and handled
+bool handleRCMode() {
+#if ENABLE_RC
+  if (status.modeOperasi == MODE_RC) {
+    if (rc.isSignalLost()) {
+      gerak.berhenti();
+      setRgbledColor(255, 0, 0);  // Merah = sinyal hilang
+    } else {
+      int speedKiri, speedKanan;
+      rc.getSpeeds(speedKiri, speedKanan);
+      gerak.jalankanArah(speedKiri, speedKanan);
+      setRgbledColor(0, 255, 255);  // Cyan = RC aktif
+    }
+    return true;
+  }
+#endif
+  return false;
+}
+
+// Handle SUBSTATE_INTER_CREEP (150ms creep through intersection)
+void handleIntersectionCreep(int bacaKiri, int bacaKanan,
+                             int ambangKiriEfektif, int ambangKananEfektif,
+                             ActionType &aksiPrediksi, bool prediksiValid) {
+  gerak.maju(kecepatanDasarMin);
+  status.dalamGaris = true;
+
+  if (millis() - status.subStateMulai >= 150) {
+    int selisih = bacaKiri - bacaKanan;  // Use cached values
+    ActionType act = ACT_STRAIGHT;
+    bool pakaiPrediksi = (status.modeOperasi == MODE_RACING) &&
+                         prediksiValid &&
+                         (abs(selisih) < RACE_PREDICTION_MARGIN);
+    if (pakaiPrediksi) {
+      act = aksiPrediksi;
+      aksiPrediksi = ACT_NONE;
+    } else if (selisih > 0) {
+      act = ACT_RIGHT;
+    } else if (selisih < 0) {
+      act = ACT_LEFT;
+    } else {
+      act = ACT_STRAIGHT;
+    }
+
+    if (act == ACT_STRAIGHT) {
+      status.subState = SUBSTATE_TRACKING;
+      status.subStateAksi = ACT_NONE;
+      status.subStateMulai = 0;
+      setRgbledColor(0, 0, 0);
+#if ENABLE_HEADING_CORRECTION
+      gerak.resetHeading();
+#endif
+      if (status.modeOperasi == MODE_LEARNING) {
+        mapper.recordEvent(EVENT_INTERSECTION, act);
+      }
+    } else if (act == ACT_LEFT) {
+      status.subState = SUBSTATE_TURNING;
+      status.subStateMulai = millis();
+#if ENABLE_ADAPTIVE_THRESHOLD
+      status.targetAmbangBelok = sensor.isAdaptiveThresholdEnabled()
+                                 ? sensor.ambangDinamis(2) : AMBANG_KIRI;
+#else
+      status.targetAmbangBelok = AMBANG_KIRI;
+#endif
+      gerak.putarKiri(kecepatanDasarMin);
+    } else if (act == ACT_RIGHT) {
+      status.subState = SUBSTATE_TURNING;
+      status.subStateMulai = millis();
+#if ENABLE_ADAPTIVE_THRESHOLD
+      status.targetAmbangBelok = sensor.isAdaptiveThresholdEnabled()
+                                 ? sensor.ambangDinamis(1) : AMBANG_KANAN;
+#else
+      status.targetAmbangBelok = AMBANG_KANAN;
+#endif
+      gerak.putarKanan(kecepatanDasarMin);
+    }
+  }
+}
+
+// Handle SUBSTATE_TURNING (non-blocking 90° turn)
+void handleTurning() {
+  unsigned long turnElapsed = millis() - status.subStateMulai;
+  bool lineFound = false;
+  if (turnElapsed >= 250) {
+    if (status.subStateAksi == ACT_LEFT) {
+      lineFound = ((int)readInfraredDistance(2) >= status.targetAmbangBelok);
+    } else if (status.subStateAksi == ACT_RIGHT) {
+      lineFound = ((int)readInfraredDistance(1) >= status.targetAmbangBelok);
+    }
+  }
+  bool turnTimeout = (turnElapsed > (unsigned long)BELOK_TIMEOUT_MS);
+  if (lineFound || turnTimeout) {
+#if ENABLE_HEADING_CORRECTION
+    gerak.resetHeading();
+#endif
+    if (status.modeOperasi == MODE_LEARNING) {
+      mapper.recordEvent(EVENT_INTERSECTION, status.subStateAksi);
+#if ENABLE_SERIAL_OUTPUT
+      Serial.print(F("Event tercatat: "));
+      Serial.println(status.subStateAksi);
+#endif
+    }
+    setRgbledColor(0, 0, 0);
+    status.subState = SUBSTATE_TRACKING;
+    status.subStateAksi = ACT_NONE;
+    status.subStateMulai = 0;
+    status.dalamGaris = true;
+  } else {
+    status.dalamGaris = false;
+  }
+}
+
+// Handle intersection detection with hysteresis (2 consecutive loops)
+bool handleIntersectionDetection(int bacaKiri, int bacaKanan,
+                                 int ambangKiriEfektif, int ambangKananEfektif) {
+  static uint8_t interCount = 0;
+  if (bacaKiri >= ambangKiriEfektif && bacaKanan >= ambangKananEfektif) {
+    if (interCount < 2) interCount++;
+  } else {
+    interCount = 0;
+  }
+
+  if (interCount >= 2) {
+    setRgbledColor(255, 255, 255);
+    status.subState = SUBSTATE_INTER_CREEP;
+    status.subStateMulai = millis();
+    gerak.maju(kecepatanDasarMin);
+    interCount = 0;
+    return true;
+  }
+  return false;
+}
+
+// Handle lost line recovery with timeout
+void handleLostLineRecovery(int bacaKiri, int bacaKanan,
+                            int ambangKiriEfektif, int ambangKananEfektif) {
+  if (bacaKiri < ambangKiriEfektif && bacaKanan < ambangKananEfektif) {
+    if (status.recoveryMulai == 0) {
+      status.recoveryMulai = millis();
+    }
+
+    if (millis() - status.recoveryMulai > RECOVERY_TIMEOUT_MS) {
+      gerak.berhenti();
+      setRgbledColor(255, 0, 0);
+    } else {
+      setRgbledColor(255, 0, 255);
+      gerak.putarCariGaris(gerak.errorTerakhir());
+    }
+    status.dalamGaris = false;
+  }
+}
+
+// Handle normal PID tracking mode
+void handleNormalTracking(int bacaKiri, int bacaKanan,
+                          int ambangKiriEfektif, int ambangKananEfektif) {
+  setRgbledColor(0, 0, 0);
+
+  // Nyangkut di pembatas: berhenti total, tunggu operator.
+  if (aman.macet(bacaKiri, bacaKanan)) {
+    return;
+  }
+
+  // Reset state integral saat kembali dari recovery
+  bool dariRecovery = (status.recoveryMulai != 0);
+  status.recoveryMulai = 0;
+  if (dariRecovery) {
+    gerak.resetIntegralSetelahRecovery((bacaKiri - bacaKanan) / 2.0);
+#if ENABLE_HEADING_CORRECTION
+    gerak.resetHeading();
+#endif
+  }
+
+  // Di antara interval PID, pertahankan speed terakhir.
+  if (!gerak.hitung(bacaKiri, bacaKanan, dariRecovery)) {
+    gerak.terapkanTerakhir();
+    return;
+  }
+
+  // ADAPTIVE THRESHOLD UPDATE
+#if ENABLE_ADAPTIVE_THRESHOLD
+  if (sensor.isAdaptiveThresholdEnabled()) {
+    sensor.updateAmbangDinamis(bacaKiri, bacaKanan, kecepatanDasar);
+  }
+#endif
+
+  // LAP TIMER UPDATE
+  if (ENABLE_LAP_TIMER) {
+    float currentError = (bacaKiri - bacaKanan) / 2.0;
+    lapTimer.update(bacaKiri, bacaKanan, kecepatanDasar, currentError);
+  }
+
+  status.dalamGaris = (bacaKiri >= ambangKiriEfektif) || (bacaKanan >= ambangKananEfektif);
+}
+
+// Handle stopped state LED indication
+void handleStoppedState() {
+  gerak.saatBerhenti();
+  status.dalamGaris = false;
+  if (status.modeSetelKd == true) {
+    setRgbledColor(255, 0, 255);  // Magenta = tuning Kd
+  } else if (status.modeOperasi == MODE_LEARNING) {
+    setRgbledColor(255, 255, 0);  // Kuning = learning
+  } else if (status.modeOperasi == MODE_RACING) {
+    setRgbledColor(0, 255, 0);    // Hijau = racing
+  } else if (status.modeOperasi == MODE_RC) {
+    setRgbledColor(0, 255, 255);  // Cyan = RC
+  } else {
+    setRgbledColor(0, 0, 0);      // Mati = normal
+  }
+}
+
+// ===== MAIN LOOP =====
 void loop() {
   // PERFORMANCE OPTIMIZATIONS APPLIED
   // 1. Cached sensor readings - eliminate redundant I/O
@@ -119,6 +419,7 @@ void loop() {
   // persimpangan benar-benar tiba.
   static ActionType aksiPrediksi = ACT_NONE;
   static unsigned long prediksiMulai = 0;
+  bool prediksiValid = false;
 
   protocol();
   if (!status.jalan || status.modeOperasi != MODE_RACING) {
@@ -128,48 +429,12 @@ void loop() {
     status.subState = SUBSTATE_TRACKING;
   }
   if (protocolRunState == false) {
-    // Prioritas tertinggi: baterai lemah menghentikan SEMUA fungsi.
-    if (aman.bateraiKritis()) {
-      return;
-    }
-
-    // Robot miring/terangkat: matikan motor selama tidak rata (tak dikunci).
-    if (aman.miring()) {
-      return;
-    }
-
-    ui.cekTombol();
-    ui.cekTepuk();          // toggle jalan/berhenti via tepuk tangan
-#if ENABLE_SERIAL_MODE
-    ui.cekSerial();         // serial command parser (Kp/Ki/Kd/speed/ambang/calibrate/save/help)
-#endif
-    aman.lampuOtomatis();   // headlight otomatis, non-blocking (throttle 200ms)
-
-    // IMU heading: integrasi gyro tiap loop, termasuk saat berhenti agar
-    // kalibrasi bias (perintah 'heading cal') tetap berjalan tanpa PID.
-    #if ENABLE_HEADING_CORRECTION
-      gerak.updateHeading();
-    #endif
-    
-    // Bluetooth update
-    #if ENABLE_BLUETOOTH
-      bluetooth.update();
-    #endif
-
-    // RC update
-    #if ENABLE_RC
-      rc.update();
-    #endif
-
-    // Path Planner TIDAK dipanggil otomatis. Fitur ini adalah alat peta/A*
-    // manual lewat perintah serial ('path ...'), bukan navigasi otonom:
-    // posisi grid robot tidak bisa diketahui tanpa odometri/encoder.
-    // Memanggil updateMap() tiap loop juga membaca sensor dua kali dan
-    // menambah ping ultrasonik tanpa manfaat untuk pengendalian.
+    handleUIUpdates();
 
     if (status.jalan == true) {
-      // Prioritas tertinggi: halangan depan menghentikan semua logika jalan.
-      if (aman.halangan()) {
+      // Safety checks (battery/tilt already done in handleUIUpdates via aman.lampuOtomatis?
+      // No - battery/tilt/ultrasonic are separate. Check them now.
+      if (handleSafetyChecks()) {
         return;
       }
 
@@ -187,253 +452,48 @@ void loop() {
       int ambangKananEfektif = AMBANG_KANAN;
 #endif
 
-      // --- RACING PREDICTION ---
-      bool prediksiValid = false;
-      if (status.modeOperasi == MODE_RACING) {
-        if (mapper.getWaypointCount() == 0) {
-          // Tidak ada waypoint terrekam: lewati prediksi (tanpa peta).
-          aksiPrediksi = ACT_NONE;
-        } else {
-          EventType predType;
-          ActionType predAct;
-          if (mapper.checkPrediction(millis(), predType, predAct)) {
-            aksiPrediksi = predAct;
-            prediksiMulai = millis();
-          }
-        }
+      // RACING PREDICTION
+      handleRacingPrediction(bacaKiri, bacaKanan,
+                             ambangKiriEfektif, ambangKananEfektif,
+                             aksiPrediksi, prediksiMulai, prediksiValid);
 
-        prediksiValid = (aksiPrediksi != ACT_NONE) &&
-                        (millis() - prediksiMulai <= RACE_PREDICTION_HOLD_MS);
-        if (!prediksiValid) {
-          aksiPrediksi = ACT_NONE;
-        }
-
-        // LED menampilkan prediksi yang sedang berlaku (bukan hanya saat
-        // checkPrediction baru fire), supaya operator bisa melihat konteks.
-        if (!prediksiValid) {
-          setRgbledColor(0, 0, 255); // Biru = tidak ada event prediction
-        } else if (aksiPrediksi == ACT_STRAIGHT) {
-          setRgbledColor(255, 255, 255); // Putih = lurus
-        } else if (aksiPrediksi == ACT_LEFT) {
-          setRgbledColor(0, 255, 0); // Hijau = belok kiri
-        } else if (aksiPrediksi == ACT_RIGHT) {
-          setRgbledColor(255, 0, 0); // Merah = belok kanan
-        }
+      // MODE RC: Remote Control menggantikan semua logika tracer
+      if (handleRCMode()) {
+        return;
       }
 
-      // --- MODE RC: Remote Control menggantikan semua logika tracer ---
-#if ENABLE_RC
-        if (status.modeOperasi == MODE_RC) {
-          if (rc.isSignalLost()) {
-            gerak.berhenti();
-            setRgbledColor(255, 0, 0);  // Merah = sinyal hilang
-          } else {
-            int speedKiri, speedKanan;
-            rc.getSpeeds(speedKiri, speedKanan);
-            gerak.jalankanArah(speedKiri, speedKanan);
-            setRgbledColor(0, 255, 255);  // Cyan = RC aktif
-          }
-          return;
-        }
-#endif
-
-      // --- SUBSTATE 1: CREEP MELEWATI PERSIMPANGAN (150ms) ---
+      // SUBSTATE 1: CREEP MELEWATI PERSIMPANGAN (150ms)
       if (status.subState == SUBSTATE_INTER_CREEP) {
-        gerak.maju(kecepatanDasarMin);
-        status.dalamGaris = true;  // We are on the line during intersection creep
-        if (millis() - status.subStateMulai >= 150) {
-          int bacaKiriSegar = sensor.bacaKiri();
-          // Use cached sensor values (eliminated redundant readings)
-          int selisih = bacaKiri - bacaKanan;  // Use cached values
-          ActionType act = ACT_STRAIGHT;
-          bool pakaiPrediksi = (status.modeOperasi == MODE_RACING) &&
-                               prediksiValid &&
-                               (abs(selisih) < RACE_PREDICTION_MARGIN);
-          if (pakaiPrediksi) {
-            act = aksiPrediksi;
-            aksiPrediksi = ACT_NONE;
-          } else if (selisih > 0) {
-            act = ACT_RIGHT;
-          } else if (selisih < 0) {
-            act = ACT_LEFT;
-          } else {
-            act = ACT_STRAIGHT;
-          }
-
-          if (act == ACT_STRAIGHT) {
-            status.subState = SUBSTATE_TRACKING;
-            status.subStateAksi = ACT_NONE;
-            status.subStateMulai = 0;
-            setRgbledColor(0, 0, 0);
-            #if ENABLE_HEADING_CORRECTION
-              gerak.resetHeading();
-            #endif
-            if (status.modeOperasi == MODE_LEARNING) {
-              mapper.recordEvent(EVENT_INTERSECTION, act);
-            }
-          } else if (act == ACT_LEFT) {
-            status.subState = SUBSTATE_TURNING;
-            status.subStateMulai = millis();
-#if ENABLE_ADAPTIVE_THRESHOLD
-            status.targetAmbangBelok = sensor.isAdaptiveThresholdEnabled()
-                                       ? sensor.ambangDinamis(2) : AMBANG_KIRI;
-#else
-            status.targetAmbangBelok = AMBANG_KIRI;
-#endif
-            gerak.putarKiri(kecepatanDasarMin);
-          } else if (act == ACT_RIGHT) {
-            status.subState = SUBSTATE_TURNING;
-            status.subStateMulai = millis();
-#if ENABLE_ADAPTIVE_THRESHOLD
-            status.targetAmbangBelok = sensor.isAdaptiveThresholdEnabled()
-                                       ? sensor.ambangDinamis(1) : AMBANG_KANAN;
-#else
-            status.targetAmbangBelok = AMBANG_KANAN;
-#endif
-            gerak.putarKanan(kecepatanDasarMin);
-          }
-        }
+        handleIntersectionCreep(bacaKiri, bacaKanan,
+                                ambangKiriEfektif, ambangKananEfektif,
+                                aksiPrediksi, prediksiValid);
         return;
       }
 
-      // --- SUBSTATE 2: BELOK 90 DERAJAT NON-BLOCKING ---
+      // SUBSTATE 2: BELOK 90 DERAJAT NON-BLOCKING
       if (status.subState == SUBSTATE_TURNING) {
-        unsigned long turnElapsed = millis() - status.subStateMulai;
-        bool lineFound = false;
-        if (turnElapsed >= 250) {
-          if (status.subStateAksi == ACT_LEFT) {
-            lineFound = ((int)readInfraredDistance(2) >= status.targetAmbangBelok);
-          } else if (status.subStateAksi == ACT_RIGHT) {
-            lineFound = ((int)readInfraredDistance(1) >= status.targetAmbangBelok);
-          }
-        }
-        bool turnTimeout = (turnElapsed > (unsigned long)BELOK_TIMEOUT_MS);
-        if (lineFound || turnTimeout) {
-          #if ENABLE_HEADING_CORRECTION
-            gerak.resetHeading();
-          #endif
-          if (status.modeOperasi == MODE_LEARNING) {
-            mapper.recordEvent(EVENT_INTERSECTION, status.subStateAksi);
-#if ENABLE_SERIAL_OUTPUT
-            Serial.print(F("Event tercatat: "));
-            Serial.println(status.subStateAksi);
-#endif
-          }
-          setRgbledColor(0, 0, 0);
-          status.subState = SUBSTATE_TRACKING;
-          status.subStateAksi = ACT_NONE;
-          status.subStateMulai = 0;
-          // When we find the line during turning, we're back on track
-          status.dalamGaris = true;
-        } else {
-          // We're off the line during turning
-          status.dalamGaris = false;
-        }
+        handleTurning();
         return;
       }
 
-      // Histeresis: butuh 2 loop berturut-turut agar noise tidak trigger flicker.
-      static uint8_t interCount = 0;
-      if (bacaKiri >= ambangKiriEfektif && bacaKanan >= ambangKananEfektif) {
-        if (interCount < 2) interCount++;
-      } else {
-        interCount = 0;
-      }
-
-      if (interCount >= 2) {
-        setRgbledColor(255, 255, 255);
-        status.subState = SUBSTATE_INTER_CREEP;
-        status.subStateMulai = millis();
-        gerak.maju(kecepatanDasarMin);
-        interCount = 0;
+      // Histeresis: deteksi persimpangan (butuh 2 loop berturut-turut)
+      if (handleIntersectionDetection(bacaKiri, bacaKanan,
+                                      ambangKiriEfektif, ambangKananEfektif)) {
         return;
       }
-      // --- KONDISI B: LOST LINE RECOVERY (dengan timeout) ---
-      else if (bacaKiri < ambangKiriEfektif && bacaKanan < ambangKananEfektif) {
-        if (status.recoveryMulai == 0) {
-          status.recoveryMulai = millis();
-        }
 
-        if (millis() - status.recoveryMulai > RECOVERY_TIMEOUT_MS) {
-          // Garis tak ketemu >2 detik: berhenti + LED merah, tunggu operator.
-          // Jangan berputar liar sampai baterai habis.
-          gerak.berhenti();
-          setRgbledColor(255, 0, 0);
-        } else {
-          setRgbledColor(255, 0, 255);
-          gerak.putarCariGaris(gerak.errorTerakhir());
-        }
-        status.dalamGaris = false;  // We are definitely off the line during recovery
-      }
+      // KONDISI B: LOST LINE RECOVERY (dengan timeout)
+      handleLostLineRecovery(bacaKiri, bacaKanan,
+                             ambangKiriEfektif, ambangKananEfektif);
 
-      // --- KONDISI C: MODE TRACER PID NORMAL DENGAN ADAPTIVE SPEED ---
-      else {
-        setRgbledColor(0, 0, 0);
-
-        // Nyangkut di pembatas: berhenti total, tunggu operator.
-        if (aman.macet(bacaKiri, bacaKanan)) {
-          return;
-        }
-
-        // Reset state integral saat kembali dari recovery: hutang koreksi
-        // lama tidak relevan dengan garis yang baru ditemukan.
-        // (paksa = hitung PID sekarang juga, jangan tunggu interval.)
-        bool dariRecovery = (status.recoveryMulai != 0);
-        status.recoveryMulai = 0;
-        if (dariRecovery) {
-          gerak.resetIntegralSetelahRecovery((bacaKiri - bacaKanan) / 2.0);
-          // Robot berputar saat recovery: arah sekarang = baseline baru.
-          #if ENABLE_HEADING_CORRECTION
-            gerak.resetHeading();
-          #endif
-        }
-
-        // Di antara interval PID, pertahankan speed terakhir.
-        if (!gerak.hitung(bacaKiri, bacaKanan, dariRecovery)) {
-          gerak.terapkanTerakhir();
-          return;
-        }
-
-        // --- ADAPTIVE THRESHOLD UPDATE ---
-        // Ambang dinamis di-update setiap PID interval berdasarkan kecepatan.
-#if ENABLE_ADAPTIVE_THRESHOLD
-        if (sensor.isAdaptiveThresholdEnabled()) {
-          sensor.updateAmbangDinamis(bacaKiri, bacaKanan, kecepatanDasar);
-        }
-#endif
-
-        // --- LAP TIMER UPDATE ---
-        // Hanya update saat PID interval tiba (gerak.hitung return true)
-        if (ENABLE_LAP_TIMER) {
-          float currentError = (bacaKiri - bacaKanan) / 2.0;
-          lapTimer.update(bacaKiri, bacaKanan, kecepatanDasar, currentError);
-        }
-        
-        // Set status.dalamGaris based on current sensor readings
-        // True if at least one sensor is on the line (reading ≥ threshold)
-        // False if both sensors are off the line (both readings < threshold)
-        status.dalamGaris = (bacaKiri >= ambangKiriEfektif) || (bacaKanan >= ambangKananEfektif);
+      // KONDISI C: MODE TRACER PID NORMAL DENGAN ADAPTIVE SPEED
+      // Only if not in recovery (both sensors below threshold)
+      if (!(bacaKiri < ambangKiriEfektif && bacaKanan < ambangKananEfektif)) {
+        handleNormalTracking(bacaKiri, bacaKanan,
+                             ambangKiriEfektif, ambangKananEfektif);
       }
     } else {
-      gerak.saatBerhenti();
-      status.dalamGaris = false;  // Definitely not on line when stopped
-      if (status.modeSetelKd == true) {
-        // Mode tuning Kd aktif: magenta
-        setRgbledColor(255, 0, 255);
-      } else if (status.modeOperasi == MODE_LEARNING) {
-        // Mode learning aktif: kuning
-        setRgbledColor(255, 255, 0);
-      } else if (status.modeOperasi == MODE_RACING) {
-        // Mode racing: hijau
-        setRgbledColor(0, 255, 0);
-      } else if (status.modeOperasi == MODE_RC) {
-        // Mode RC: cyan
-        setRgbledColor(0, 255, 255);
-      } else {
-        // Mode normal: mati
-        setRgbledColor(0, 0, 0);
-      }
+      handleStoppedState();
     }
-
   }
 }
