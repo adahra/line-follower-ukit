@@ -17,8 +17,8 @@ public:
 
   void begin();
 
-  // Compute PID output. Returns true if interval elapsed and output updated.
-  bool compute(int bacaKiri, int bacaKanan, bool paksa = false);
+// Compute PID output. Returns true if interval elapsed and output updated.
+  bool compute(int bacaKiri, int bacaKanan, int currentSpeed, bool paksa = false);
 
   // Reset PID state (integral, lastError, timing)
   void reset();

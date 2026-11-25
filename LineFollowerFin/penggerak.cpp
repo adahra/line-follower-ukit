@@ -29,7 +29,7 @@ void Penggerak::resetIntegralSetelahRecovery(float errorBaru) {
 
 bool Penggerak::hitung(int bacaKiri, int bacaKanan, bool paksa) {
   // Compute PID (includes fuzzy, gain scheduling)
-  bool pidUpdated = pid.compute(bacaKiri, bacaKanan, paksa);
+  bool pidUpdated = pid.compute(bacaKiri, bacaKanan, speed.getBaseSpeed(), paksa);
   if (!pidUpdated) {
     return false;
   }

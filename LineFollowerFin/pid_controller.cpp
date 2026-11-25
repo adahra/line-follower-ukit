@@ -13,7 +13,7 @@ void PIDController::begin() {
 #endif
 }
 
-bool PIDController::compute(int bacaKiri, int bacaKanan, bool paksa) {
+bool PIDController::compute(int bacaKiri, int bacaKanan, int currentSpeed, bool paksa) {
   unsigned long nowPid = millis();
   if (!paksa && nowPid - pidTerakhir < PID_INTERVAL_MS) {
     return false;
@@ -53,9 +53,9 @@ bool PIDController::compute(int bacaKiri, int bacaKanan, bool paksa) {
   // --- GAIN SCHEDULING ---
 #if ENABLE_GAIN_SCHEDULING
   if (gainSchedulingEnabled) {
-    KpEff *= getGainScheduleKp();
-    KdEff *= getGainScheduleKd();
-    KiEff *= getGainScheduleKi();
+    KpEff *= getGainScheduleKp(currentSpeed);
+    KdEff *= getGainScheduleKd(currentSpeed);
+    KiEff *= getGainScheduleKi(currentSpeed);
   }
 #endif
 
@@ -106,22 +106,26 @@ bool PIDController::isGainSchedulingEnabled() const {
 }
 
 float PIDController::getGainScheduleKp(int currentSpeed) const {
-  if (currentSpeed >= GAIN_SCHED_HIGH_SPEED) return GAIN_SCHED_KP_HIGH;
-  if (currentSpeed <= GAIN_SCHED_LOW_SPEED) return GAIN_SCHED_KP_LOW;
-  float t = (float)(currentSpeed - GAIN_SCHED_LOW_SPEED) /
-            (GAIN_SCHED_HIGH_SPEED - GAIN_SCHED_LOW_SPEED);
-  return GAIN_SCHED_KP_LOW + t * (GAIN_SCHED_KP_HIGH - GAIN_SCHED_KP_LOW);
+  if (currentSpeed >= GS_SPEED_MID_MAX) return GS_KP_MID;
+  if (currentSpeed <= GS_SPEED_LOW_MAX) return GS_KP_LOW;
+  float t = (float)(currentSpeed - GS_SPEED_LOW_MAX) /
+            (GS_SPEED_MID_MAX - GS_SPEED_LOW_MAX);
+  return GS_KP_LOW + t * (GS_KP_MID - GS_KP_LOW);
 }
 
 float PIDController::getGainScheduleKd(int currentSpeed) const {
-  if (currentSpeed >= GAIN_SCHED_HIGH_SPEED) return GAIN_SCHED_KD_HIGH;
-  if (currentSpeed <= GAIN_SCHED_LOW_SPEED) return GAIN_SCHED_KD_LOW;
-  float t = (float)(currentSpeed - GAIN_SCHED_LOW_SPEED) /
-            (GAIN_SCHED_HIGH_SPEED - GAIN_SCHED_LOW_SPEED);
-  return GAIN_SCHED_KD_LOW + t * (GAIN_SCHED_KD_HIGH - GAIN_SCHED_KD_LOW);
+  if (currentSpeed >= GS_SPEED_MID_MAX) return GS_KD_MID;
+  if (currentSpeed <= GS_SPEED_LOW_MAX) return GS_KD_LOW;
+  float t = (float)(currentSpeed - GS_SPEED_LOW_MAX) /
+            (GS_SPEED_MID_MAX - GS_SPEED_LOW_MAX);
+  return GS_KD_LOW + t * (GS_KD_MID - GS_KD_LOW);
 }
 
 float PIDController::getGainScheduleKi(int currentSpeed) const {
-  return GAIN_SCHED_KI;
+  if (currentSpeed >= GS_SPEED_MID_MAX) return GS_KI_MID;
+  if (currentSpeed <= GS_SPEED_LOW_MAX) return GS_KI_LOW;
+  float t = (float)(currentSpeed - GS_SPEED_LOW_MAX) /
+            (GS_SPEED_MID_MAX - GS_SPEED_LOW_MAX);
+  return GS_KI_LOW + t * (GS_KI_MID - GS_KI_LOW);
 }
 #endif
