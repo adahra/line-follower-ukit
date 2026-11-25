@@ -58,61 +58,74 @@ Mode dapat diatur via antarmuka/serial (lihat `antarmuka`).
 - **LED RGB**: putih = persimpangan/start, magenta = garis hilang / mode setel Kd, kuning = kalibrasi, hijau berkedip 3× = kalibrasi selesai. Saat berhenti: magenta = mode Kd-tune, kuning = mode LEARNING, hijau = mode RACING, mati = NORMAL.
 
 ### Persistence (EEPROM)
-- Penanda valid: `123` di alamat `ADDR_EEPROM_CHECK` (0).
-- Tersimpan: `Kp` (4), `Ki` (8), `Kd` (12), `kecepatanDasarMaks` (16), `AMBANG_KIRI` (20), `AMBANG_KANAN` (22), peta waypoint (24–266), parameter heading/adaptive (280–297).
-- **Tidak disimpan**: `kecepatanDasarMin` (selalu pakai nilai default di `config.h`).
-- Penulisan EEPROM dihindari bila nilai tidak berubah (`eepromPutHemat` template di header; butuh forward declaration eksplisit).
-
-### Safety & Fitur Pendukung
-- **Ultrasonic stop** (prioritas tertinggi saat berjalan): berhenti bila halangan depan ≤ **5 cm** (`ULTRASONIC_ID`, `JARAK_BERHENTI_CM`).
-- **Auto headlight**: eye lamp menyala otomatis saat gelap (< 100 lux, mati > 150 lux), dengan histeresis (`LIGHT_SENSOR_ID`).
-- **Clap toggle**: jalan/berhenti via tepuk tangan (`SOUND_SENSOR_ID`, dengan ambang + histeresis + cooldown).
-- **Tilt halt** (IMU): berhenti saat miring/terangkat (> `TILT_MAKS_DERAJAT`).
-- **Stuck detector**: deteksi macet (IR beku + perubahan akselerasi stabil) dan menghentikan robot.
-- **Battery latch**: bila tegangan <= `TEGANGAN_MIN` (5.5V), robot dikunci mati sampai power cycle. Dapat dimatikan dengan `ENABLE_BATTERY_CHECK=false` di `config.h`.
-- **Lost-line recovery**: putar cari garis ke arah `lastError`, timeout **2 detik** lalu berhenti (LED merah).
-- **Intersection handling**: lewati aman lalu putar 90° kiri/kanan atau lurus berdasarkan pembacaan segar.
-
-### Fitur Opsional (dikendalikan `config.h`)
-Semua default **false**:
-- **Lap timer** (`ENABLE_LAP_TIMER`): deteksi garis start/finish, hitung waktu lap (`LAP_SF_THRESHOLD`, `LAP_MIN_LAP_MS`).
-- **Bluetooth/BLE** (`ENABLE_BLUETOOTH`): kontrol & telemetri via Bluetooth (`BT_BAUD`, `BT_MODULE_TYPE`, `BT_TELEMETRY_MS`).
-- **Path planner** (`ENABLE_PATH_PLANNER`): **alat peta/A\* manual** lewat perintah serial (`path ...`), bukan navigasi otonom. Posisi grid robot tidak diketahui tanpa odometri/encoder, dan mengaktifkannya memakai ~94% RAM ATMega2560. File `path_planner.*` ada di root sketch folder dan hanya di-include bila diaktifkan. Lihat [docs/PATH_PLANNER.md](docs/PATH_PLANNER.md) untuk detail algoritma A*; batasan integrasi dijelaskan di [`config.h`](LineFollowerFin/config.h#L211-L218).
-- **RC** (`ENABLE_RC`): remote control dua channel (throttle `RC_PIN`, steering `RC_STEER_PIN`), center = berhenti, throttle negatif = mundur. Hanya membaca `pulseIn` saat `MODE_RC` aktif agar tidak memblokir line follower.
-- **Fuzzy PID** (`ENABLE_FUZZY_PID`): kontrol PID adaptif berbasis logika fuzzy untuk performa tracking yang lebih halus. Lihat [docs/FUZZY_PID.md](docs/FUZZY_PID.md) untuk dokumentasi lengkap algoritma fuzzy adaptive PID.
-
-Catatan: `TELEMETRI` serial CSV bisa diaktifkan (`ENABLE_TELEMETRI`) untuk tuning; `IMU` digunakan untuk tilt/stuck detection.
-
-## Hardware Konvensi
-
-- **Sensor IR garis**: `readInfraredDistance(2)` = **kiri**, `readInfraredDistance(1)` = **kanan**. Error = `(kiri - kanan)/2`.
-- **Motor servo**: 4+2 = sisi kiri (dir `1`), 1+3 = sisi kanan (dir `0`).
-- **Kecepatan**: diderate **0–150** (maks efektif via tombol/konfigurasi dibatasi 150). Servo punya deadband; nilai < 25 bisa dipaksa atau tidak efektif.
-- **Sensor ID**: `LIGHT_SENSOR_ID`, `ULTRASONIC_ID`, `SOUND_SENSOR_ID` masih bisa perlu disesuaikan dengan wiring.
-- **Ambang kalibrasi**: hasil kalibrasi manual dijepit ke **3–18** per sensor.
+- Penanda valid: `123` di alamat `0` (magic/check validitas EEPROM).
+- Guard byte `77` di alamat `3` (agar uKit `Initialization()` tidak menghapus 0–20).
+- Layout baru: **versi struct `EEPROMData` + `static_assert` compile-time checks** di `eeprom_layout.h`.
+- Tersimpan (via `EEPROMData` + helper `eepromWriteIfChanged`):
+  - `version` (1), `magic` (123) di alamat 0–1
+  - `Kp` (4), `Ki` (8), `Kd` (12) — float
+  - `kecepatanDasarMaks` (16) — int16
+  - `kecepatanDasarMin` (18) — int16 (hanya default, tidak dipakai runtime)
+  - `AMBANG_KIRI` (20), `AMBANG_KANAN` (22) — uint16
+  - Peta waypoint: magic `77` (24) + count + 30 × `Waypoint` (8 byte, addr 26–265)
+  - `HEADING_GAIN` (280), `HEADING_TARGET` (284) — float
+  - `AMBANG_KIRI_BASE` (288), `AMBANG_KANAN_BASE` (290) — uint16
+  - `HEADING_BIAS` (292) — float
+  - Magic data: heading `0x48` (296), adaptive `66` (297)
+- **Tidak disimpan**: `kecepatanDasarMin` (selalu default dari `config.h`).
+- Penulisan EEPROM dihindari bila nilai tidak berubah (`eepromWriteIfChanged` di `eeprom_layout.h`; `eepromPutHemat` template di `sensor_garis.h` untuk kompatibilitas lama; butuh forward declaration eksplisit di `fwd.h`).
 
 ## EEPROM Layout
 
 | Alamat | Isi | Keterangan |
 | --- | --- | --- |
+| 0 | `123` | Magic/check validitas EEPROM (`MAGIC_EEPROM_VALID`) |
+| 1 | `1` | Format version (`EEPROM_FMT_VERSION`) |
 | 3 | `77` | Guard uKit: `Initialization()` menghapus 0–20 bila byte ini bukan 77 |
-| 0 | `123` | Magic/check validitas EEPROM |
 | 4 | `Kp` (float) | PID proportional |
 | 8 | `Ki` (float) | PID integral |
 | 12 | `Kd` (float) | PID derivative |
-| 16 | `kecepatanDasarMaks` (int) | Batas kecepatan maksimal |
-| 20 | `AMBANG_KIRI` (int) | Ambang sensor kiri (hasil kalibrasi/per-tuning) |
-| 22 | `AMBANG_KANAN` (int) | Ambang sensor kanan |
-| 24–266 | Peta waypoint | Magic `77` + count + 30 × `Waypoint` (8 byte) |
+| 16 | `kecepatanDasarMaks` (int16) | Batas kecepatan maksimal |
+| 18 | `kecepatanDasarMin` (int16) | Batas kecepatan minimal (default, tidak dipakai runtime) |
+| 20 | `AMBANG_KIRI` (uint16) | Ambang sensor kiri (hasil kalibrasi/per-tuning) |
+| 22 | `AMBANG_KANAN` (uint16) | Ambang sensor kanan |
+| 24 | `77` | Magic map valid (`MAGIC_MAP_VALID`) |
+| 26–265 | Waypoint array | 30 × `Waypoint` (8 byte: x,y,t,flags) |
 | 280 | `HEADING_GAIN` (float) | Gain koreksi heading |
 | 284 | `HEADING_TARGET` (float) | Target heading tersimpan |
-| 288 | `AMBANG_KIRI_BASE` (int) | Ambang kiri dasar (adaptive threshold) |
-| 290 | `AMBANG_KANAN_BASE` (int) | Ambang kanan dasar (adaptive threshold) |
+| 288 | `AMBANG_KIRI_BASE` (uint16) | Ambang kiri dasar (adaptive threshold) |
+| 290 | `AMBANG_KANAN_BASE` (uint16) | Ambang kanan dasar (adaptive threshold) |
 | 292 | `HEADING_BIAS` (float) | Bias gyro hasil kalibrasi |
-| 296 | `88` | Magic data heading |
-| 297 | `66` | Magic data adaptive threshold |
+| 296 | `0x48` | Magic data heading (`MAGIC_HEADING_VALID`) |
+| 297 | `66` | Magic data adaptive threshold (`MAGIC_ADAPT_VALID`) |
 
 `kecepatanDasarMin` **tidak disimpan** (selalu default dari kode).
+
+## Validasi Input Serial
+
+Semua perintah numerik serial sekarang divalidasi batasnya (bounds checking) sebelum diterapkan. Jika nilai di luar batas, pesan error Indonesia dikirim ke Serial Monitor dan nilai tidak diubah:
+
+| Perintah | Parameter | Batas Valid | Error Message |
+| --- | --- | --- | --- |
+| `kp` | proportional gain | 0.0 – 50.0 | `ERROR: Kp harus 0.0 - 50.0` |
+| `ki` | integral gain | 0.0 – 5.0 | `ERROR: Ki harus 0.0 - 5.0` |
+| `kd` | derivative gain | 0.0 – 50.0 | `ERROR: Kd harus 0.0 - 50.0` |
+| `speed` | kecepatan maks | 60 – 150 | `ERROR: Speed maks harus 60-150` |
+| `speedmin` | kecepatan min | 10 – 150 | `ERROR: Speed min harus 10-150` |
+| `ambang` / `ambangk` / `ambangn` | ambang sensor | 1 – 20 | `ERROR: Ambang harus 1-20` (atau kiri/kanan) |
+| `lapconfig` threshold | start/finish threshold | 1 – 20 | `ERROR: Lap threshold harus 1-20` |
+| `lapconfig` minLap | minimal lap time | 500 – 60000 ms | `ERROR: Min lap harus 500-60000 ms` |
+| `htarget` | heading target | -180 – 180° | `ERROR: Heading target -180 s/d 180 derajat` |
+
+Contoh:
+```
+kp 100      -> ERROR: Kp harus 0.0 - 50.0
+kp 7.5      -> Kp = 7.50
+speed 200   -> ERROR: Speed maks harus 60-150
+speed 100   -> Speed maks = 100
+htarget 300 -> ERROR: Heading target -180 s/d 180 derajat
+htarget 90  -> Heading target = 90.00
+```
 
 ## Build / Verify
 
