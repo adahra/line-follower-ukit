@@ -1,74 +1,82 @@
 # AGENTS.md
 
-## Structure
-- Sketch folder: `LineFollowerFin/` (name must match). Only `objects`, `setup()`, `loop()` in `LineFollowerFin.ino`; logic split into classes via refs.
-- Core modules: `config.h/.cpp`, `status.h`, `fwd.h`, `sensor_garis.*`, `penggerak.*`, `antarmuka.*`, `pengaman.*`, `mapping.*`, `lap_timer.*`, `bluetooth_ctrl.*`, `rc_ctrl.*`, `path_planner.*` (optional), `fuzzy_pid.h` (optional), `heading_tracker.*` (optional).
-- `ucode.h` included only in `.ino`; `.cpp` files use `ukit_wrapper.h`/`ukit_extern.h`/`ukit_macros.h`.
-- Forward declarations in `fwd.h` are mandatory (template `eepromPutHemat` breaks auto-prototype). Keep `eepromPutHemat` in `sensor_garis.h`.
+## Ringkasan Proyek & Tech Stack
 
-## Toolchain
-- Target: uKit Explore 2 (Arduino Mega2560). Needs external `uKitExplore2.h` + built-ins (`EEPROM.h`, `Arduino.h`). Not vendored.
-- Compile: `LineFollowerFin/LineFollowerFin.ino` in Arduino IDE or via arduino-cli (see `BUILD.md`). Tests exist in `LineFollowerFin/tests/` (`TestLapTimer`, `TestBluetooth`, `TestPathPlanner`). CI compiles main + tests. No unit test runner.
-- Optional features toggled via `config.h` `ENABLE_*` (Fuzzy PID, Path Planner, Bluetooth, RC, Lap Timer). Default mostly false to save RAM.
+Robot line follower berbasis PID untuk board **uKit Explore 2** (Arduino Mega2560). Sketch utama `LineFollowerFin/LineFollowerFin.ino` berisi objek, `setup()`, dan state machine `loop()`; logika dipisah ke kelas modular (`sensor_garis`, `penggerak`, `pengaman`, `antarmuka`, `mapping`, `lap_timer`, dst.). Toolchain: Arduino IDE atau `arduino-cli` dengan board `arduino:avr:mega`, library eksternal `uKitExplore2` (tidak vendored), built-in `EEPROM.h`.
 
-## Hardware/Conventions
-- Sensor IR: `readInfraredDistance(2)` = kiri, `readInfraredDistance(1)` = kanan. Error = `(kiri - kanan)/2`.
-- Motors: servos 4+2 = kiri (dir `1`), servos 1+3 = kanan (dir `0`). Derated to 0–150, deadband ~25, slew ±14/loop by default.
-- Sensor IDs (`LIGHT_SENSOR_ID`, `ULTRASONIC_ID`, `SOUND_SENSOR_ID`) may differ by wiring.
-- Comments/serial prints mostly Indonesian — keep consistent.
-- Comments/serial prints mostly Indonesian — keep consistent.
+## Arsitektur & Struktur Direktori
 
-## Flow & State Machine (`loop()`)
-Order/priority (from code): protocol() if not running; check battery critical → return; check tilt → return; `ui.cekTombol()`, `ui.cekTepuk()`, `ui.cekSerial()` (if enabled), `aman.lampuOtomatis()`, heading update (if enabled); update optional modules (BT/RC; PathPlanner hanya via serial, bukan loop); if `status.jalan`:
-1. Ultrasonic stop ≤5 cm has highest priority → return.
-2. RACING prediction via `Mapper` if enabled (LED + aksi di persimpangan ambigu). RC mode takes over completely if enabled.
-3. Intersection (both ≥ threshold): white LED, transisi ke state machine non-blocking (`SUBSTATE_INTER_CREEP` maju 150ms, evaluasi arah lurus/kiri/kanan atau prediksi RACING, lanjut ke `SUBSTATE_TURNING` hingga garis terdeteksi setelah blind time 250ms atau timeout `BELOK_TIMEOUT_MS`, rekam ke `Mapper` jika LEARNING).
-4. Lost-line (both < threshold): start recovery timer if first time; if > `RECOVERY_TIMEOUT_MS` (2000ms) stop + red LED; else spin toward `lastError` via `putarCariGaris()`.
-5. Normal: check stuck (`aman.macet`), reset integral on recovery exit (`resetIntegralSetelahRecovery`), `gerak.hitung()` uses fixed interval `PID_INTERVAL_MS` (10ms); if not ready call `terapkanTerakhir()` and return; update lap timer if enabled.
+- `LineFollowerFin/` — sketch Arduino (nama folder harus sama dengan `.ino`)
+  - `LineFollowerFin.ino` — objek, `setup()`, state machine `loop()`
+  - `config.h` / `config.cpp` — semua nilai tunable (PID, speed, ambang, flag `ENABLE_*`)
+  - `status.h` — struct `Status` shared
+  - `fwd.h` — forward declarations (wajib untuk template `eepromPutHemat`)
+  - `eeprom_layout.h` — layout EEPROM versi struct + `static_assert`
+  - `sensor_garis.*` — filter IR, ambang per-sensor, kalibrasi, baca EEPROM
+  - `penggerak.*` — komputasi PID, deadband/slew, gerak motor servo, telemetry
+  - `pengaman.*` — battery latch, tilt halt, ultrasonic stop, stuck detector, lampu otomatis
+  - `antarmuka.*` — tombol onboard, tepuk tangan, parser perintah serial
+  - `mapping.*` — Mapper learning/racing untuk prediksi event persimpangan
+  - `lap_timer.*` — lap timer opsional (start/finish line)
+  - `bluetooth_ctrl.*`, `rc_ctrl.*`, `heading_tracker.*`, `path_planner.*` — opsional
+  - `tests/` — `TestLapTimer`, `TestBluetooth`, `TestPathPlanner`
+- `docs/` — arsitektur, API, design decisions, ukit_explore
+- `sim/` / `simulator/` — simulator Python
+- `blockly/` — workspace Blockly
+- `.github/workflows/compile.yml` — CI compile sketch utama + 3 test sketch
+- `BUILD.md` — panduan compile/upload `arduino-cli`
+- `WIRING.md` — panduan rangkaian hardware
 
-## Tuning & EEPROM
-- Tuning via buttons (no serial needed): Btn1 short adjusts Kp/Kd depending on `modeSetelKd` (toggle long-press while stopped), long-press while running stops. Btn2 short adjusts max speed ±10 (60–150), long-press saves EEPROM + starts. RGB shows states.
-- Persisted: guard `77` at 3 (agar uKit `Initialization()` tidak menghapus 0–20), magic `123` at 0, `Kp`(4), `Ki`(8), `Kd`(12), `kecepatanDasarMaks`(16), `AMBANG_KIRI`(20), `AMBANG_KANAN`(22), peta waypoint 24–266, heading/adaptive 280–297. Not persisted: `kecepatanDasarMin`. Writes via `eepromPutHemat` (only if changed). Manual calibration: both buttons together while stopped → putar hingga 360° berbasis gyro IMU (fallback timer jika `CALIB_USE_IMU=false`), compute per-sensor thresholds clamped to 3–18; batal jika putaran <300° atau kontras tidak cukup.
-- `setup()`: `EEPROM.update(3, 77)` → `Initialization()` → `IMU::init()`; if not in protocol run state load EEPROM + mapper, auto-calibrate only if invalid and `AUTO_CALIBRATE_ON_BOOT` true.
+## Perintah Build, Run, & Test
 
-## Gotchas (must preserve)
-- `eepromPutHemat` template in header + explicit forward decls before `setup()` required.
-- Logika belok persimpangan dieksekusi secara non-blocking via sub-state machine (`SUBSTATE_INTER_CREEP` dan `SUBSTATE_TURNING`) di `loop()`. Helper lama `belokKiri90`/`belokKanan90` tetap ada untuk backward compatibility.
-- I term clamped ±50; integral reset after recovery. Adaptive speed uses factor in code/config.
-- Ultrasonic priority over all drive logic when running.
-- Lost-line timeout 2000ms then stop (red). Stuck detector can stop robot.
-- Sensor thresholds per-sensor (left/right) with clamping 3–18.
-- Path planner files live in sketch root and are only included if `ENABLE_PATH_PLANNER`.
-- Serial output controlled by `ENABLE_SERIAL_OUTPUT`/`ENABLE_SERIAL_MODE` (Bluetooth forces serial on).
+```bash
+# Compile sketch utama (di dalam LineFollowerFin/)
+arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin.ino
 
-## Build & Test
-- **Compile main**: `arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin.ino`
-- **Compile tests**: `arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin/tests/TestLapTimer` (and `TestBluetooth`, `TestPathPlanner`)
-- **Upload**: `arduino-cli upload -p /dev/ttyUSB0 --fqbn arduino:avr:mega LineFollowerFin.ino`
-- **Serial monitor**: `arduino-cli monitor -p /dev/ttyUSB0 -c baudrate=115200`
-- **CI**: `.github/workflows/compile.yml` compiles main + all three tests automatically.
-- **Fuzzy PID**: enable with `ENABLE_FUZZY_PID true` in `config.h`.
-- **Path Planner**: enable with `ENABLE_PATH_PLANNER true` in `config.h`; files live in root sketch folder.
-- **Lap Timer**: enable with `ENABLE_LAP_TIMER true` in `config.h`; uses `LAP_SF_THRESHOLD` and `LAP_MIN_LAP_MS` from `config.h`.
+# Compile test sketch
+arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin/tests/TestLapTimer
+arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin/tests/TestBluetooth
+arduino-cli compile --fqbn arduino:avr:mega LineFollowerFin/tests/TestPathPlanner
 
-## Code Writing Rules
-- **YAGNI**: Never add unused features or abstractions.
-- **Stdlib first**: Use `EEPROM.h`, `Arduino.h`, `Servo.h` before custom code.
-- **Minimal code**: One line if possible; only add code that fixes a verified bug or enables a requested feature.
-- **No boilerplate**: Delete throwaway scripts after verification.
-- **Verification**: Always verify changes with specific tests or manual checks.
-- **No magic**: All parameters must be in `config.h` or clearly documented.
-- **EEPROM**: Use `eepromPutHemat` template; never write directly to EEPROM without change detection.
-- **Non-blocking**: All UI and timing must be non-blocking (use millis(), not delay()).
-- **Error handling**: All critical paths must have explicit checks (battery, tilt, ultrasonic, stuck).
-- **Documentation**: Every class/function must have clear comments in English.
-- **Indonesian comments**: Keep serial prints and comments in Indonesian for consistency.
-- **Modular**: Each component (sensor, PID, safety, UI) must be in its own class with clear interfaces.
-- **Forward declarations**: Required for `eepromPutHemat` template in headers.
-- **Testing**: Add regression tests only for uncertain edges or on request.
-- **Performance**: Monitor RAM usage; disable features if RAM < 7KB (ATMega2560 limit).
-- **Safety**: All critical functions must have explicit exit conditions.
-- **Versioning**: Keep `config.h` as single source of truth for tunable parameters.
-- **No external dependencies**: Only use built-in Arduino libraries and uKitExplore2.
-- **Consistency**: Follow existing naming conventions and code style.
-- **Verification**: Test every change with at least one specific scenario.
+# Upload
+arduino-cli upload -p /dev/ttyUSB0 --fqbn arduino:avr:mega LineFollowerFin.ino
+
+# Serial monitor (baud 115200)
+arduino-cli monitor -p /dev/ttyUSB0 -c baudrate=115200
+```
+
+Fitur opsional di-toggle via `config.h` (`ENABLE_LAP_TIMER`, `ENABLE_HEADING_CORRECTION`, `ENABLE_PATH_PLANNER`, `ENABLE_FUZZY_PID`, `ENABLE_ADAPTIVE_THRESHOLD`, `ENABLE_BLUETOOTH`, `ENABLE_RC`). Default sebagian besar OFF untuk hemat RAM.
+
+## Konvensi & Aturan Penulisan Kode
+
+- **YAGNI**: tidak menambahkan fitur atau abstraksi yang tidak terpakai.
+- **Stdlib first**: gunakan `EEPROM.h`, `Arduino.h`, `Servo.h` sebelum kode custom.
+- **Minimal code**: satu bar jika memungkinkan; hanya tambah kode yang memperbaiki bug terverifikasi atau mengaktifkan fitur yang diminta.
+- **No boilerplate**: hapus script buangan setelah verifikasi.
+- **Verifikasi**: selalu verifikasi perubahan dengan tes atau pemeriksaan spesifik.
+- **No magic**: semua parameter di `config.h` atau dokumentasi yang jelas.
+- **EEPROM**: gunakan template `eepromPutHemat`; tidak boleh menulis langsung ke EEPROM tanpa deteksi perubahan.
+- **Non-blocking**: semua UI dan timing menggunakan `millis()`, bukan `delay()`.
+- **Error handling**: semua path kritis harus memiliki pengecekan eksplisit (baterai, tilt, ultrasonic, stuck).
+- **Dokumentasi**: setiap kelas/fungsi harus memiliki komentar jelas dalam bahasa Inggris.
+- **Komentar Indonesia**: komentar dan serial print dalam bahasa Indonesia untuk konsistensi.
+- **Modular**: setiap komponen (sensor, PID, safety, UI) dalam kelas sendiri dengan antarmuka jelas.
+- **Forward declarations**: diperlukan untuk template `eepromPutHemat` di header.
+- **Performance**: pantau RAM usage; nonaktifkan fitur jika RAM < 7KB (ATMega2560 limit).
+- **Safety**: semua fungsi kritis harus memiliki kondisi keluar yang eksplisit.
+- **Versioning**: `config.h` sebagai single source of truth untuk parameter tunable.
+- **No external dependencies**: hanya library bawaan Arduino dan `uKitExplore2`.
+- **Consistency**: ikuti konvensi penamaan dan gaya kode yang ada.
+
+## Gotchas (harus dipertahankan)
+
+- `eepromPutHemat` template di header + forward declarations eksplisit sebelum `setup()` (template merusak auto-prototype Arduino).
+- Logika belok persimpangan non-blocking via sub-state machine (`SUBSTATE_INTER_CREEP` + `SUBSTATE_TURNING`). Helper lama `belokKiri90`/`belokKanan90` masih ada untuk backward compatibility.
+- I-term dijepit ±50; integral reset setelah keluar recovery.
+- Ultrasonik prioritas di atas semua logika drive saat berjalan.
+- Lost-line timeout 2000ms lalu berhenti (LED merah); stuck detector dapat menghentikan robot.
+- Ambang sensor per-sensor (kiri/kanan) dengan clamping 3–18.
+- Path planner files di sketch root dan hanya di-include jika `ENABLE_PATH_PLANNER`.
+- Serial output dikontrol oleh `ENABLE_SERIAL_OUTPUT` / `ENABLE_SERIAL_MODE` (Bluetooth memaksa serial on).
+- Sensor ID (`LIGHT_SENSOR_ID`, `ULTRASONIC_ID`, `SOUND_SENSOR_ID`) bisa berbeda tergantung wiring — sesuaikan di `config.h`.
+- Guard byte `77` di alamat 3 agar `Initialization()` uKit tidak menghapus 0–20.
